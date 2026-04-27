@@ -43,35 +43,36 @@ service cloud.firestore {
 
     // 1. Users Collection
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn() && resource.data.email == request.auth.token.email;
-      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().email == request.auth.token.email;
-      allow update: if isOwner(userId) && isValidUser(incoming()) && 
-                    incoming().email == existing().email &&
-                    (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']));
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId);
     }
 
     // 2. Inventory Collection
     match /inventory/{itemId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isEmailVerified() && isValidInventoryItem(incoming()) && isValidId(itemId);
-      allow update: if isSignedIn() && isEmailVerified() && isValidInventoryItem(incoming()) && 
-                    (
-                      // Action: Stock Update
-                      incoming().diff(existing()).affectedKeys().hasOnly(['currentStock', 'updatedAt', 'updatedBy'])
-                      || 
-                      // Action: Full Edit
-                      incoming().diff(existing()).affectedKeys().hasOnly(['sku', 'name', 'category', 'currentStock', 'unit', 'safetyStock', 'location', 'updatedAt', 'updatedBy'])
-                    );
-      allow delete: if isSignedIn() && isEmailVerified(); // In a real app, maybe only admin
+      allow create, update: if isSignedIn() && isEmailVerified();
+      allow delete: if isSignedIn() && isEmailVerified();
     }
 
     // 3. Production Batches
-    match /productionBatches/{batchId} {
+    match /production_batches/{batchId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isEmailVerified();
-      allow update: if isSignedIn() && isEmailVerified() && 
-                    (incoming().status != 'completed' || existing().status != 'completed');
+      allow create, update: if isSignedIn() && isEmailVerified();
+      allow delete: if isSignedIn() && isEmailVerified();
+    }
+
+    // 4. Logistics
+    match /logistics/{recordId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isEmailVerified();
+      allow delete: if isSignedIn() && isEmailVerified();
+    }
+
+    // 5. Partners
+    match /partners/{partnerId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isEmailVerified();
+      allow delete: if isSignedIn() && isEmailVerified();
     }
   }
 }
