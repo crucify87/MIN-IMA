@@ -251,26 +251,7 @@ const DashboardView = ({
           </div>
         </div>
 
-        <div className="lg:col-span-1 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold">신규 거래처</h3>
-            <button onClick={() => onNavigate('settings')} className="text-primary text-base font-bold">관리</button>
-          </div>
-          <div className="space-y-3">
-            {partners.slice(0, 3).map((p, i) => (
-              <div key={i} className="bg-white p-4 rounded-xl border border-outline-variant flex items-center justify-between">
-                <div>
-                  <p className="font-bold">{p.name}</p>
-                  <p className="text-xs text-outline">{p.type} | {p.contact || '연락처 없음'}</p>
-                </div>
-                <Users className="w-4 h-4 text-outline" />
-              </div>
-            ))}
-            {partners.length === 0 && (
-              <div className="p-8 text-center text-outline text-xs italic">등록된 거래처가 없습니다.</div>
-            )}
-          </div>
-        </div>
+        {/* Production 활동 옆에 여백이 남을 수 있으므로 레이아웃을 조정하거나 해당 섹션만 제거합니다. */}
       </section>
     </div>
   );
