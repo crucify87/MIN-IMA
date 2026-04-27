@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "user": {
+      "title": "User Profile",
+      "description": "Public and private user information",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "User's display name" },
+        "photoURL": { "type": "string", "description": "User's photo URL" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "role": { "type": "string", "enum": ["admin", "manager", "staff"], "description": "User's role in the organization" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["displayName", "email", "role"]
+    },
+    "inventoryItem": {
+      "title": "Inventory Item",
+      "description": "Stock item information",
+      "type": "object",
+      "properties": {
+        "sku": { "type": "string", "description": "Stock Keeping Unit" },
+        "name": { "type": "string", "description": "Product name" },
+        "category": { "type": "string", "description": "Product category" },
+        "currentStock": { "type": "number", "description": "Current quantity in stock" },
+        "unit": { "type": "string", "description": "Unit of measurement (e.g., kg, unit)" },
+        "safetyStock": { "type": "number", "description": "Minimum safety stock level" },
+        "location": { "type": "string", "description": "Stored location" },
+        "updatedBy": { "type": "string", "description": "UID of the user who last updated" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["sku", "name", "category", "currentStock", "unit"]
+    },
+    "productionBatch": {
+      "title": "Production Batch",
+      "description": "Information about a production batch",
+      "type": "object",
+      "properties": {
+        "batchId": { "type": "string", "description": "Unique identifier for the batch" },
+        "productName": { "type": "string", "description": "Product being produced" },
+        "weight": { "type": "number", "description": "Batch weight in kg" },
+        "yield": { "type": "number", "description": "Production yield percentage" },
+        "step": { "type": "string", "description": "Current production step" },
+        "status": { "type": "string", "enum": ["processing", "packaging", "completed"], "description": "Current batch status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["batchId", "productName", "weight", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profile collection"
+    },
+    "/inventory/{itemId}": {
+      "schema": "inventoryItem",
+      "description": "Inventory management collection"
+    },
+    "/productionBatches/{batchId}": {
+      "schema": "productionBatch",
+      "description": "Production history and tracking"
+    }
+  }
+}

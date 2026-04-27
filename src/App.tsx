@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
@@ -30,14 +30,66 @@ import {
   Clock,
   Warehouse,
   Truck,
-  User,
+  User as UserIcon,
   Factory,
   Scissors,
-  CheckCircle2
+  CheckCircle2,
+  LogOut,
+  LogIn
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { auth, loginWithGoogle, logout, db, User } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 // --- Types ---
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 type ViewType = 'dashboard' | 'inventory' | 'logistics' | 'production' | 'partners' | 'detail';
 
@@ -798,6 +850,49 @@ const PartnersView = () => {
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+      
+      if (currentUser) {
+        // Sync user profile to Firestore
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          await setDoc(userRef, {
+            displayName: currentUser.displayName,
+            email: currentUser.email,
+            photoURL: currentUser.photoURL,
+            role: 'staff', // Default role
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+        } catch (error) {
+          console.error("Error syncing user profile:", error);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   const navItems = [
     { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
@@ -811,6 +906,48 @@ export default function App() {
     setCurrentView(view);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <motion.div 
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border border-outline-variant text-center space-y-6"
+        >
+          <div className="bg-primary text-white w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+            <Warehouse className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-primary tracking-tighter uppercase">MIN IMA</h1>
+            <p className="text-on-surface-variant mt-2 font-medium">관리자 시스템 로그인이 필요합니다.</p>
+          </div>
+          <button 
+            onClick={handleLogin}
+            className="w-full h-14 bg-white border-2 border-outline-variant rounded-2xl flex items-center justify-center gap-3 font-bold text-on-surface hover:bg-surface-container transition-all active:scale-95"
+          >
+            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+            구글 계정으로 로그인
+          </button>
+          <p className="text-[10px] text-outline uppercase font-bold tracking-widest leading-relaxed">
+            INDUSTRIAL INVENTORY & PRODUCTION MANAGEMENT DASHBOARD
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
@@ -835,15 +972,23 @@ export default function App() {
             </button>
             <div className="flex items-center gap-3 border-l border-outline-variant/30 pl-4 ml-2">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-on-surface">알렉스 밀러</p>
+                <p className="text-xs font-bold text-on-surface">{user.displayName || '사용자'}</p>
                 <p className="text-[10px] text-outline uppercase font-bold tracking-tight">현장 관리자</p>
               </div>
-              <div className="w-10 h-10 rounded-full border border-outline-variant overflow-hidden ring-2 ring-primary/5 shadow-sm">
-                <img 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAktZLwu5CdPK9OSJlxXyY0hoZJ2-D9DHxKCOdKcIV6Ps-bE92DKISUuBGPVXRq916_h2DP09ufoiCBnaeRdkYWWPJGpKb2FLWA6lDX1jkwM6_-PfCuNSZPMVwpl5LhhVUAmAm5rWzu9gcCuGd5_j-p58uLsfrqbJA7p1xoTn8qaKis3qoRdO2A1a3_g7AVrXnHZdrmZhNjrw57sAeiF62PmXHvhDLCzaV0U-eauGEn9eXAqE1SpklJPF61Nxjj-bRm3C_gUr1iCJY" 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
+              <div className="group relative">
+                <div className="w-10 h-10 rounded-full border border-outline-variant overflow-hidden ring-2 ring-primary/5 shadow-sm">
+                  <img 
+                    src={user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="absolute top-full right-0 mt-2 bg-white border border-outline-variant rounded-xl p-2 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[10px] font-bold text-error whitespace-nowrap"
+                >
+                  <LogOut className="w-3 h-3" /> 로그아웃
+                </button>
               </div>
             </div>
           </div>

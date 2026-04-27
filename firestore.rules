@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection Test Path
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Phase 3: Primitive Definition
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+
+    // Helper for user validation
+    function isValidUser(data) {
+      return data.keys().hasAll(['displayName', 'email', 'role']) &&
+             data.keys().size() >= 3 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.email is string && data.email.size() <= 100 &&
+             data.role in ['admin', 'manager', 'staff'];
+    }
+
+    // Helper for inventory validation
+    function isValidInventoryItem(data) {
+      return data.keys().hasAll(['sku', 'name', 'category', 'currentStock', 'unit']) &&
+             data.sku is string && data.sku.size() <= 50 &&
+             data.name is string && data.name.size() <= 200 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.currentStock is number &&
+             data.unit is string && data.unit.size() <= 20;
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.email == request.auth.token.email;
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().email == request.auth.token.email;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().email == existing().email &&
+                    (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']));
+    }
+
+    // 2. Inventory Collection
+    match /inventory/{itemId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isEmailVerified() && isValidInventoryItem(incoming()) && isValidId(itemId);
+      allow update: if isSignedIn() && isEmailVerified() && isValidInventoryItem(incoming()) && 
+                    (
+                      // Action: Stock Update
+                      incoming().diff(existing()).affectedKeys().hasOnly(['currentStock', 'updatedAt', 'updatedBy'])
+                      || 
+                      // Action: Full Edit
+                      incoming().diff(existing()).affectedKeys().hasOnly(['sku', 'name', 'category', 'currentStock', 'unit', 'safetyStock', 'location', 'updatedAt', 'updatedBy'])
+                    );
+      allow delete: if isSignedIn() && isEmailVerified(); // In a real app, maybe only admin
+    }
+
+    // 3. Production Batches
+    match /productionBatches/{batchId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isEmailVerified();
+      allow update: if isSignedIn() && isEmailVerified() && 
+                    (incoming().status != 'completed' || existing().status != 'completed');
+    }
+  }
+}
