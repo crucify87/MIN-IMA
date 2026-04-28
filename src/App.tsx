@@ -1067,8 +1067,8 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-7xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
-            <p className="text-xl font-bold text-on-surface-variant mt-1">생산 공정 및 작업 일지 관리</p>
+            <h1 className="text-8xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
+            <p className="text-2xl font-bold text-on-surface-variant mt-1">생산 공정 및 작업 일지 관리</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -1099,19 +1099,19 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
             <div className={`bg-white p-6 rounded-3xl border-4 ${editingId ? 'border-secondary/20 shadow-secondary/5' : 'border-primary/10 shadow-primary/5'} shadow-2xl space-y-6 relative`}>
               {editingId && (
                 <div className="absolute top-4 right-4">
-                  <span className="bg-secondary text-white text-[8px] font-black px-3 py-1 rounded-lg uppercase tracking-[0.2em] animate-pulse shadow-md">EDITING MODE</span>
+                  <span className="bg-secondary text-white text-xs font-black px-4 py-2 rounded-xl uppercase tracking-[0.2em] animate-pulse shadow-md">EDITING MODE</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-black text-primary uppercase tracking-widest">
+                <h3 className="text-3xl font-black text-primary uppercase tracking-widest">
                   {editingId ? '생산 일지 개별 수정' : '일지 정보 입력'}
                 </h3>
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-black text-outline uppercase tracking-widest">생산 라인:</span>
+                  <span className="text-base font-black text-outline uppercase tracking-widest">생산 라인:</span>
                   <select 
                     value={productionLine} 
                     onChange={e => setProductionLine(e.target.value)}
-                    className="h-10 px-4 rounded-xl border-2 border-outline-variant focus:border-primary outline-none text-sm font-black transition-colors bg-surface-container"
+                    className="h-12 px-6 rounded-xl border-2 border-outline-variant focus:border-primary outline-none text-base font-black transition-colors bg-white shadow-sm"
                   >
                     <option value="삼산공장">삼산공장</option>
                     <option value="언양공장 식육가공">언양공장 식육가공</option>
@@ -1121,7 +1121,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="hidden md:grid grid-cols-12 gap-4 px-6 text-sm font-black text-outline uppercase tracking-[0.2em]">
+                <div className="hidden md:grid grid-cols-12 gap-4 px-6 text-base font-black text-outline uppercase tracking-[0.2em]">
                   <div className="col-span-4 text-center">품목명</div>
                   <div className="col-span-3 text-center">원육</div>
                   <div className="col-span-2 text-center text-primary">중량 (kg)</div>
@@ -1137,16 +1137,16 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                       className="p-4 bg-surface-container rounded-2xl border-2 border-outline-variant/30 flex flex-col md:grid md:grid-cols-12 gap-4 items-center group/item hover:border-primary/30 transition-all shadow-sm"
                     >
                       <div className="w-full md:col-span-4">
-                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명 입력" className="w-full h-10 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-black shadow-inner" />
+                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명 입력" className="w-full h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-lg transition-all font-black shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-3">
-                        <input required value={item.rawMeat} onChange={e => updateItem(idx, 'rawMeat', e.target.value)} type="text" placeholder="원육 정보" className="w-full h-10 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-sm transition-all font-bold shadow-inner" />
+                        <input required value={item.rawMeat} onChange={e => updateItem(idx, 'rawMeat', e.target.value)} type="text" placeholder="원육 정보" className="w-full h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-bold shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-2">
-                        <input required value={item.weight} onChange={e => updateItem(idx, 'weight', e.target.value)} type="text" placeholder="0.0" className="w-full h-10 px-2 text-center rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-mono font-black text-primary shadow-inner" />
+                        <input required value={item.weight} onChange={e => updateItem(idx, 'weight', e.target.value)} type="text" placeholder="0.0" className="w-full h-12 px-2 text-center rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-lg transition-all font-mono font-black text-primary shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-2">
-                        <input required value={item.loss} onChange={e => updateItem(idx, 'loss', e.target.value)} type="text" placeholder="0.0" className="w-full h-10 px-2 text-center rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-mono font-black text-error shadow-inner" />
+                        <input required value={item.loss} onChange={e => updateItem(idx, 'loss', e.target.value)} type="text" placeholder="0.0" className="w-full h-12 px-2 text-center rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-lg transition-all font-mono font-black text-error shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-1 flex justify-center">
                         {items.length > 1 && (
@@ -1168,7 +1168,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                     <button 
                       type="button" 
                       onClick={addItem}
-                      className="flex-1 h-12 border-2 border-dashed border-outline-variant rounded-2xl text-[9px] font-black uppercase tracking-widest text-outline hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 shadow-sm"
+                      className="flex-1 h-14 border-2 border-dashed border-outline-variant rounded-2xl text-xs font-black uppercase tracking-widest text-outline hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-3 shadow-sm"
                     >
                       <Plus className="w-5 h-5" /> 품목 추가 (행 추가)
                     </button>
@@ -1176,7 +1176,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                   <button 
                     disabled={loading} 
                     type="submit" 
-                    className={`h-12 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 ${editingId ? 'flex-1 bg-secondary text-white' : 'flex-[2] bg-primary text-white'}`}
+                    className={`h-14 rounded-2xl font-black text-lg uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 ${editingId ? 'flex-1 bg-secondary text-white' : 'flex-[2] bg-primary text-white'}`}
                   >
                     {loading ? '기록 중...' : (editingId ? '수정 사항 저장 및 시스템 업데이트' : `${items.length}건의 생산 데이터 시스템 등록`)}
                   </button>
@@ -1189,50 +1189,50 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-sm font-black text-outline uppercase tracking-widest">총 생산 배치</span>
+          <span className="text-base font-black text-outline uppercase tracking-widest">총 생산 배치</span>
           <div className="flex items-end justify-between mt-2">
-            <span className="text-4xl font-black text-primary tracking-tighter">{production.length}</span>
-            <Factory className="text-secondary w-8 h-8" />
+            <span className="text-5xl font-black text-primary tracking-tighter">{production.length}</span>
+            <Factory className="text-secondary w-10 h-10" />
           </div>
         </div>
         <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-sm font-black text-outline uppercase tracking-widest">평균 로스율</span>
+          <span className="text-base font-black text-outline uppercase tracking-widest">평균 로스율</span>
           <div className="flex items-end justify-between mt-2">
-            <span className="text-4xl font-black text-error tracking-tighter">
+            <span className="text-5xl font-black text-error tracking-tighter">
               {(production.reduce((acc, curr) => acc + parseFloat(curr.loss || '0'), 0) / (production.length || 1)).toFixed(1)}%
             </span>
-            <AlertTriangle className="text-error w-8 h-8" />
+            <AlertTriangle className="text-error w-10 h-10" />
           </div>
         </div>
         <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-sm font-black text-outline uppercase tracking-widest">전체 총 생산량</span>
+          <span className="text-base font-black text-outline uppercase tracking-widest">전체 총 생산량</span>
           <div className="flex items-end justify-between mt-2">
-            <span className="text-3xl font-black text-primary tracking-tighter">
+            <span className="text-4xl font-black text-primary tracking-tighter">
               {(production.reduce((acc, curr) => {
                 const val = parseFloat(curr.weight?.toString().toLowerCase().replace('kg', '').trim() || '0');
                 return acc + (isNaN(val) ? 0 : val);
-              }, 0)).toLocaleString()} <span className="text-lg font-black ml-1 text-outline">kg</span>
+              }, 0)).toLocaleString()} <span className="text-xl font-black ml-1 text-outline">kg</span>
             </span>
-            <TrendingUp className="text-emerald-600 w-8 h-8" />
+            <TrendingUp className="text-emerald-600 w-10 h-10" />
           </div>
         </div>
         <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-sm font-black text-outline uppercase tracking-widest">가동 라인</span>
+          <span className="text-base font-black text-outline uppercase tracking-widest">가동 라인</span>
           <div className="flex items-end justify-between mt-2">
-            <span className="text-4xl font-black text-primary">3</span>
-            <CheckCircle2 className="text-emerald-500 w-8 h-8" />
+            <span className="text-5xl font-black text-primary">3</span>
+            <CheckCircle2 className="text-emerald-500 w-10 h-10" />
           </div>
         </div>
       </section>
 
       <div className="space-y-4">
-        <h3 className="text-xl font-black text-primary uppercase flex items-center gap-3">
-          <History className="w-6 h-6" /> 최근 생산 일지
+        <h3 className="text-2xl font-black text-primary uppercase flex items-center gap-3">
+          <History className="w-8 h-8" /> 최근 생산 일지
         </h3>
         <div className="overflow-hidden border-2 border-outline-variant rounded-2xl bg-white shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-surface-container border-b border-outline-variant text-sm uppercase font-black text-outline">
+              <thead className="bg-surface-container border-b border-outline-variant text-base uppercase font-black text-outline">
                 <tr>
                   <th className="p-4 whitespace-nowrap">배치 ID / 라인</th>
                   <th className="p-4 whitespace-nowrap">품목명</th>
