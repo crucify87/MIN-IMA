@@ -56,16 +56,19 @@
       "description": "Inbound and outbound logistics tracking",
       "type": "object",
       "properties": {
+        "date": { "type": "string", "format": "date" },
         "time": { "type": "string" },
         "type": { "type": "string", "enum": ["입고", "출고"] },
-        "title": { "type": "string" },
+        "item": { "type": "string" },
         "partner": { "type": "string" },
-        "qty": { "type": "string" },
+        "weight": { "type": "number" },
+        "freightType": { "type": "string" },
         "status": { "type": "string" },
         "color": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["type", "title", "partner", "qty", "status"]
+      "required": ["date", "type", "item", "partner", "weight", "status"]
     },
     "partner": {
       "title": "Business Partner",

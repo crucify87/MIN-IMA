@@ -121,13 +121,13 @@ const StatCard = ({ item }: { item: StatItem, key?: React.Key }) => {
       <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${item.color || 'bg-primary/10'}`}>
         <Icon className={`w-5 h-5 ${item.color ? 'text-white' : 'text-primary'}`} />
       </div>
-      <p className="text-xs font-bold text-outline uppercase tracking-wider">{item.label}</p>
-      <p className="text-xl font-bold mt-1 text-on-surface">
-        {item.value}<span className="text-sm font-normal ml-0.5">{item.unit}</span>
+      <p className="text-xl font-bold text-outline uppercase tracking-wider">{item.label}</p>
+      <p className="text-3xl font-bold mt-1 text-on-surface">
+        {item.value}<span className="text-xl font-normal ml-0.5">{item.unit}</span>
       </p>
       {item.trend && (
-        <div className={`flex items-center gap-1 text-xs mt-1 font-bold ${item.trendDir === 'up' ? 'text-emerald-600' : 'text-error'}`}>
-          {item.trendDir === 'up' ? <TrendingUp className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+        <div className={`flex items-center gap-1 text-lg mt-1 font-bold ${item.trendDir === 'up' ? 'text-emerald-600' : 'text-error'}`}>
+          {item.trendDir === 'up' ? <TrendingUp className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
           {item.trend}
         </div>
       )}
@@ -163,17 +163,17 @@ const DashboardView = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">대시보드</h1>
-          <p className="text-on-surface-variant">2024년 3월 24일 실시간 재고 및 생산 현황</p>
+      <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-black text-primary tracking-tight">대시보드</h1>
+          <p className="text-lg text-on-surface-variant font-medium">2024년 3월 24일 실시간 재고 및 생산 현황</p>
         </div>
-        <div className="flex gap-2">
-          <button className="bg-white border border-outline px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm hover:bg-surface-variant transition-colors">
-            <FileText className="w-4 h-4" /> PDF 내보내기
+        <div className="flex gap-3">
+          <button className="bg-white border border-outline px-5 py-2.5 rounded-xl flex items-center gap-2 text-base font-bold hover:bg-surface-variant transition-colors">
+            <FileText className="w-5 h-5" /> PDF 내보내기
           </button>
-          <button className="bg-primary text-white px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm shadow-sm hover:opacity-90">
-            <Plus className="w-4 h-4" /> 신규 등록
+          <button className="bg-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-base font-bold shadow-sm hover:opacity-90">
+            <Plus className="w-5 h-5" /> 신규 등록
           </button>
         </div>
       </section>
@@ -186,63 +186,63 @@ const DashboardView = ({
       {/* Main Content */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Alerts */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <AlertTriangle className="text-error w-5 h-5" /> 안전 재고 알림
+        <div className="space-y-6">
+          <h3 className="text-2xl font-black flex items-center gap-3">
+            <AlertTriangle className="text-error w-6 h-6" /> 안전 재고 알림
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {inventory.filter(item => item.currentStock < item.safetyStock).map((item, idx) => (
-              <div key={idx} className="bg-error-container p-4 rounded-xl border border-error/20 space-y-2">
+              <div key={idx} className="bg-error-container p-6 rounded-2xl border border-error/20 space-y-4">
                 <div className="flex justify-between items-start">
-                  <h4 className="font-bold text-on-error-container text-base">{item.name}</h4>
-                  <span className="bg-error text-white px-2 py-0.5 rounded text-xs font-bold">위험</span>
+                  <h4 className="font-black text-on-error-container text-xl">{item.name}</h4>
+                  <span className="bg-error text-white px-3 py-1 rounded-full text-[9px] font-black uppercase">위험</span>
                 </div>
-                <p className="text-base text-on-error-container/80 font-medium">현재고: {item.currentStock}{item.unit} | 기준치: {item.safetyStock}{item.unit}</p>
-                <div className="flex gap-2 pt-1">
-                  <button className="bg-on-error-container text-white px-4 py-1.5 rounded text-sm font-bold">지금 발주</button>
-                  <button className="border border-on-error-container/30 text-on-error-container px-4 py-1.5 rounded text-sm font-bold">무시</button>
+                <p className="text-lg text-on-error-container/90 font-bold">현재고: {item.currentStock}{item.unit} | 기준치: {item.safetyStock}{item.unit}</p>
+                <div className="flex gap-3 pt-2">
+                  <button className="bg-on-error-container text-white px-6 py-2.5 rounded-xl text-base font-black">지금 발주</button>
+                  <button className="border border-on-error-container/30 text-on-error-container px-6 py-2.5 rounded-xl text-base font-black">무시</button>
                 </div>
               </div>
             ))}
             {inventory.filter(item => item.currentStock >= item.safetyStock && item.currentStock < item.safetyStock * 1.5).map((item, idx) => (
-              <div key={idx} className="bg-white p-4 rounded-xl border border-outline-variant space-y-1">
+              <div key={idx} className="bg-white p-6 rounded-2xl border border-outline-variant space-y-2">
                 <div className="flex justify-between items-start">
-                  <h4 className="font-bold text-base">{item.name}</h4>
-                  <span className="bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded text-xs font-bold">부족</span>
+                  <h4 className="font-black text-xl">{item.name}</h4>
+                  <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[9px] font-black uppercase">부족</span>
                 </div>
-                <p className="text-base text-on-surface-variant font-medium">현재고: {item.currentStock}{item.unit} | 기준치: {item.safetyStock}{item.unit}</p>
+                <p className="text-lg text-on-surface-variant font-bold">현재고: {item.currentStock}{item.unit} | 기준치: {item.safetyStock}{item.unit}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold">최근 생산 활동</h3>
-            <button onClick={() => onNavigate('production')} className="text-primary text-base font-bold">전체 보기</button>
+            <h3 className="text-2xl font-black text-on-surface">최근 생산 활동</h3>
+            <button onClick={() => onNavigate('production')} className="text-primary text-lg font-black tracking-widest hover:underline uppercase">전체 보기</button>
           </div>
-          <div className="overflow-hidden border border-outline-variant rounded-xl bg-white shadow-sm">
+          <div className="overflow-hidden border border-outline-variant rounded-3xl bg-white shadow-sm">
             <table className="w-full text-left">
-              <thead className="bg-surface-container-low border-b border-outline-variant text-xs uppercase font-bold text-outline">
+              <thead className="bg-surface-container border-b border-outline-variant text-[8px] uppercase font-black text-outline">
                 <tr>
-                  <th className="p-4">SKU</th>
-                  <th className="p-4">품목</th>
-                  <th className="p-4">생산량</th>
-                  <th className="p-4">로스율</th>
-                  <th className="p-4 text-right">상태</th>
+                  <th className="p-6">SKU</th>
+                  <th className="p-6">품목</th>
+                  <th className="p-6 text-center">생산량</th>
+                  <th className="p-6 text-center">로스율</th>
+                  <th className="p-6 text-right">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {production.slice(0, 5).map((row, i) => (
                   <tr key={i} className="hover:bg-surface-container transition-colors">
-                    <td className="p-4 text-sm font-mono text-outline">{row.batchId}</td>
-                    <td className="p-4 text-base font-bold">{row.title}</td>
-                    <td className="p-4 text-base font-mono font-bold text-primary">
+                    <td className="p-6 text-lg font-mono text-outline font-black tracking-widest">{row.batchId}</td>
+                    <td className="p-6 text-2xl font-black text-on-surface">{row.title}</td>
+                    <td className="p-6 text-2xl font-mono font-black text-primary text-center">
                       {row.weight.toString().toLowerCase().includes('kg') ? row.weight : `${row.weight}kg`}
                     </td>
-                    <td className={`p-4 text-sm font-mono font-bold ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-primary'}`}>{row.yield}</td>
-                    <td className="p-4 text-right">
-                      <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${row.color}`}>{row.status}</span>
+                    <td className={`p-6 text-xl font-mono font-black text-center ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-primary'}`}>{row.yield}</td>
+                    <td className="p-6 text-right">
+                      <span className={`px-6 py-2 rounded-full text-base font-black uppercase tracking-widest shadow-sm ${row.color}`}>{row.status}</span>
                     </td>
                   </tr>
                 ))}
@@ -267,83 +267,108 @@ const InventoryView = ({ onNavigate, inventory }: { onNavigate: (view: ViewType,
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="space-y-1">
-          <p className="text-xs font-bold text-primary uppercase tracking-widest">운영 센터</p>
-          <h2 className="text-4xl font-bold text-on-surface">재고 관리 현황</h2>
+        <div className="space-y-2">
+          <p className="text-2xl font-black text-primary uppercase tracking-widest">운영 센터</p>
+          <h2 className="text-7xl font-black text-on-surface tracking-tighter">재고관리</h2>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center">
+      <div className="flex flex-col md:flex-row gap-6 items-center">
         <div className="relative w-full md:flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-outline w-5 h-5" />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-outline w-8 h-8" />
           <input 
             type="text" 
             placeholder="SKU 또는 제품명으로 검색..." 
-            className="w-full h-12 pl-12 pr-4 bg-white border border-outline-variant rounded-xl focus:border-primary outline-none text-base font-medium"
+            className="w-full h-12 pl-12 pr-6 bg-white border-2 border-outline-variant rounded-xl focus:border-primary outline-none text-lg font-bold transition-all shadow-sm"
           />
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <select className="h-12 px-4 bg-white border border-outline-variant rounded-xl text-base font-bold focus:border-primary outline-none min-w-[160px]">
+        <div className="flex gap-3 w-full md:w-auto">
+          <select className="h-12 px-6 bg-white border-2 border-outline-variant rounded-xl text-base font-black focus:border-primary outline-none min-w-[180px] shadow-sm">
             <option>전체 카테고리</option>
             <option>소고기</option>
             <option>돼지고기</option>
             <option>가금류</option>
           </select>
-          <button className="h-12 px-6 bg-primary text-white rounded-xl flex items-center gap-2 text-sm font-bold uppercase transition-all hover:bg-primary-container">
-            <Bell className="w-4 h-4" /> 필터
+          <button className="h-12 px-8 bg-primary text-white rounded-xl flex items-center gap-3 text-base font-black uppercase transition-all hover:bg-primary-container shadow-lg active:scale-95">
+            <Bell className="w-6 h-6" /> 필터
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: '총 SKU', value: inventory.length.toLocaleString(), color: 'text-primary' },
           { label: '재고 부족', value: inventory.filter(i => i.currentStock < i.safetyStock).length.toString(), color: 'text-error' },
           { label: '금일 입고', value: '4.2k', unit: 'kg', color: 'text-secondary' },
           { label: '금일 출고', value: '1.8k', unit: 'kg', color: 'text-tertiary' },
         ].map((item, i) => (
-          <div key={i} className="bg-surface-container p-4 rounded-xl border border-outline-variant/30">
-            <p className="text-xs font-bold text-on-surface-variant uppercase mb-1">{item.label}</p>
-            <p className={`text-3xl font-bold ${item.color}`}>
-              {item.value}<span className="text-sm font-normal ml-0.5">{item.unit || ''}</span>
+          <div key={i} className="bg-surface-container p-4 rounded-2xl border-2 border-outline-variant/30 flex flex-col gap-1">
+            <p className="text-sm font-black text-on-surface-variant uppercase tracking-widest">{item.label}</p>
+            <p className={`text-3xl font-black ${item.color}`}>
+              {item.value}<span className="text-lg font-bold ml-1">{item.unit || ''}</span>
             </p>
           </div>
         ))}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-6">
         {inventory.map((item, i) => (
           <div 
             key={i} 
             onClick={() => onNavigate('detail', item)}
-            className={`grid grid-cols-1 md:grid-cols-12 items-center gap-4 p-4 bg-white border rounded-xl hover:border-primary transition-all cursor-pointer group shadow-sm ${item.currentStock < item.safetyStock ? 'border-error-container' : 'border-outline-variant'}`}
+            className={`grid grid-cols-1 md:grid-cols-12 items-center gap-4 p-4 bg-white border-2 rounded-2xl hover:border-primary transition-all cursor-pointer group shadow-sm ${item.currentStock < item.safetyStock ? 'border-error/30 bg-error/5' : 'border-outline-variant/30'}`}
           >
-            <div className="col-span-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded bg-surface-container flex items-center justify-center shrink-0">
-                {item.currentStock < item.safetyStock ? <AlertTriangle className="w-4 h-4 text-error" /> : <Package className="w-4 h-4 text-primary" />}
+            <div className="col-span-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center shrink-0 shadow-inner group-hover:bg-primary/5 transition-colors">
+                {item.currentStock < item.safetyStock ? <AlertTriangle className="w-5 h-5 text-error" /> : <Package className="w-5 h-5 text-primary" />}
               </div>
               <div>
-                <p className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">{item.name}</p>
-                <p className="text-xs text-outline font-mono uppercase font-bold">{item.sku}</p>
+                <p className="font-black text-xl leading-tight group-hover:text-primary transition-colors tracking-tight">{item.name}</p>
+                <p className="text-sm text-outline font-mono uppercase font-black tracking-widest mt-0.5">{item.sku}</p>
               </div>
             </div>
             <div className="col-span-2 flex md:block justify-between">
-              <span className="md:hidden text-xs font-bold text-outline">카테고리</span>
-              <span className="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded text-xs font-bold">{item.category}</span>
+              <span className="md:hidden text-sm font-black text-outline uppercase tracking-widest">카테고리</span>
+              <span className="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-black uppercase tracking-widest">{item.category}</span>
             </div>
             <div className="col-span-2 flex md:block justify-between md:text-right">
-              <span className="md:hidden text-xs font-bold text-outline">현재 재고</span>
+              <span className="md:hidden text-sm font-black text-outline uppercase tracking-widest">현재 재고</span>
               <div>
-                <p className={`font-bold text-lg ${item.currentStock < item.safetyStock ? 'text-error' : ''}`}>{item.currentStock}{item.unit}</p>
-                <p className="text-xs text-outline font-bold">로스율: {item.loss}</p>
+                <p className={`font-black text-xl ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>{item.currentStock}{item.unit}</p>
+                <p className="text-sm text-outline font-black mt-0.5">로스율: {item.loss}</p>
               </div>
             </div>
-            <div className="col-span-2 flex md:justify-center items-center gap-1">
+            <div className="col-span-2 flex md:justify-center items-center gap-2">
               <CheckCircle2 className={`w-5 h-5 ${item.currentStock < item.safetyStock ? 'text-error' : 'text-emerald-700'}`} />
-              <span className={`text-xs font-bold uppercase ${item.currentStock < item.safetyStock ? 'text-error' : 'text-emerald-700'}`}>{item.status}</span>
+              <span className={`text-sm font-black uppercase tracking-widest ${item.currentStock < item.safetyStock ? 'text-error' : 'text-emerald-700'}`}>{item.status}</span>
             </div>
-            <div className="col-span-2 text-right">
-              <button className="px-5 py-2 border-2 border-primary text-primary rounded-xl text-xs font-black uppercase hover:bg-primary hover:text-white transition-all">수정</button>
+            <div className="col-span-2 text-right flex items-center justify-end gap-2">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigate('detail', item);
+                }}
+                className="h-10 px-4 border-2 border-primary text-primary rounded-xl text-sm font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
+              >
+                수정
+              </button>
+              <button 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
+                    try {
+                      await deleteDoc(doc(db, 'inventory', item.id));
+                      alert('삭제되었습니다.');
+                    } catch (error) {
+                      handleFirestoreError(error, OperationType.DELETE, 'inventory');
+                    }
+                  }
+                }}
+                className="p-2 text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all"
+                title="삭제"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
         ))}
@@ -362,77 +387,77 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-8">
         <button 
           onClick={() => onNavigate('inventory')}
-          className="p-3 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
+          className="p-5 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline shadow-sm active:scale-90"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-8 h-8" />
         </button>
-        <nav className="flex items-center gap-1 text-on-surface-variant text-xs">
-          <button onClick={() => onNavigate('inventory')} className="hover:text-primary">{item.category}</button>
-          <ChevronRight className="w-3 h-3" />
-          <span>상세 정보</span>
+        <nav className="flex items-center gap-3 text-on-surface-variant text-xl font-black uppercase tracking-widest">
+          <button onClick={() => onNavigate('inventory')} className="hover:text-primary transition-colors tracking-widest">{item.category}</button>
+          <ChevronRight className="w-6 h-6" />
+          <span className="text-primary">상세 정보 (DETAIL)</span>
         </nav>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-primary tracking-tight">{item.name}</h1>
-          <p className="text-sm font-mono text-outline">{item.sku}</p>
+      <div className="flex flex-col md:flex-row justify-between items-start gap-10">
+        <div className="space-y-4">
+          <h1 className="text-7xl font-black text-primary tracking-tighter leading-none">{item.name}</h1>
+          <p className="text-2xl font-mono text-outline font-black mt-2 tracking-[0.2em]">{item.sku}</p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm text-xs font-bold">
-            <CheckCircle2 className="w-3 h-3 fill-emerald-800 text-emerald-100" /> {item.status.toUpperCase()} STATUS
+        <div className="flex flex-col items-end gap-4">
+          <div className="bg-emerald-100 text-emerald-800 px-8 py-3 rounded-2xl flex items-center gap-3 shadow-md text-lg font-black uppercase tracking-widest border-2 border-emerald-200">
+            <CheckCircle2 className="w-6 h-6 fill-emerald-800 text-emerald-100" /> {item.status.toUpperCase()} STATUS
           </div>
-          <button className="flex items-center gap-1 text-primary text-sm font-bold hover:underline">
-            <Edit className="w-4 h-4" /> 정보 수정
+          <button className="flex items-center gap-3 text-primary text-2xl font-black hover:underline uppercase tracking-widest decoration-4 underline-offset-8">
+            <Edit className="w-7 h-7" /> 정보 수정
           </button>
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <button className="flex-1 bg-primary text-white h-14 rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg active:scale-95 transition-transform">
-          <Package className="w-6 h-6" /> 재고 업데이트
+      <div className="flex gap-6">
+        <button className="flex-1 bg-primary text-white h-20 rounded-[28px] flex items-center justify-center gap-4 font-black text-2xl shadow-xl hover:opacity-90 active:scale-95 transition-all uppercase tracking-widest">
+          <Package className="w-8 h-8" /> 재고 업데이트
         </button>
-        <button className="flex-1 border-2 border-primary text-primary h-14 rounded-xl flex items-center justify-center gap-2 font-bold text-lg bg-white active:scale-95 transition-transform">
-          <Download className="w-6 h-6" /> 데이터 내보내기
+        <button className="flex-1 border-4 border-primary text-primary h-20 rounded-[28px] flex items-center justify-center gap-4 font-black text-2xl bg-white hover:bg-primary/5 active:scale-95 transition-all shadow-xl uppercase tracking-widest">
+          <Download className="w-8 h-8" /> 데이터 내보내기
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Admin Section */}
-        <div className="border border-outline-variant rounded-2xl p-6 space-y-4 shadow-sm bg-surface-container-low relative overflow-hidden group">
+        <div className="border-2 border-outline-variant rounded-[40px] p-10 space-y-8 shadow-2xl bg-surface-container-low relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest">관리자 전용 관리</h3>
-              <h3 className={`bg-primary/10 text-primary text-[8px] px-1.5 py-0.5 rounded font-bold ${isAdmin ? 'bg-emerald-100 text-emerald-800' : ''}`}>{isAdmin ? 'VERIFIED ADMIN' : 'ADMIN ONLY'}</h3>
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-black text-primary uppercase tracking-widest">관리자 전용 관리</h3>
+              <h3 className={`bg-primary/10 text-primary text-[8px] px-4 py-1.5 rounded-xl font-black tracking-widest ${isAdmin ? 'bg-emerald-500 text-white shadow-lg' : ''}`}>{isAdmin ? 'VERIFIED ADMIN' : 'ADMIN ONLY'}</h3>
             </div>
-            {isAdmin ? <Verified className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-primary" />}
+            {isAdmin ? <Verified className="w-8 h-8 text-emerald-600" /> : <Lock className="w-8 h-8 text-primary" />}
           </div>
-          <div className={`grid grid-cols-2 gap-y-4 pt-2 transition-all duration-500 ${isAdmin ? '' : 'blur-[6px] select-none pointer-events-none opacity-40'}`}>
+          <div className={`grid grid-cols-2 gap-y-10 pt-6 transition-all duration-700 ${isAdmin ? '' : 'blur-[12px] select-none pointer-events-none opacity-30 shadow-inner'}`}>
             <div>
-              <p className="text-[10px] font-bold text-outline uppercase tracking-wider">매입 단가</p>
-              <p className="text-lg font-bold">₩ {item.purchasePrice?.toLocaleString() || '0'}</p>
+              <p className="text-lg font-black text-outline uppercase tracking-widest mb-2">매입 단가</p>
+              <p className="text-4xl font-black tracking-tight">₩ {item.purchasePrice?.toLocaleString() || '0'}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold text-outline uppercase tracking-wider">판매 단가</p>
-              <p className="text-lg font-bold">₩ {item.salesPrice?.toLocaleString() || '0'}</p>
+              <p className="text-lg font-black text-outline uppercase tracking-widest mb-2">판매 단가</p>
+              <p className="text-4xl font-black tracking-tight">₩ {item.salesPrice?.toLocaleString() || '0'}</p>
             </div>
-            <div className="col-span-2 p-4 bg-white rounded-xl border border-outline-variant flex justify-between items-center">
+            <div className="col-span-2 p-10 bg-white rounded-[32px] border-2 border-outline-variant flex justify-between items-center shadow-xl">
               <div>
-                <p className="text-[10px] font-bold text-outline uppercase tracking-wider">마진율</p>
-                <p className="text-xl font-bold text-primary">{margin > 0 ? '+' : ''}{marginPercent}%</p>
+                <p className="text-xl font-black text-outline uppercase tracking-widest mb-2">마진율</p>
+                <p className="text-5xl font-black text-primary tracking-tighter">{margin > 0 ? '+' : ''}{marginPercent}%</p>
               </div>
-              <p className="text-2xl font-black text-emerald-600">₩ {margin?.toLocaleString() || '0'}</p>
+              <p className="text-6xl font-black text-emerald-600 tracking-tighter">₩ {margin?.toLocaleString() || '0'}</p>
             </div>
           </div>
           {!isAdmin && (
-            <div className="absolute inset-0 top-12 flex flex-col items-center justify-center bg-white/10 backdrop-blur-[1px] z-10 transition-all group-hover:backdrop-blur-none">
-              <div className="text-center space-y-3 bg-white/80 p-4 rounded-xl shadow-xl backdrop-blur-md">
-                <p className="text-primary font-bold text-xs">권한 확인 후 열람 가능</p>
-                <button className="bg-primary text-white px-4 py-2 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-2 mx-auto cursor-not-allowed opacity-50">
-                  <Verified className="w-4 h-4" /> 관리자 권한 필요
+            <div className="absolute inset-0 top-20 flex flex-col items-center justify-center bg-white/10 backdrop-blur-[4px] z-10 transition-all">
+              <div className="text-center space-y-6 bg-white p-10 rounded-[32px] shadow-2xl border-4 border-outline-variant/30">
+                <p className="text-primary font-black text-2xl uppercase tracking-widest">권한 확인 후 열람 가능</p>
+                <button className="bg-primary text-white h-16 px-10 rounded-2xl text-lg font-black shadow-2xl flex items-center gap-4 mx-auto cursor-not-allowed opacity-60 uppercase tracking-widest scale-110">
+                  <Verified className="w-6 h-6" /> 관리자 권한 필요
                 </button>
               </div>
             </div>
@@ -440,28 +465,28 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
         </div>
 
         {/* Health */}
-        <div className="bg-white border border-outline-variant rounded-2xl p-6 space-y-4 shadow-sm flex flex-col justify-between">
+        <div className="bg-white border-2 border-outline-variant rounded-[40px] p-10 space-y-10 shadow-2xl flex flex-col justify-between overflow-hidden">
           <div className="flex items-center justify-between">
-            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">재고 현황</h3>
-            <TrendingUp className="w-4 h-4 text-outline" />
+            <h3 className="text-lg font-black text-on-surface-variant uppercase tracking-widest">재고 현황 지표</h3>
+            <TrendingUp className="w-8 h-8 text-outline" />
           </div>
-          <div className="grid grid-cols-3 gap-4 items-end">
-            <div className="space-y-1">
-              <p className="text-[10px] font-bold text-outline uppercase">현재 재고</p>
-              <p className="text-5xl font-black text-primary leading-none">{item.currentStock}</p>
+          <div className="grid grid-cols-3 gap-8 items-end pb-4">
+            <div className="space-y-4">
+              <p className="text-lg font-black text-outline uppercase tracking-widest">현재 재고</p>
+              <p className="text-6xl font-black text-primary leading-none tracking-tighter">{item.currentStock}</p>
             </div>
-            <div className="space-y-1 border-l border-outline-variant/30 pl-4">
-              <p className="text-[10px] font-bold text-outline uppercase">안전 재고</p>
-              <p className="text-2xl font-bold text-on-surface-variant">{item.safetyStock}</p>
+            <div className="space-y-2 border-l-2 border-outline-variant/30 pl-6">
+              <p className="text-[8px] font-black text-outline uppercase tracking-widest">안전 재고</p>
+              <p className="text-3xl font-black text-on-surface-variant tracking-tight">{item.safetyStock}</p>
             </div>
-            <div className="space-y-1 border-l border-outline-variant/30 pl-4">
-              <p className="text-[10px] font-bold text-outline uppercase">평균 로스율</p>
-              <p className="text-2xl font-bold text-error">{item.loss}</p>
+            <div className="space-y-2 border-l-2 border-outline-variant/30 pl-6">
+              <p className="text-[8px] font-black text-outline uppercase tracking-widest">로스율</p>
+              <p className="text-3xl font-black text-error tracking-tight">{item.loss}</p>
             </div>
           </div>
-          <div className="bg-surface-container-highest p-3 rounded-xl flex items-center justify-between">
-            <span className="text-xs font-bold text-on-surface-variant">적정 재고 대비</span>
-            <span className="text-sm font-mono text-primary font-black">+175%</span>
+          <div className="bg-surface-container-highest p-4 rounded-2xl flex items-center justify-between mt-4">
+            <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">적정 재고 대비</span>
+            <span className="text-lg font-mono text-primary font-black tracking-widest">+175%</span>
           </div>
         </div>
       </div>
@@ -469,7 +494,7 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
       {/* Specs */}
       <div className="bg-white border border-outline-variant rounded-2xl p-6 space-y-6 shadow-sm">
         <div className="flex items-center justify-between border-b border-surface-variant pb-4">
-          <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">제품 규격 및 보관 정보</h3>
+          <h3 className="text-[7px] font-bold text-on-surface-variant uppercase tracking-widest">제품 규격 및 보관 정보</h3>
           <Warehouse className="w-4 h-4 text-outline" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -478,7 +503,7 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
             <div className="flex items-start gap-4 p-4 bg-surface-container-low rounded-xl border border-surface-variant">
               <MapPin className="text-secondary w-6 h-6 mt-1" />
               <div>
-                <p className="text-[10px] font-bold text-outline uppercase tracking-wider">주요 보관 위치</p>
+                <p className="text-[7px] font-bold text-outline uppercase tracking-wider">주요 보관 위치</p>
                 <p className="text-lg font-bold">{item.location || '위치 정보 없음'}</p>
               </div>
             </div>
@@ -492,13 +517,13 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
                 { l: '소비기한', v: '2024-05-20', c: 'text-error' },
               ].map((item, i) => (
                 <div key={i}>
-                  <p className="text-[10px] font-bold text-outline uppercase mb-0.5">{item.l}</p>
+                  <p className="text-[7px] font-bold text-outline uppercase mb-0.5">{item.l}</p>
                   <p className={`text-md font-bold ${item.c || ''}`}>{item.v}</p>
                 </div>
               ))}
             </div>
             <div className="space-y-2 pt-2">
-              <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+              <div className="flex justify-between text-[7px] font-bold uppercase tracking-wider">
                 <span className="text-on-surface-variant">창고 점유율</span>
                 <span className="text-primary">82%</span>
               </div>
@@ -518,19 +543,19 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
       {/* History */}
       <div className="bg-white border border-outline-variant rounded-2xl p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">최근 활동 내역</h3>
+          <h3 className="text-[7px] font-bold text-on-surface-variant uppercase tracking-widest">최근 활동 내역</h3>
           <History className="w-4 h-4 text-outline" />
         </div>
         <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[2px] before:bg-surface-variant">
           <div className="relative">
             <div className="absolute -left-[20px] top-1.5 w-[10px] h-[10px] rounded-full bg-primary ring-4 ring-white shadow-sm"></div>
-            <p className="text-sm font-bold text-primary">신규 입고: #B-9021</p>
-            <p className="text-[10px] font-bold text-outline uppercase">오전 10:45 · 2023.11.20</p>
+            <p className="text-[9px] font-bold text-primary">신규 입고: #B-9021</p>
+            <p className="text-[7px] font-bold text-outline uppercase">오전 10:45 · 2023.11.20</p>
           </div>
           <div className="relative">
             <div className="absolute -left-[20px] top-1.5 w-[10px] h-[10px] rounded-full bg-outline-variant ring-4 ring-white shadow-sm"></div>
-            <p className="text-sm font-bold text-on-surface">정기 재고 조사 완료</p>
-            <p className="text-[10px] font-bold text-outline uppercase">오후 03:20 · 2023.11.18</p>
+            <p className="text-[9px] font-bold text-on-surface">정기 재고 조사 완료</p>
+            <p className="text-[7px] font-bold text-outline uppercase">오후 03:20 · 2023.11.18</p>
           </div>
         </div>
       </div>
@@ -538,129 +563,368 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
   );
 };
 
-const LogisticsView = ({ logistics, onNavigate }: { logistics: any[], onNavigate?: (view: ViewType) => void }) => {
+const LogisticsView = ({ 
+  logistics, 
+  inventory, 
+  partners, 
+  onNavigate 
+}: { 
+  logistics: any[], 
+  inventory: any[],
+  partners: any[],
+  onNavigate?: (view: ViewType) => void 
+}) => {
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    type: '입고' as '입고' | '출고',
+    item: '',
+    partner: '',
+    weight: '',
+    freightType: '선불',
+    status: '완료'
+  });
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    item: '',
+    startDate: '',
+    endDate: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const dataToSave = {
+        ...formData,
+        weight: Number(formData.weight),
+        updatedAt: serverTimestamp(),
+      };
+
+      if (editingId) {
+        const ref = doc(db, 'logistics', editingId);
+        await setDoc(ref, dataToSave, { merge: true });
+        alert('물류 기록이 수정되었습니다.');
+      } else {
+        const ref = collection(db, 'logistics');
+        await addDoc(ref, {
+          ...dataToSave,
+          createdAt: serverTimestamp(),
+          color: formData.type === '입고' ? 'bg-emerald-500' : 'bg-error'
+        });
+        alert('물류 기록이 등록되었습니다.');
+      }
+      resetForm();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'logistics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      type: '입고',
+      item: '',
+      partner: '',
+      weight: '',
+      freightType: '선불',
+      status: '완료'
+    });
+    setShowForm(false);
+  };
+
+  const startEdit = (record: any) => {
+    setEditingId(record.id);
+    setFormData({
+      date: record.date || record.createdAt?.toDate().toISOString().split('T')[0] || '',
+      time: record.time || '',
+      type: record.type || '입고',
+      item: record.item || record.title || '',
+      partner: record.partner || '',
+      weight: record.weight?.toString() || '',
+      freightType: record.freightType || '선불',
+      status: record.status || '완료'
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const filteredLogistics = useMemo(() => {
+    return logistics.filter(l => {
+      const matchItem = !filters.item || l.item?.toLowerCase().includes(filters.item.toLowerCase()) || l.title?.toLowerCase().includes(filters.item.toLowerCase());
+      const recordDate = l.date || l.createdAt?.toDate().toISOString().split('T')[0];
+      const matchStartDate = !filters.startDate || recordDate >= filters.startDate;
+      const matchEndDate = !filters.endDate || recordDate <= filters.endDate;
+      return matchItem && matchStartDate && matchEndDate;
+    }).sort((a, b) => {
+      const dateA = a.date || a.createdAt?.toDate().toISOString().split('T')[0];
+      const dateB = b.date || b.createdAt?.toDate().toISOString().split('T')[0];
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      return b.time.localeCompare(a.time);
+    });
+  }, [logistics, filters]);
+
+  const stats = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecs = logistics.filter(l => (l.date || l.createdAt?.toDate().toISOString().split('T')[0]) === today);
+    const weight = todayRecs.reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
+    const inCount = todayRecs.filter(l => l.type === '입고').length;
+    const outCount = todayRecs.filter(l => l.type === '출고').length;
+    return { weight, inCount, outCount };
+  }, [logistics]);
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => onNavigate?.('dashboard')}
-            className="p-3 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
+            className="p-4 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="space-y-1">
-            <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">운영 현황</p>
-            <h2 className="text-3xl font-bold text-on-surface">물류 관리 현황</h2>
+            <p className="text-xl font-black text-secondary uppercase tracking-widest">운영 현황</p>
+            <h2 className="text-7xl font-black text-on-surface tracking-tighter">물류현황</h2>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button className="bg-white border border-outline px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-surface-variant transition-colors">
-            <Bell className="w-4 h-4" /> 필터
-          </button>
-          <button className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-sm hover:opacity-90">
-            <Plus className="w-4 h-4" /> 신규 입고/출고
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setShowForm(!showForm)}
+            className={`${showForm ? 'bg-secondary' : 'bg-primary'} text-white h-14 px-8 rounded-2xl flex items-center gap-3 text-base font-black shadow-lg transition-all hover:opacity-90 active:scale-95 uppercase tracking-widest`}
+          >
+            {showForm ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+            {showForm ? (editingId ? '수정 취소' : '닫기') : '신규 입고/출고'}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-        <div className="bg-white p-5 border border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-outline uppercase tracking-wider">금일 총 물동량</span>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-black">12,480</span>
-            <span className="text-xs text-outline font-bold">KG</span>
+      <AnimatePresence>
+        {showForm && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-white rounded-2xl border-2 border-outline-variant/30 shadow-2xl overflow-hidden">
+              <div className="bg-surface-container/50 px-6 py-4 border-b border-outline-variant/30">
+                <h3 className="text-lg font-black text-primary uppercase tracking-widest">
+                  {editingId ? '물류 기록 수정' : '신규 입고/출고 등록'}
+                </h3>
+              </div>
+              
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                  <div className="md:col-span-4 space-y-2">
+                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">날짜/시간</label>
+                    <div className="flex gap-2">
+                      <input required value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} type="date" className="flex-2 h-10 px-2 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm font-bold bg-surface-container/50 shadow-inner" />
+                      <input required value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} type="time" className="flex-1 h-10 px-2 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm font-bold bg-surface-container/50 shadow-inner" />
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">구분</label>
+                    <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})} className="w-full h-10 px-2 rounded-xl border border-outline-variant focus:border-primary outline-none text-[11px] font-black bg-surface-container/50 shadow-inner cursor-pointer">
+                      <option value="입고">입고 (IN)</option>
+                      <option value="출고">출고 (OUT)</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-3 space-y-2">
+                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">품목 (Item)</label>
+                    <div className="relative">
+                      <input 
+                        required 
+                        list="items-list"
+                        value={formData.item} 
+                        onChange={e => setFormData({...formData, item: e.target.value})} 
+                        placeholder="제품명 입력" 
+                        className="w-full h-10 px-3 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm font-black bg-white shadow-inner" 
+                      />
+                      <datalist id="items-list">
+                        {inventory.map((item, i) => <option key={i} value={item.name} />)}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-3 space-y-2">
+                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">거래처 (Partner)</label>
+                    <select required value={formData.partner} onChange={e => setFormData({...formData, partner: e.target.value})} className="w-full h-10 px-3 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm font-black bg-white shadow-inner cursor-pointer">
+                      <option value="">선택</option>
+                      {partners.map((p, i) => <option key={i} value={p.name}>{p.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">무게 (KG)</label>
+                    <input required value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})} type="number" step="0.01" placeholder="0.0" className="w-full h-10 px-3 rounded-xl border border-outline-variant focus:border-primary outline-none text-base font-black text-primary bg-white shadow-inner" />
+                  </div>
+
+                  <div className="md:col-span-3 space-y-2">
+                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">운임 형태</label>
+                    <select value={formData.freightType} onChange={e => setFormData({...formData, freightType: e.target.value})} className="w-full h-10 px-3 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm font-bold bg-white shadow-inner cursor-pointer">
+                      <option value="선불">선불</option>
+                      <option value="착불">착불</option>
+                      <option value="당사부담">당사부담</option>
+                      <option value="무료">무료</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-3 space-y-2">
+                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">상태</label>
+                    <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full h-10 px-3 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm font-bold bg-white shadow-inner cursor-pointer">
+                      <option value="완료">완료</option>
+                      <option value="진행중">진행중</option>
+                      <option value="대기">대기</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-4 flex items-end">
+                    <button disabled={loading} type="submit" className="w-full h-10 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg hover:opacity-90 disabled:opacity-50 transition-all active:scale-95">
+                      {loading ? '기록 중...' : (editingId ? '수정 저장' : '등록 완료')}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+        <div className="bg-white p-8 border border-outline-variant rounded-3xl shadow-sm flex flex-col gap-4">
+          <span className="text-lg font-black text-outline uppercase tracking-widest">금일 총 물동량</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-5xl font-black text-on-surface">{stats.weight.toLocaleString()}</span>
+            <span className="text-2xl text-outline font-black">KG</span>
           </div>
-          <div className="flex items-center gap-1 text-emerald-600 font-mono text-[10px] font-bold">
-            <TrendingUp className="w-3 h-3" /> 전일 대비 +4.2%
+          <div className="flex items-center gap-2 text-emerald-600 font-mono text-base font-black bg-emerald-50 w-fit px-4 py-2 rounded-xl">
+            <TrendingUp className="w-5 h-5" /> 최근 업데이트: {new Date().toLocaleTimeString()}
           </div>
         </div>
-        <div className="bg-white p-5 border border-outline-variant border-l-4 border-l-emerald-500 rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-outline uppercase tracking-wider text-emerald-700">입고</span>
+        <div className="bg-white p-4 border border-outline-variant border-l-8 border-l-emerald-500 rounded-2xl shadow-sm flex flex-col gap-2">
+          <span className="text-sm font-black text-outline uppercase tracking-widest text-emerald-700">금일 입고</span>
           <div className="flex items-baseline gap-1 text-emerald-700">
-            <span className="text-3xl font-black">08</span>
-            <span className="text-xs text-outline font-bold">건</span>
+            <span className="text-3xl font-black">{stats.inCount.toString().padStart(2, '0')}</span>
+            <span className="text-lg text-outline font-black">건</span>
           </div>
-          <span className="text-[10px] text-outline font-bold">예상 도착 시간 &lt; 4시간</span>
+          <span className="text-xs text-outline font-black">오늘의 총 입고 작업 수</span>
         </div>
-        <div className="bg-white p-5 border border-outline-variant border-l-4 border-l-blue-500 rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-outline uppercase tracking-wider text-blue-700">출고</span>
+        <div className="bg-white p-4 border border-outline-variant border-l-8 border-l-blue-500 rounded-2xl shadow-sm flex flex-col gap-2">
+          <span className="text-sm font-black text-outline uppercase tracking-widest text-blue-700">금일 출고</span>
           <div className="flex items-baseline gap-1 text-blue-700">
-            <span className="text-3xl font-black">14</span>
-            <span className="text-xs text-outline font-bold">건</span>
+            <span className="text-3xl font-black">{stats.outCount.toString().padStart(2, '0')}</span>
+            <span className="text-lg text-outline font-black">건</span>
           </div>
-          <span className="text-[10px] text-outline font-bold">다음 픽업: 14:30</span>
+          <span className="text-xs text-outline font-black">오늘의 총 출고 작업 수</span>
         </div>
       </div>
 
-      {/* Timeline Section - 2 Lines (Inbound / Outbound) */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Inbound (입고) Line */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 pb-2 border-b-2 border-emerald-500/20">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <ArrowDownToLine className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="text-xl font-black text-emerald-700">입고 (INBOUND)</h3>
-          </div>
-          <div className="space-y-4 relative pl-4 border-l-2 border-outline-variant/30">
-            {logistics.filter(l => l.type === '입고').map((item, i) => (
-              <div key={i} className="bg-white p-5 border border-outline-variant rounded-2xl shadow-sm hover:shadow-md transition-shadow group relative">
-                <div className="absolute -left-[25px] top-6 w-3 h-3 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-mono text-outline font-bold">{item.time}</span>
-                  <span className="text-[8px] font-black px-1.5 py-0.5 rounded text-white uppercase bg-emerald-500">{item.type}</span>
-                </div>
-                <h3 className="text-lg font-black text-on-surface group-hover:text-primary transition-colors">{item.title}</h3>
-                <div className="mt-2 text-sm text-on-surface-variant font-bold space-y-1">
-                  <p className="flex items-center gap-2"><Truck className="w-4 h-4" /> {item.partner}</p>
-                  <p className="text-primary">{item.qty}</p>
-                </div>
-                <div className="mt-3 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
-                  <span className="text-[10px] font-black flex items-center gap-1.5 uppercase">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    {item.status}
-                  </span>
-                  <button className="text-primary text-[10px] font-black hover:underline uppercase">상세 보기</button>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Filter Section */}
+      <div className="bg-surface-container p-4 rounded-2xl flex flex-wrap items-center gap-4">
+        <div className="relative w-1/3 min-w-[200px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-4 h-4" />
+          <input 
+            type="text" 
+            placeholder="품목명으로 필터..." 
+            value={filters.item}
+            onChange={e => setFilters({...filters, item: e.target.value})}
+            className="w-full h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-xl outline-none text-sm font-medium focus:border-primary"
+          />
         </div>
+        <div className="flex-1 flex items-center gap-2 min-w-[300px]">
+          <CalendarDays className="w-4 h-4 text-outline" />
+          <input 
+            type="date" 
+            value={filters.startDate}
+            onChange={e => setFilters({...filters, startDate: e.target.value})}
+            className="flex-1 h-10 px-3 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none text-center" 
+          />
+          <span className="text-outline text-xs px-1">~</span>
+          <input 
+            type="date" 
+            value={filters.endDate}
+            onChange={e => setFilters({...filters, endDate: e.target.value})}
+            className="flex-1 h-10 px-3 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none text-center" 
+          />
+        </div>
+        {(filters.item || filters.startDate || filters.endDate) && (
+          <button 
+            onClick={() => setFilters({ item: '', startDate: '', endDate: '' })}
+            className="text-[9px] font-black text-primary uppercase hover:underline"
+          >
+            초기화
+          </button>
+        )}
+      </div>
 
-        {/* Outbound (출고) Line */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 pb-2 border-b-2 border-error/20">
-            <div className="w-8 h-8 bg-error rounded-lg flex items-center justify-center">
-              <ArrowUpFromLine className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="text-xl font-black text-error">출고 (OUTBOUND)</h3>
-          </div>
-          <div className="space-y-4 relative pl-4 border-l-2 border-outline-variant/30">
-            {logistics.filter(l => l.type === '출고').map((item, i) => (
-              <div key={i} className="bg-white p-5 border border-outline-variant rounded-2xl shadow-sm hover:shadow-md transition-shadow group relative">
-                <div className="absolute -left-[25px] top-6 w-3 h-3 rounded-full bg-error border-4 border-white shadow-sm" />
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-mono text-outline font-bold">{item.time}</span>
-                  <span className="text-[8px] font-black px-1.5 py-0.5 rounded text-white uppercase bg-error">{item.type}</span>
+      <div className="space-y-4">
+        {filteredLogistics.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4">
+            {filteredLogistics.map((item, i) => (
+              <div 
+                key={item.id} 
+                className="bg-white p-4 border-2 rounded-2xl shadow-sm hover:border-primary transition-all group flex flex-col md:flex-row md:items-center justify-between gap-4 border-outline-variant/30"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.type === '입고' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-error/10 text-error'}`}>
+                    {item.type === '입고' ? <ArrowDownToLine className="w-5 h-5" /> : <ArrowUpFromLine className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-sm font-black text-outline uppercase tracking-tighter">{item.date || item.createdAt?.toDate().toISOString().split('T')[0]} · {item.time}</span>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-md text-white uppercase tracking-widest ${item.type === '입고' ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-error shadow-sm shadow-error/20'}`}>{item.type}</span>
+                    </div>
+                    <h3 className="text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{item.item || item.title}</h3>
+                    <div className="flex flex-wrap items-center gap-4 mt-2">
+                      <p className="flex items-center gap-2 text-sm text-on-surface-variant font-bold"><Truck className="w-4 h-4 text-outline" /> {item.partner}</p>
+                      <p className="text-lg font-black text-primary uppercase tracking-widest">{item.weight ? `${item.weight} KG` : item.qty}</p>
+                      <p className="text-[9px] font-black text-outline uppercase bg-surface-container px-3 py-1 rounded-lg tracking-widest">{item.freightType || '운임미지정'}</p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-lg font-black text-on-surface group-hover:text-primary transition-colors">{item.title}</h3>
-                <div className="mt-2 text-sm text-on-surface-variant font-bold space-y-1">
-                  <p className="flex items-center gap-2"><Truck className="w-4 h-4" /> {item.partner}</p>
-                  <p className="text-primary">{item.qty}</p>
-                </div>
-                <div className="mt-3 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
-                  <span className="text-[10px] font-black flex items-center gap-1.5 uppercase">
-                    <span className="w-2 h-2 rounded-full bg-error" />
-                    {item.status}
-                  </span>
-                  <button className="text-primary text-[10px] font-black hover:underline uppercase">상세 보기</button>
+
+                <div className="flex items-center justify-between md:justify-end gap-6 pl-2 lg:pl-0 border-t md:border-t-0 pt-4 md:pt-0">
+                  <div className="flex flex-col items-end">
+                    <span className={`text-sm font-black flex items-center gap-2 uppercase tracking-widest ${item.status === '완료' ? (item.type === '입고' ? 'text-emerald-700' : 'text-error') : 'text-outline'}`}>
+                      <span className={`w-3 h-3 rounded-full shadow-sm ${item.status === '완료' ? (item.type === '입고' ? 'bg-emerald-500' : 'bg-error') : 'bg-outline-variant'}`} />
+                      {item.status}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEdit(item);
+                      }}
+                      className="h-10 px-6 border-2 border-primary text-primary rounded-xl text-sm font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
+                    >
+                      수정
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        ) : (
+          <div className="p-20 text-center bg-surface-container-low rounded-3xl border-2 border-dashed border-outline-variant">
+            <Package className="w-12 h-12 text-outline/30 mx-auto mb-4" />
+            <p className="text-outline font-bold">물류 기록이 존재하지 않거나 필터 결과와 일치하지 않습니다.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -805,11 +1069,11 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-black text-primary tracking-tight uppercase">생산 관리 시스템</h1>
-            <p className="text-sm font-bold text-on-surface-variant">생산 공정 및 작업 일지 관리</p>
+            <h1 className="text-7xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
+            <p className="text-xl font-bold text-on-surface-variant mt-1">생산 공정 및 작업 일지 관리</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button 
             onClick={() => {
               if (editingId) {
@@ -818,9 +1082,9 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                 setShowForm(!showForm);
               }
             }}
-            className={`${editingId ? 'bg-secondary' : 'bg-primary'} text-white h-12 px-6 rounded-2xl text-xs font-black flex items-center gap-2 shadow-lg hover:opacity-90 transition-all active:scale-95 uppercase tracking-widest`}
+            className={`${editingId ? 'bg-secondary' : 'bg-primary'} text-white h-12 px-6 rounded-2xl text-base font-black flex items-center gap-3 shadow-lg hover:opacity-90 transition-all active:scale-95 uppercase tracking-widest shadow-primary/20`}
           >
-            {showForm ? (editingId ? <X className="w-4 h-4" /> : <ChevronRight className="w-4 h-4 rotate-90" />) : <Plus className="w-4 h-4" />}
+            {showForm ? (editingId ? <X className="w-6 h-6" /> : <ChevronRight className="w-6 h-6 rotate-90" />) : <Plus className="w-6 h-6" />}
             {showForm ? (editingId ? '수정 닫기' : '닫기') : '생산일지 등록'}
           </button>
         </div>
@@ -834,22 +1098,22 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className={`bg-white p-8 rounded-3xl border-2 ${editingId ? 'border-secondary/20 shadow-secondary/5' : 'border-primary/10 shadow-primary/5'} shadow-xl space-y-8 relative`}>
+            <div className={`bg-white p-6 rounded-3xl border-4 ${editingId ? 'border-secondary/20 shadow-secondary/5' : 'border-primary/10 shadow-primary/5'} shadow-2xl space-y-6 relative`}>
               {editingId && (
                 <div className="absolute top-4 right-4">
-                  <span className="bg-secondary text-white text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest animate-pulse">EDITING MODE</span>
+                  <span className="bg-secondary text-white text-[8px] font-black px-3 py-1 rounded-lg uppercase tracking-[0.2em] animate-pulse shadow-md">EDITING MODE</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-black text-primary uppercase tracking-widest">
+                <h3 className="text-2xl font-black text-primary uppercase tracking-widest">
                   {editingId ? '생산 일지 개별 수정' : '일지 정보 입력'}
                 </h3>
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-outline uppercase tracking-widest">생산 라인:</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-black text-outline uppercase tracking-widest">생산 라인:</span>
                   <select 
                     value={productionLine} 
                     onChange={e => setProductionLine(e.target.value)}
-                    className="h-10 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs font-bold transition-colors bg-surface-container"
+                    className="h-10 px-4 rounded-xl border-2 border-outline-variant focus:border-primary outline-none text-sm font-black transition-colors bg-surface-container"
                   >
                     <option value="삼산공장">삼산공장</option>
                     <option value="언양공장 식육가공">언양공장 식육가공</option>
@@ -859,58 +1123,39 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="hidden md:grid grid-cols-12 gap-4 px-6 text-[10px] font-black text-outline uppercase tracking-widest">
-                  <div className="col-span-3">품목명</div>
-                  <div className="col-span-2">원육</div>
-                  <div className="col-span-1 text-center">중량 (kg)</div>
-                  <div className="col-span-1 text-center">로스율 (%)</div>
-                  <div className="col-span-2">제조 일자</div>
-                  <div className="col-span-2">소비기한</div>
+                <div className="hidden md:grid grid-cols-12 gap-4 px-6 text-sm font-black text-outline uppercase tracking-[0.2em]">
+                  <div className="col-span-4 text-center">품목명</div>
+                  <div className="col-span-3 text-center">원육</div>
+                  <div className="col-span-2 text-center text-primary">중량 (kg)</div>
+                  <div className="col-span-2 text-center text-error">로스율 (%)</div>
                   <div className="col-span-1"></div>
                 </div>
-
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {items.map((item, idx) => (
                     <motion.div 
                       key={idx} 
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-4 md:p-2 bg-surface-container rounded-2xl md:rounded-xl border border-outline-variant flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-center group/item"
+                      className="p-4 bg-surface-container rounded-2xl border-2 border-outline-variant/30 flex flex-col md:grid md:grid-cols-12 gap-4 items-center group/item hover:border-primary/30 transition-all shadow-sm"
                     >
+                      <div className="w-full md:col-span-4">
+                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명 입력" className="w-full h-10 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-black shadow-inner" />
+                      </div>
                       <div className="w-full md:col-span-3">
-                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명 입력" className="w-full h-11 px-4 rounded-lg bg-white border border-transparent focus:border-primary outline-none text-sm transition-all font-bold" />
+                        <input required value={item.rawMeat} onChange={e => updateItem(idx, 'rawMeat', e.target.value)} type="text" placeholder="원육 정보" className="w-full h-10 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-sm transition-all font-bold shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-2">
-                        <input required value={item.rawMeat} onChange={e => updateItem(idx, 'rawMeat', e.target.value)} type="text" placeholder="원육 정보" className="w-full h-11 px-4 rounded-lg bg-white border border-transparent focus:border-primary outline-none text-sm transition-all" />
-                      </div>
-                      <div className="w-full md:col-span-1">
-                        <input required value={item.weight} onChange={e => updateItem(idx, 'weight', e.target.value)} type="text" placeholder="0.0" className="w-full h-11 px-2 text-center rounded-lg bg-white border border-transparent focus:border-primary outline-none text-sm transition-all font-mono" />
-                      </div>
-                      <div className="w-full md:col-span-1">
-                        <input required value={item.loss} onChange={e => updateItem(idx, 'loss', e.target.value)} type="text" placeholder="0.0" className="w-full h-11 px-2 text-center rounded-lg bg-white border border-transparent focus:border-primary outline-none text-sm transition-all font-mono" />
+                        <input required value={item.weight} onChange={e => updateItem(idx, 'weight', e.target.value)} type="text" placeholder="0.0" className="w-full h-10 px-2 text-center rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-mono font-black text-primary shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-2">
-                        <input 
-                          value={item.manufDate} 
-                          onChange={e => updateItem(idx, 'manufDate', e.target.value)} 
-                          type="date" 
-                          className="w-full h-11 px-3 rounded-lg bg-white border border-transparent focus:border-primary outline-none text-[12px] font-bold transition-all" 
-                        />
-                      </div>
-                      <div className="w-full md:col-span-2">
-                        <input 
-                          value={item.expiryDate} 
-                          onChange={e => updateItem(idx, 'expiryDate', e.target.value)} 
-                          type="date" 
-                          className="w-full h-11 px-3 rounded-lg bg-white border border-transparent focus:border-primary outline-none text-[12px] font-bold transition-all" 
-                        />
+                        <input required value={item.loss} onChange={e => updateItem(idx, 'loss', e.target.value)} type="text" placeholder="0.0" className="w-full h-10 px-2 text-center rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-mono font-black text-error shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-1 flex justify-center">
                         {items.length > 1 && (
                           <button 
                             type="button" 
                             onClick={() => removeItem(idx)}
-                            className="p-2 text-outline hover:text-error transition-colors"
+                            className="p-2 text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -925,7 +1170,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                     <button 
                       type="button" 
                       onClick={addItem}
-                      className="flex-1 h-14 border-2 border-dashed border-outline-variant rounded-2xl text-[10px] font-black uppercase tracking-widest text-outline hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
+                      className="flex-1 h-12 border-2 border-dashed border-outline-variant rounded-2xl text-[9px] font-black uppercase tracking-widest text-outline hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                       <Plus className="w-5 h-5" /> 품목 추가 (행 추가)
                     </button>
@@ -933,7 +1178,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                   <button 
                     disabled={loading} 
                     type="submit" 
-                    className={`h-14 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 ${editingId ? 'flex-1 bg-secondary text-white' : 'flex-[2] bg-primary text-white'}`}
+                    className={`h-12 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 ${editingId ? 'flex-1 bg-secondary text-white' : 'flex-[2] bg-primary text-white'}`}
                   >
                     {loading ? '기록 중...' : (editingId ? '수정 사항 저장 및 시스템 업데이트' : `${items.length}건의 생산 데이터 시스템 등록`)}
                   </button>
@@ -945,110 +1190,110 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
       </AnimatePresence>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 border border-outline-variant rounded-2xl shadow-sm">
-          <span className="text-xs font-bold text-outline uppercase tracking-wider">총 생산 배치</span>
-          <div className="flex items-end justify-between mt-4">
-            <span className="text-4xl font-black text-primary">{production.length}</span>
-            <Factory className="text-secondary w-10 h-10" />
+        <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
+          <span className="text-sm font-black text-outline uppercase tracking-widest">총 생산 배치</span>
+          <div className="flex items-end justify-between mt-2">
+            <span className="text-4xl font-black text-primary tracking-tighter">{production.length}</span>
+            <Factory className="text-secondary w-8 h-8" />
           </div>
         </div>
-        <div className="bg-white p-6 border border-outline-variant rounded-2xl shadow-sm">
-          <span className="text-xs font-bold text-outline uppercase tracking-wider">평균 로스율</span>
-          <div className="flex items-end justify-between mt-4">
-            <span className="text-4xl font-black text-error">
+        <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
+          <span className="text-sm font-black text-outline uppercase tracking-widest">평균 로스율</span>
+          <div className="flex items-end justify-between mt-2">
+            <span className="text-4xl font-black text-error tracking-tighter">
               {(production.reduce((acc, curr) => acc + parseFloat(curr.loss || '0'), 0) / (production.length || 1)).toFixed(1)}%
             </span>
-            <AlertTriangle className="text-error w-10 h-10" />
+            <AlertTriangle className="text-error w-8 h-8" />
           </div>
         </div>
-        <div className="bg-white p-6 border border-outline-variant rounded-2xl shadow-sm">
-          <span className="text-xs font-bold text-outline uppercase tracking-wider">총 생산량</span>
-          <div className="flex items-end justify-between mt-4">
-            <span className="text-4xl font-black text-primary">
+        <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
+          <span className="text-sm font-black text-outline uppercase tracking-widest">전체 총 생산량</span>
+          <div className="flex items-end justify-between mt-2">
+            <span className="text-3xl font-black text-primary tracking-tighter">
               {(production.reduce((acc, curr) => {
                 const val = parseFloat(curr.weight?.toString().toLowerCase().replace('kg', '').trim() || '0');
                 return acc + (isNaN(val) ? 0 : val);
-              }, 0)).toLocaleString()} <span className="text-sm font-normal ml-1">kg</span>
+              }, 0)).toLocaleString()} <span className="text-lg font-black ml-1 text-outline">kg</span>
             </span>
-            <TrendingUp className="text-emerald-600 w-10 h-10" />
+            <TrendingUp className="text-emerald-600 w-8 h-8" />
           </div>
         </div>
-        <div className="bg-white p-6 border border-outline-variant rounded-2xl shadow-sm">
-          <span className="text-xs font-bold text-outline uppercase tracking-wider">가동 라인</span>
-          <div className="flex items-end justify-between mt-4">
+        <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
+          <span className="text-sm font-black text-outline uppercase tracking-widest">가동 라인</span>
+          <div className="flex items-end justify-between mt-2">
             <span className="text-4xl font-black text-primary">3</span>
-            <CheckCircle2 className="text-emerald-500 w-10 h-10" />
+            <CheckCircle2 className="text-emerald-500 w-8 h-8" />
           </div>
         </div>
       </section>
 
       <div className="space-y-4">
-        <h3 className="text-xl font-black text-primary uppercase flex items-center gap-2">
-          <History className="w-5 h-5" /> 최근 생산 일지
+        <h3 className="text-xl font-black text-primary uppercase flex items-center gap-3">
+          <History className="w-6 h-6" /> 최근 생산 일지
         </h3>
-        <div className="overflow-hidden border border-outline-variant rounded-3xl bg-white shadow-sm">
+        <div className="overflow-hidden border-2 border-outline-variant rounded-2xl bg-white shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-surface-container-low border-b border-outline-variant text-[14px] uppercase font-black text-outline">
+              <thead className="bg-surface-container border-b border-outline-variant text-sm uppercase font-black text-outline">
                 <tr>
-                  <th className="p-6 whitespace-nowrap">배치 ID / 라인</th>
-                  <th className="p-6 whitespace-nowrap">품목명</th>
-                  <th className="p-6 whitespace-nowrap">원육</th>
-                  <th className="p-6 text-center whitespace-nowrap">중량</th>
-                  <th className="p-6 text-center whitespace-nowrap">Loss율</th>
-                  <th className="p-6 text-right whitespace-nowrap">관리</th>
+                  <th className="p-4 whitespace-nowrap">배치 ID / 라인</th>
+                  <th className="p-4 whitespace-nowrap">품목명</th>
+                  <th className="p-4 whitespace-nowrap">원육</th>
+                  <th className="p-4 text-center whitespace-nowrap">중량</th>
+                  <th className="p-4 text-center whitespace-nowrap">Loss율</th>
+                  <th className="p-4 text-right whitespace-nowrap">관리</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {[...production].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).map((batch, i) => (
                   <tr key={i} className="hover:bg-surface-container transition-colors group">
-                    <td className="p-6 whitespace-nowrap">
+                    <td className="p-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
-                        <span className="text-base font-mono text-outline font-bold tracking-tighter">{batch.batchId}</span>
-                        <span className="w-fit px-3 py-1 bg-primary/10 rounded-lg text-sm font-black text-primary uppercase tracking-wider">{batch.productionLine}</span>
+                        <span className="text-sm font-mono text-outline font-black tracking-widest">{batch.batchId}</span>
+                        <span className="w-fit px-3 py-1 bg-primary/10 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
                       </div>
                     </td>
-                    <td className="p-6 whitespace-nowrap">
-                      <p className="text-2xl font-black text-on-surface group-hover:text-primary transition-colors">{batch.title}</p>
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
                     </td>
-                    <td className="p-6 whitespace-nowrap">
-                      <span className="px-4 py-2 bg-surface-container rounded-xl text-lg font-bold text-on-surface-variant">
+                    <td className="p-4 whitespace-nowrap">
+                      <span className="px-3 py-1.5 bg-surface-container rounded-xl text-sm font-black text-on-surface-variant">
                         {batch.rawMeat || '미지정'}
                       </span>
                     </td>
-                    <td className="p-6 text-center whitespace-nowrap">
-                      <p className="text-2xl font-black text-primary">
+                    <td className="p-4 text-center whitespace-nowrap">
+                      <p className="text-xl font-black text-primary">
                         {batch.weight.toString().toLowerCase().includes('kg') ? batch.weight : `${batch.weight}kg`}
                       </p>
                     </td>
-                    <td className="p-6 text-center whitespace-nowrap">
-                      <div className="flex flex-col items-center">
-                        <span className="text-2xl font-black text-error">{batch.loss || '0'}%</span>
-                        <div className="w-24 h-2.5 bg-error/10 rounded-full overflow-hidden mt-1.5">
+                    <td className="p-4 text-center whitespace-nowrap">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-xl font-black text-error">{batch.loss || '0'}%</span>
+                        <div className="w-24 h-2 bg-error/10 rounded-full overflow-hidden">
                           <div className="h-full bg-error" style={{ width: `${Math.min(parseFloat(batch.loss || '0') * 5, 100)}%` }} />
                         </div>
                       </div>
                     </td>
-                    <td className="p-6 whitespace-nowrap">
+                    <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-6">
-                        <div className="text-right">
-                          <p className="text-xs font-black text-outline uppercase tracking-tighter">
+                        <div className="text-right space-y-0.5">
+                          <p className="text-xs font-black text-outline uppercase tracking-widest">
                             {batch.manufDate && `제조: ${batch.manufDate}`}
                           </p>
-                          <p className="text-xs font-black text-primary uppercase tracking-tighter">
+                          <p className="text-xs font-black text-primary uppercase tracking-widest">
                             {batch.expiryDate && `소비: ${batch.expiryDate}`}
                           </p>
-                          <p className="text-[10px] font-medium text-outline/50">
+                          <p className="text-[10px] font-bold text-outline-variant uppercase tracking-widest">
                             등록: {batch.createdAt?.toDate().toLocaleDateString() || '오늘'}
                           </p>
                         </div>
                         <div className="flex gap-2">
                           <button 
                             onClick={() => startEdit(batch)}
-                            className="p-3 bg-secondary/10 text-secondary rounded-xl hover:bg-secondary hover:text-white transition-all shadow-sm"
+                            className="p-3 bg-secondary/10 text-secondary rounded-xl hover:bg-secondary hover:text-white transition-all shadow-sm active:scale-90"
                             title="기록 수정"
                           >
-                            <Edit3 className="w-6 h-6" />
+                            <Edit3 className="w-5 h-5" />
                           </button>
                         </div>
                       </div>
@@ -1205,29 +1450,29 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
 
   return (
     <div className="space-y-8 pb-12">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-6">
         <button 
           onClick={() => onNavigate?.('dashboard')}
-          className="p-3 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
+          className="p-5 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline shadow-sm active:scale-90"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-8 h-8" />
         </button>
-        <div className="space-y-1">
-          <h2 className="text-3xl font-black text-primary tracking-tighter uppercase">시스템 설정</h2>
-          <p className="text-on-surface-variant font-medium">마스터 데이터 및 환경 설정 관리</p>
+        <div className="space-y-2">
+          <h2 className="text-5xl font-black text-primary tracking-tighter uppercase leading-none">시스템 설정</h2>
+          <p className="text-2xl text-on-surface-variant font-black tracking-tight pt-1">마스터 데이터 및 환경 설정 관리</p>
         </div>
       </div>
 
-      <div className="flex gap-1 p-1 bg-surface-container rounded-2xl w-fit">
+      <div className="flex gap-3 p-2 bg-surface-container rounded-[24px] w-fit shadow-inner">
         <button 
           onClick={() => setActiveTab('product')}
-          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'product' ? 'bg-white shadow-sm text-primary' : 'text-outline hover:text-on-surface'}`}
+          className={`px-10 py-4 rounded-2xl text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'product' ? 'bg-white shadow-xl text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
         >
           상품 등록
         </button>
         <button 
           onClick={() => setActiveTab('partner')}
-          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'partner' ? 'bg-white shadow-sm text-primary' : 'text-outline hover:text-on-surface'}`}
+          className={`px-10 py-4 rounded-2xl text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'partner' ? 'bg-white shadow-xl text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
         >
           거래처 관리
         </button>
@@ -1277,13 +1522,13 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
             {/* 생산일 및 소비기한 분리 */}
             <div className="md:col-span-2 grid grid-cols-2 gap-8 border-y border-outline-variant/30 py-6 my-2">
               <div className="space-y-2">
-                <label className="text-[14px] font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-emerald-600" /> 생산(제조) 일자
                 </label>
                 <input value={product.manufactureDate} onChange={e => setProduct({...product, manufactureDate: e.target.value})} type="date" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-surface-container/30" />
               </div>
               <div className="space-y-2">
-                <label className="text-[14px] font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-error" /> 소비기한
                 </label>
                 <input value={product.expiryDate} onChange={e => setProduct({...product, expiryDate: e.target.value})} type="date" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-surface-container/30" />
@@ -1293,11 +1538,11 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
             {/* 보관 위치 분리 */}
             <div className="md:col-span-2 grid grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[14px] font-black text-primary uppercase tracking-widest px-1">보관 주요 위치</label>
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">보관 주요 위치</label>
                 <input value={product.location} onChange={e => setProduct({...product, location: e.target.value})} type="text" placeholder="예: A창고 1구역" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-all" />
               </div>
               <div className="space-y-2">
-                <label className="text-[14px] font-black text-primary uppercase tracking-widest px-1">상세 선반/칸</label>
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">상세 선반/칸</label>
                 <input type="text" placeholder="예: 3단 4번 칸" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-all" />
               </div>
             </div>
@@ -1312,32 +1557,32 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
           <div className="space-y-12">
             <form onSubmit={handlePartnerSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-surface-container/20 p-6 rounded-2xl border border-outline-variant/30 relative">
               {editingPartner && (
-                <div className="absolute top-4 right-4 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                <div className="absolute top-4 right-4 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
                   <Edit3 className="w-3 h-3" /> 수정 중
                 </div>
               )}
               <div className="md:col-span-2">
-                <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-4">
+                <h3 className="text-[9px] font-black text-primary uppercase tracking-widest mb-4">
                   {editingPartner ? '거래처 정보 수정' : '신규 거래처 등록'}
                 </h3>
               </div>
               <div className="space-y-2">
-                <label className="text-[14px] font-black text-primary uppercase tracking-widest px-1">거래처명</label>
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">거래처명</label>
                 <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
               </div>
               <div className="space-y-2">
-                <label className="text-[14px] font-black text-primary uppercase tracking-widest px-1">유형</label>
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">유형</label>
                 <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors appearance-none bg-white">
                   <option value="공급사">공급사</option>
                   <option value="고객사">고객사</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[14px] font-black text-primary uppercase tracking-widest px-1">연락처</label>
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">연락처</label>
                 <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-white" />
               </div>
               <div className="space-y-2">
-                <label className="text-[14px] font-black text-primary uppercase tracking-widest px-1">주소</label>
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">주소</label>
                 <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-white" />
               </div>
               <div className="md:col-span-2 flex gap-4 pt-4">
@@ -1368,7 +1613,7 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
                   {selectedIds.length > 0 && (
                     <button 
                       onClick={() => handleDeletePartners(selectedIds)}
-                      className="h-10 px-4 bg-error text-white rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-sm"
+                      className="h-10 px-4 bg-error text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-sm"
                     >
                       <Trash2 className="w-4 h-4" />
                       선택 삭제 ({selectedIds.length})
@@ -1381,12 +1626,12 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
                       placeholder="거래처명 검색..." 
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-xl focus:border-primary outline-none text-sm font-medium"
+                      className="w-full h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-xl focus:border-primary outline-none text-[9px] font-medium"
                     />
                   </div>
                   <button 
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="h-10 px-4 bg-primary/10 text-primary border border-primary/20 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center gap-2 whitespace-nowrap"
+                    className="h-10 px-4 bg-primary/10 text-primary border border-primary/20 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center gap-2 whitespace-nowrap"
                   >
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     {isExpanded ? '접기' : '펼쳐서 보기'}
@@ -1401,7 +1646,7 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
               >
                 <div className={`overflow-x-auto ${isExpanded ? '' : 'max-h-[400px] overflow-y-auto custom-scrollbar'}`}>
                   <table className="w-full text-left border-collapse">
-                    <thead className="bg-surface-container-low border-b border-outline-variant text-[12px] uppercase font-black text-outline sticky top-0 z-10">
+                    <thead className="bg-surface-container-low border-b border-outline-variant text-[8px] uppercase font-black text-outline sticky top-0 z-10">
                       <tr>
                         <th className="p-4 bg-surface-container-low w-10">
                           <input 
@@ -1432,12 +1677,12 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
                             </td>
                             <td className="p-4 font-bold text-on-surface">{p.name}</td>
                             <td className="p-4">
-                              <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${p.type === '공급사' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                              <span className={`px-2 py-1 rounded text-[7px] font-black uppercase ${p.type === '공급사' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>
                                 {p.type}
                               </span>
                             </td>
-                            <td className="p-4 text-sm text-on-surface-variant font-medium">{p.contact || '-'}</td>
-                            <td className="p-4 text-sm text-on-surface-variant font-medium max-w-xs truncate">{p.address || '-'}</td>
+                            <td className="p-4 text-[9px] text-on-surface-variant font-medium">{p.contact || '-'}</td>
+                            <td className="p-4 text-[9px] text-on-surface-variant font-medium max-w-xs truncate">{p.address || '-'}</td>
                             <td className="p-4 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <button 
@@ -1609,9 +1854,9 @@ export default function App() {
 
   const navItems = [
     { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
-    { id: 'inventory', label: '재고 관리', icon: Package },
-    { id: 'logistics', label: '물류 현황', icon: ArrowLeftRight },
-    { id: 'production', label: '생산 관리', icon: Cpu },
+    { id: 'inventory', label: '재고관리', icon: Package },
+    { id: 'logistics', label: '물류현황', icon: ArrowLeftRight },
+    { id: 'production', label: '생산관리', icon: Cpu },
     { id: 'settings', label: '설정', icon: Settings },
   ];
 
@@ -1639,23 +1884,23 @@ export default function App() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border border-outline-variant text-center space-y-6"
+          className="max-w-xl w-full bg-white p-12 rounded-[48px] shadow-2xl border-4 border-outline-variant/30 text-center space-y-10"
         >
-          <div className="bg-primary text-white w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-            <Warehouse className="w-8 h-8" />
+          <div className="bg-primary text-white w-24 h-24 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-primary/30">
+            <Warehouse className="w-12 h-12" />
           </div>
-          <div>
-            <h1 className="text-3xl font-black text-primary tracking-tighter uppercase">MIN IMA</h1>
-            <p className="text-on-surface-variant mt-2 font-medium">관리자 시스템 로그인이 필요합니다.</p>
+          <div className="space-y-4">
+            <h1 className="text-6xl font-black text-primary tracking-tighter uppercase leading-none">MIN IMA</h1>
+            <p className="text-2xl text-on-surface-variant font-black tracking-tight pt-2">관리자 시스템 로그인이 필요합니다.</p>
           </div>
           <button 
             onClick={handleLogin}
-            className="w-full h-14 bg-white border-2 border-outline-variant rounded-2xl flex items-center justify-center gap-3 font-bold text-on-surface hover:bg-surface-container transition-all active:scale-95"
+            className="w-full h-20 bg-white border-4 border-outline-variant rounded-3xl flex items-center justify-center gap-4 font-black text-xl text-on-surface hover:bg-surface-container transition-all active:scale-95 shadow-lg"
           >
-            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+            <img src="https://www.google.com/favicon.ico" className="w-8 h-8" alt="Google" />
             구글 계정으로 로그인
           </button>
-          <p className="text-[10px] text-outline uppercase font-bold tracking-widest leading-relaxed">
+          <p className="text-lg text-outline uppercase font-black tracking-[0.3em] leading-relaxed opacity-60">
             INDUSTRIAL INVENTORY & PRODUCTION MANAGEMENT DASHBOARD
           </p>
         </motion.div>
@@ -1678,7 +1923,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-surface-container rounded-full border border-outline-variant/30">
               <Search className="w-4 h-4 text-outline" />
-              <input type="text" placeholder="통합 검색..." className="bg-transparent text-xs outline-none w-32 border-none ring-0 p-0" />
+              <input type="text" placeholder="통합 검색..." className="bg-transparent text-[8px] outline-none w-32 border-none ring-0 p-0" />
             </div>
             <button className="relative p-2 text-outline hover:text-primary transition-colors">
               <Bell className="w-5 h-5" />
@@ -1686,11 +1931,11 @@ export default function App() {
             </button>
             <div className="flex items-center gap-3 border-l border-outline-variant/30 pl-4 ml-2">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-on-surface">{user.displayName || '사용자'}</p>
-                <p className="text-[10px] text-outline uppercase font-bold tracking-tight">현장 관리자</p>
+                <p className="text-base font-black text-on-surface">{user.displayName || '사용자'}</p>
+                <p className="text-[9px] text-outline uppercase font-black tracking-widest">현장 관리자</p>
               </div>
               <div className="group relative">
-                <div className="w-10 h-10 rounded-full border border-outline-variant overflow-hidden ring-2 ring-primary/5 shadow-sm">
+                <div className="w-12 h-12 rounded-full border-2 border-outline-variant overflow-hidden ring-4 ring-primary/5 shadow-md">
                   <img 
                     src={user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'} 
                     alt="Profile" 
@@ -1699,9 +1944,9 @@ export default function App() {
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="absolute top-full right-0 mt-2 bg-white border border-outline-variant rounded-xl p-2 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[10px] font-bold text-error whitespace-nowrap"
+                  className="absolute top-full right-0 mt-3 bg-white border-2 border-outline-variant rounded-2xl p-4 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-3 text-lg font-black text-error whitespace-nowrap z-[100]"
                 >
-                  <LogOut className="w-3 h-3" /> 로그아웃
+                  <LogOut className="w-5 h-5" /> 로그아웃
                 </button>
               </div>
             </div>
@@ -1744,7 +1989,7 @@ export default function App() {
                 {currentView === 'dashboard' && <DashboardView onNavigate={handleNavigate} inventory={inventory} production={production} logistics={logistics} partners={partners} />}
                 {currentView === 'inventory' && <InventoryView onNavigate={handleNavigate} inventory={inventory} />}
                 {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} />}
-                {currentView === 'logistics' && <LogisticsView logistics={logistics} onNavigate={handleNavigate} />}
+                {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} />}
                 {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} />}
                 {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} partners={partners} />}
               </motion.div>
@@ -1762,7 +2007,7 @@ export default function App() {
             className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${currentView === item.id || (currentView === 'detail' && item.id === 'inventory') ? 'text-primary' : 'text-outline/70'}`}
           >
             <item.icon className={`w-5 h-5 ${currentView === item.id ? 'fill-primary/10' : ''}`} />
-            <span className="text-[10px] font-bold uppercase tracking-tight">{item.label}</span>
+            <span className="text-[11px] font-black uppercase tracking-tight">{item.label}</span>
           </button>
         ))}
       </nav>
