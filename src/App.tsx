@@ -165,7 +165,7 @@ const DashboardView = ({
       {/* Header */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-black text-primary tracking-tight">대시보드</h1>
+          <h1 className="text-5xl font-black text-primary tracking-tight">대시보드</h1>
           <p className="text-lg text-on-surface-variant font-medium">2024년 3월 24일 실시간 재고 및 생산 현황</p>
         </div>
         <div className="flex gap-3">
@@ -268,7 +268,7 @@ const InventoryView = ({ onNavigate, inventory }: { onNavigate: (view: ViewType,
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="space-y-2">
-          <h2 className="text-7xl font-black text-on-surface tracking-tighter">재고관리</h2>
+          <h2 className="text-5xl font-black text-on-surface tracking-tighter">재고관리</h2>
         </div>
       </div>
 
@@ -402,7 +402,7 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
 
       <div className="flex flex-col md:flex-row justify-between items-start gap-10">
         <div className="space-y-4">
-          <h1 className="text-7xl font-black text-primary tracking-tighter leading-none">{item.name}</h1>
+          <h1 className="text-5xl font-black text-primary tracking-tighter leading-none">{item.name}</h1>
           <p className="text-2xl font-mono text-outline font-black mt-2 tracking-[0.2em]">{item.sku}</p>
         </div>
         <div className="flex flex-col items-end gap-4">
@@ -693,7 +693,7 @@ const LogisticsView = ({
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="space-y-1">
-            <h2 className="text-7xl font-black text-on-surface tracking-tighter">물류현황</h2>
+            <h2 className="text-5xl font-black text-on-surface tracking-tighter">물류현황</h2>
           </div>
         </div>
         <div className="flex gap-3">
@@ -1067,7 +1067,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-8xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
+            <h1 className="text-5xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
             <p className="text-2xl font-bold text-on-surface-variant mt-1">생산 공정 및 작업 일지 관리</p>
           </div>
         </div>
