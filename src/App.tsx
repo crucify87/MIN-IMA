@@ -268,7 +268,6 @@ const InventoryView = ({ onNavigate, inventory }: { onNavigate: (view: ViewType,
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="space-y-2">
-          <p className="text-2xl font-black text-primary uppercase tracking-widest">운영 센터</p>
           <h2 className="text-7xl font-black text-on-surface tracking-tighter">재고관리</h2>
         </div>
       </div>
@@ -694,7 +693,6 @@ const LogisticsView = ({
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="space-y-1">
-            <p className="text-xl font-black text-secondary uppercase tracking-widest">운영 현황</p>
             <h2 className="text-7xl font-black text-on-surface tracking-tighter">물류현황</h2>
           </div>
         </div>
@@ -814,21 +812,21 @@ const LogisticsView = ({
             <TrendingUp className="w-5 h-5" /> 최근 업데이트: {new Date().toLocaleTimeString()}
           </div>
         </div>
-        <div className="bg-white p-4 border border-outline-variant border-l-8 border-l-emerald-500 rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-sm font-black text-outline uppercase tracking-widest text-emerald-700">금일 입고</span>
-          <div className="flex items-baseline gap-1 text-emerald-700">
-            <span className="text-3xl font-black">{stats.inCount.toString().padStart(2, '0')}</span>
-            <span className="text-lg text-outline font-black">건</span>
+        <div className="bg-white p-8 border border-outline-variant border-l-8 border-l-emerald-500 rounded-3xl shadow-sm flex flex-col gap-4">
+          <span className="text-xl font-black text-outline uppercase tracking-widest text-emerald-700">금일 입고</span>
+          <div className="flex items-baseline gap-3 text-emerald-700">
+            <span className="text-6xl font-black">{stats.inCount.toString().padStart(2, '0')}</span>
+            <span className="text-3xl text-outline font-black">건</span>
           </div>
-          <span className="text-xs text-outline font-black">오늘의 총 입고 작업 수</span>
+          <span className="text-base text-outline font-black uppercase tracking-widest opacity-70">오늘의 총 입고 작업 수</span>
         </div>
-        <div className="bg-white p-4 border border-outline-variant border-l-8 border-l-blue-500 rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-sm font-black text-outline uppercase tracking-widest text-blue-700">금일 출고</span>
-          <div className="flex items-baseline gap-1 text-blue-700">
-            <span className="text-3xl font-black">{stats.outCount.toString().padStart(2, '0')}</span>
-            <span className="text-lg text-outline font-black">건</span>
+        <div className="bg-white p-8 border border-outline-variant border-l-8 border-l-blue-500 rounded-3xl shadow-sm flex flex-col gap-4">
+          <span className="text-xl font-black text-outline uppercase tracking-widest text-blue-700">금일 출고</span>
+          <div className="flex items-baseline gap-3 text-blue-700">
+            <span className="text-6xl font-black">{stats.outCount.toString().padStart(2, '0')}</span>
+            <span className="text-3xl text-outline font-black">건</span>
           </div>
-          <span className="text-xs text-outline font-black">오늘의 총 출고 작업 수</span>
+          <span className="text-base text-outline font-black uppercase tracking-widest opacity-70">오늘의 총 출고 작업 수</span>
         </div>
       </div>
 
@@ -1486,49 +1484,52 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
       >
         {activeTab === 'product' ? (
           <form onSubmit={handleRegisterProduct} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2">
-              <label className="text-base font-black text-primary uppercase tracking-widest px-1">SKU 번호</label>
-              <input required value={product.sku} onChange={e => setProduct({...product, sku: e.target.value})} type="text" placeholder="예: SKU-BF-001" className="w-full h-16 px-5 rounded-2xl border-2 border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold" />
+            <div className="md:col-span-2 text-center pb-2">
+              <h3 className="text-sm font-black text-primary uppercase tracking-widest">신규 상품(Master) 등록</h3>
             </div>
             <div className="space-y-2">
-              <label className="text-base font-black text-primary uppercase tracking-widest px-1">품목명</label>
-              <input required value={product.name} onChange={e => setProduct({...product, name: e.target.value})} type="text" placeholder="예: 프리미엄 티본" className="w-full h-16 px-5 rounded-2xl border-2 border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold" />
+              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">SKU 번호</label>
+              <input required value={product.sku} onChange={e => setProduct({...product, sku: e.target.value})} type="text" placeholder="예: SKU-BF-001" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
             </div>
             <div className="space-y-2">
-              <label className="text-base font-black text-primary uppercase tracking-widest px-1">카테고리</label>
-              <input required value={product.category} onChange={e => setProduct({...product, category: e.target.value})} type="text" placeholder="예: 소고기" className="w-full h-16 px-5 rounded-2xl border-2 border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold" />
+              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">품목명</label>
+              <input required value={product.name} onChange={e => setProduct({...product, name: e.target.value})} type="text" placeholder="예: 프리미엄 티본" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
             </div>
             <div className="space-y-2">
-              <label className="text-base font-black text-primary uppercase tracking-widest px-1">단위</label>
-              <input required value={product.unit} onChange={e => setProduct({...product, unit: e.target.value})} type="text" placeholder="예: kg" className="w-full h-16 px-5 rounded-2xl border-2 border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold" />
+              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">카테고리</label>
+              <input required value={product.category} onChange={e => setProduct({...product, category: e.target.value})} type="text" placeholder="예: 소고기" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
             </div>
             <div className="space-y-2">
-              <label className="text-base font-black text-primary uppercase tracking-widest px-1">현재 재고</label>
-              <input required value={product.currentStock} onChange={e => setProduct({...product, currentStock: e.target.value})} type="number" className="w-full h-16 px-5 rounded-2xl border-2 border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold" />
+              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">단위</label>
+              <input required value={product.unit} onChange={e => setProduct({...product, unit: e.target.value})} type="text" placeholder="예: kg" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
             </div>
             <div className="space-y-2">
-              <label className="text-base font-black text-primary uppercase tracking-widest px-1">안전 재고</label>
-              <input required value={product.safetyStock} onChange={e => setProduct({...product, safetyStock: e.target.value})} type="number" className="w-full h-16 px-5 rounded-2xl border-2 border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold" />
+              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">현재 재고</label>
+              <input required value={product.currentStock} onChange={e => setProduct({...product, currentStock: e.target.value})} type="number" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
             </div>
             <div className="space-y-2">
-              <label className="text-base font-black text-primary uppercase tracking-widest px-1">매입 단가 (₩)</label>
-              <input required value={product.purchasePrice} onChange={e => setProduct({...product, purchasePrice: e.target.value})} type="number" placeholder="예: 25000" className="w-full h-16 px-5 rounded-2xl border-2 border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold" />
+              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">안전 재고</label>
+              <input required value={product.safetyStock} onChange={e => setProduct({...product, safetyStock: e.target.value})} type="number" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
             </div>
             <div className="space-y-2">
-              <label className="text-base font-black text-primary uppercase tracking-widest px-1">판매 단가 (₩)</label>
-              <input required value={product.salesPrice} onChange={e => setProduct({...product, salesPrice: e.target.value})} type="number" placeholder="예: 38000" className="w-full h-16 px-5 rounded-2xl border-2 border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold" />
+              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">매입 단가 (₩)</label>
+              <input required value={product.purchasePrice} onChange={e => setProduct({...product, purchasePrice: e.target.value})} type="number" placeholder="예: 25000" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">판매 단가 (₩)</label>
+              <input required value={product.salesPrice} onChange={e => setProduct({...product, salesPrice: e.target.value})} type="number" placeholder="예: 38000" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
             </div>
 
             {/* 생산일 및 소비기한 분리 */}
             <div className="md:col-span-2 grid grid-cols-2 gap-8 border-y border-outline-variant/30 py-6 my-2">
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
+                <label className="text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-emerald-600" /> 생산(제조) 일자
                 </label>
                 <input value={product.manufactureDate} onChange={e => setProduct({...product, manufactureDate: e.target.value})} type="date" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-surface-container/30" />
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
+                <label className="text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-error" /> 소비기한
                 </label>
                 <input value={product.expiryDate} onChange={e => setProduct({...product, expiryDate: e.target.value})} type="date" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-surface-container/30" />
@@ -1538,11 +1539,11 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
             {/* 보관 위치 분리 */}
             <div className="md:col-span-2 grid grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">보관 주요 위치</label>
+                <label className="text-xs font-black text-primary uppercase tracking-widest px-1">보관 주요 위치</label>
                 <input value={product.location} onChange={e => setProduct({...product, location: e.target.value})} type="text" placeholder="예: A창고 1구역" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-all" />
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">상세 선반/칸</label>
+                <label className="text-xs font-black text-primary uppercase tracking-widest px-1">상세 선반/칸</label>
                 <input type="text" placeholder="예: 3단 4번 칸" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-all" />
               </div>
             </div>
@@ -1562,28 +1563,28 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
                 </div>
               )}
               <div className="md:col-span-2">
-                <h3 className="text-[9px] font-black text-primary uppercase tracking-widest mb-4">
+                <h3 className="text-base font-black text-primary uppercase tracking-widest mb-4 text-center">
                   {editingPartner ? '거래처 정보 수정' : '신규 거래처 등록'}
                 </h3>
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">거래처명</label>
-                <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+                <label className="text-sm font-black text-primary uppercase tracking-widest px-1">거래처명</label>
+                <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold bg-white" />
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">유형</label>
-                <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors appearance-none bg-white">
+                <label className="text-sm font-black text-primary uppercase tracking-widest px-1">유형</label>
+                <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-lg transition-colors appearance-none bg-white font-bold">
                   <option value="공급사">공급사</option>
                   <option value="고객사">고객사</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">연락처</label>
-                <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-white" />
+                <label className="text-sm font-black text-primary uppercase tracking-widest px-1">연락처</label>
+                <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-lg transition-colors bg-white font-bold" />
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">주소</label>
-                <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-white" />
+                <label className="text-sm font-black text-primary uppercase tracking-widest px-1">주소</label>
+                <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-lg transition-colors bg-white font-bold" />
               </div>
               <div className="md:col-span-2 flex gap-4 pt-4">
                 <button disabled={loading} type="submit" className="flex-1 h-16 bg-secondary text-white rounded-2xl font-black text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
@@ -1613,7 +1614,7 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
                   {selectedIds.length > 0 && (
                     <button 
                       onClick={() => handleDeletePartners(selectedIds)}
-                      className="h-10 px-4 bg-error text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-sm"
+                      className="h-10 px-4 bg-error text-white rounded-xl text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-sm"
                     >
                       <Trash2 className="w-4 h-4" />
                       선택 삭제 ({selectedIds.length})
@@ -1626,12 +1627,12 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
                       placeholder="거래처명 검색..." 
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-xl focus:border-primary outline-none text-[9px] font-medium"
+                      className="w-full h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-xl focus:border-primary outline-none text-base font-medium"
                     />
                   </div>
                   <button 
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="h-10 px-4 bg-primary/10 text-primary border border-primary/20 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center gap-2 whitespace-nowrap"
+                    className="h-12 px-5 bg-primary/10 text-primary border border-primary/20 rounded-xl text-base font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center gap-2 whitespace-nowrap"
                   >
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     {isExpanded ? '접기' : '펼쳐서 보기'}
@@ -1646,14 +1647,14 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
               >
                 <div className={`overflow-x-auto ${isExpanded ? '' : 'max-h-[400px] overflow-y-auto custom-scrollbar'}`}>
                   <table className="w-full text-left border-collapse">
-                    <thead className="bg-surface-container-low border-b border-outline-variant text-[8px] uppercase font-black text-outline sticky top-0 z-10">
+                    <thead className="bg-surface-container-low border-b border-outline-variant text-base uppercase font-black text-outline sticky top-0 z-10">
                       <tr>
-                        <th className="p-4 bg-surface-container-low w-10">
+                        <th className="p-4 bg-surface-container-low w-12">
                           <input 
                             type="checkbox" 
                             checked={filteredPartners.length > 0 && selectedIds.length === filteredPartners.length}
                             onChange={toggleSelectAll}
-                            className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary"
+                            className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
                           />
                         </th>
                         <th className="p-4 bg-surface-container-low">거래처명</th>
@@ -1672,17 +1673,17 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
                                 type="checkbox" 
                                 checked={selectedIds.includes(p.id)}
                                 onChange={() => toggleSelect(p.id)}
-                                className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary"
+                                className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
                               />
                             </td>
-                            <td className="p-4 font-bold text-on-surface">{p.name}</td>
+                            <td className="p-4 font-bold text-on-surface text-lg">{p.name}</td>
                             <td className="p-4">
-                              <span className={`px-2 py-1 rounded text-[7px] font-black uppercase ${p.type === '공급사' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                              <span className={`px-2 py-1 rounded text-sm font-black uppercase ${p.type === '공급사' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>
                                 {p.type}
                               </span>
                             </td>
-                            <td className="p-4 text-[9px] text-on-surface-variant font-medium">{p.contact || '-'}</td>
-                            <td className="p-4 text-[9px] text-on-surface-variant font-medium max-w-xs truncate">{p.address || '-'}</td>
+                            <td className="p-4 text-base text-on-surface-variant font-medium">{p.contact || '-'}</td>
+                            <td className="p-4 text-base text-on-surface-variant font-medium max-w-xs truncate">{p.address || '-'}</td>
                             <td className="p-4 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <button 
