@@ -48,7 +48,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, loginWithGoogle, logout, db, User } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, collection, onSnapshot, query, orderBy, deleteDoc, addDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, increment, serverTimestamp, collection, onSnapshot, query, orderBy, deleteDoc, addDoc } from 'firebase/firestore';
 import { seedDatabase, isDatabaseEmpty } from './lib/seedData';
 
 // --- Types ---
@@ -378,8 +378,49 @@ const InventoryView = ({ onNavigate, inventory }: { onNavigate: (view: ViewType,
 
 const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: ViewType, item?: any) => void, userData: any, item: any }) => {
   const isAdmin = userData?.role === 'admin';
+  const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [isUpdatingStock, setIsUpdatingStock] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Edit states
+  const [editData, setEditData] = useState({ ...item });
+  const [newStock, setNewStock] = useState(item?.currentStock || 0);
   
   if (!item) return <div>상품 정보가 없습니다.</div>;
+
+  const handleUpdateInfo = async () => {
+    setLoading(true);
+    try {
+      const docRef = doc(db, 'inventory', item.id);
+      await updateDoc(docRef, {
+        ...editData,
+        updatedAt: serverTimestamp()
+      });
+      setIsEditingInfo(false);
+      alert('품목 정보가 수정되었습니다.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'inventory');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStock = async () => {
+    setLoading(true);
+    try {
+      const docRef = doc(db, 'inventory', item.id);
+      await updateDoc(docRef, {
+        currentStock: Number(newStock),
+        updatedAt: serverTimestamp()
+      });
+      setIsUpdatingStock(false);
+      alert('재고가 업데이트되었습니다.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'inventory');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const margin = item.salesPrice - item.purchasePrice;
   const marginPercent = ((margin / item.purchasePrice) * 100).toFixed(1);
@@ -401,27 +442,185 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
       </div>
 
       <div className="flex flex-col md:flex-row justify-between items-start gap-10">
-        <div className="space-y-4">
-          <h1 className="text-5xl font-black text-primary tracking-tighter leading-none">{item.name}</h1>
-          <p className="text-2xl font-mono text-outline font-black mt-2 tracking-[0.2em]">{item.sku}</p>
+        <div className="space-y-4 flex-1 w-full">
+          {isEditingInfo ? (
+            <div className="space-y-4 bg-white p-6 rounded-2xl border-2 border-primary shadow-lg animate-in fade-in slide-in-from-top-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary uppercase px-1">품목명</label>
+                  <input 
+                    type="text" 
+                    value={editData.name} 
+                    onChange={e => setEditData({...editData, name: e.target.value})}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary uppercase px-1">SKU</label>
+                  <input 
+                    type="text" 
+                    value={editData.sku} 
+                    onChange={e => setEditData({...editData, sku: e.target.value})}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-mono font-bold text-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary uppercase px-1">카테고리</label>
+                  <input 
+                    type="text" 
+                    value={editData.category} 
+                    onChange={e => setEditData({...editData, category: e.target.value})}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary uppercase px-1">단위</label>
+                  <input 
+                    type="text" 
+                    value={editData.unit} 
+                    onChange={e => setEditData({...editData, unit: e.target.value})}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary uppercase px-1">안전 재고</label>
+                  <input 
+                    type="number" 
+                    value={editData.safetyStock} 
+                    onChange={e => setEditData({...editData, safetyStock: Number(e.target.value)})}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary uppercase px-1">보관 위치</label>
+                  <input 
+                    type="text" 
+                    value={editData.location} 
+                    onChange={e => setEditData({...editData, location: e.target.value})}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
+                  />
+                </div>
+                {isAdmin && (
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-primary uppercase px-1">매입 단가</label>
+                      <input 
+                        type="number" 
+                        value={editData.purchasePrice} 
+                        onChange={e => setEditData({...editData, purchasePrice: Number(e.target.value)})}
+                        className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-primary uppercase px-1">판매 단가</label>
+                      <input 
+                        type="number" 
+                        value={editData.salesPrice} 
+                        onChange={e => setEditData({...editData, salesPrice: Number(e.target.value)})}
+                        className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button 
+                  onClick={handleUpdateInfo}
+                  disabled={loading}
+                  className="flex-1 bg-primary text-white h-14 rounded-xl font-black uppercase tracking-widest text-lg shadow-lg hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {loading ? '저장 중...' : '품목 정보 저장'}
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsEditingInfo(false);
+                    setEditData({ ...item });
+                  }}
+                  className="px-8 bg-surface-container text-outline h-14 rounded-xl font-black uppercase tracking-widest text-lg hover:bg-surface-container-high transition-all"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-5xl font-black text-primary tracking-tighter leading-none">{item.name}</h1>
+              <p className="text-2xl font-mono text-outline font-black mt-2 tracking-[0.2em]">{item.sku}</p>
+            </>
+          )}
         </div>
-        <div className="flex flex-col items-end gap-4">
-          <div className="bg-emerald-100 text-emerald-800 px-8 py-3 rounded-2xl flex items-center gap-3 shadow-md text-lg font-black uppercase tracking-widest border-2 border-emerald-200">
-            <CheckCircle2 className="w-6 h-6 fill-emerald-800 text-emerald-100" /> {item.status.toUpperCase()} STATUS
+        {!isEditingInfo && (
+          <div className="flex flex-col items-end gap-4 min-w-[240px]">
+            <div className="bg-emerald-100 text-emerald-800 px-8 py-3 rounded-2xl flex items-center gap-3 shadow-md text-lg font-black uppercase tracking-widest border-2 border-emerald-200">
+              <CheckCircle2 className="w-6 h-6 fill-emerald-800 text-emerald-100" /> {item.status.toUpperCase()} STATUS
+            </div>
+            <button 
+              onClick={() => setIsEditingInfo(true)}
+              className="flex items-center gap-3 text-primary text-2xl font-black hover:underline uppercase tracking-widest decoration-4 underline-offset-8"
+            >
+              <Edit className="w-7 h-7" /> 정보 수정
+            </button>
           </div>
-          <button className="flex items-center gap-3 text-primary text-2xl font-black hover:underline uppercase tracking-widest decoration-4 underline-offset-8">
-            <Edit className="w-7 h-7" /> 정보 수정
-          </button>
-        </div>
+        )}
       </div>
 
-      <div className="flex gap-6">
-        <button className="flex-1 bg-primary text-white h-20 rounded-[28px] flex items-center justify-center gap-4 font-black text-2xl shadow-xl hover:opacity-90 active:scale-95 transition-all uppercase tracking-widest">
-          <Package className="w-8 h-8" /> 재고 업데이트
-        </button>
-        <button className="flex-1 border-4 border-primary text-primary h-20 rounded-[28px] flex items-center justify-center gap-4 font-black text-2xl bg-white hover:bg-primary/5 active:scale-95 transition-all shadow-xl uppercase tracking-widest">
-          <Download className="w-8 h-8" /> 데이터 내보내기
-        </button>
+      <div className="flex flex-col gap-6">
+        {isUpdatingStock ? (
+          <div className="bg-primary/5 p-8 rounded-[40px] border-4 border-primary shadow-2xl space-y-6 animate-in zoom-in-95">
+            <div className="flex justify-between items-center">
+              <h3 className="text-3xl font-black text-primary uppercase tracking-tight flex items-center gap-4">
+                <Package className="w-10 h-10" /> 재고 수량 업데이트
+              </h3>
+              <p className="text-xl font-black text-outline">기존 재고: {item.currentStock}{item.unit}</p>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex-1 relative">
+                <input 
+                  type="number" 
+                  value={newStock}
+                  onChange={e => setNewStock(e.target.value)}
+                  className="w-full h-24 px-8 rounded-3xl border-4 border-primary text-5xl font-black focus:outline-none shadow-inner"
+                  autoFocus
+                />
+                <span className="absolute right-8 top-1/2 -translate-y-1/2 text-4xl font-black text-primary">{item.unit}</span>
+              </div>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={handleUpdateStock}
+                  disabled={loading}
+                  className="h-24 px-12 bg-primary text-white rounded-3xl font-black text-2xl uppercase tracking-widest shadow-xl hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {loading ? '처리 중...' : '확인'}
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsUpdatingStock(false);
+                    setNewStock(item.currentStock);
+                  }}
+                  className="h-14 px-12 bg-white text-outline border-2 border-outline-variant rounded-2xl font-black text-lg uppercase tracking-widest hover:bg-surface-container transition-all"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <button onClick={() => setNewStock(Number(newStock) + 1)} className="flex-1 h-14 bg-white border-2 border-primary text-primary rounded-xl font-black text-xl hover:bg-primary/5">+1</button>
+              <button onClick={() => setNewStock(Number(newStock) + 10)} className="flex-1 h-14 bg-white border-2 border-primary text-primary rounded-xl font-black text-xl hover:bg-primary/5">+10</button>
+              <button onClick={() => setNewStock(Number(newStock) + 50)} className="flex-1 h-14 bg-white border-2 border-primary text-primary rounded-xl font-black text-xl hover:bg-primary/5">+50</button>
+              <button onClick={() => setNewStock(Math.max(0, Number(newStock) - 1))} className="flex-1 h-14 bg-white border-2 border-error text-error rounded-xl font-black text-xl hover:bg-error/5">-1</button>
+              <button onClick={() => setNewStock(Math.max(0, Number(newStock) - 10))} className="flex-1 h-14 bg-white border-2 border-error text-error rounded-xl font-black text-xl hover:bg-error/5">-10</button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-6">
+            <button 
+              onClick={() => setIsUpdatingStock(true)}
+              className="flex-1 bg-primary text-white h-20 rounded-[28px] flex items-center justify-center gap-4 font-black text-2xl shadow-xl hover:opacity-90 active:scale-95 transition-all uppercase tracking-widest"
+            >
+              <Package className="w-8 h-8" /> 재고 업데이트
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -933,10 +1132,23 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
   const [items, setItems] = useState([{ title: '', rawMeat: '', weight: '', loss: '', manufDate: '', expiryDate: '' }]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchName, setSearchName] = useState('');
+  const [searchDate, setSearchDate] = useState('');
+  const [originalWeight, setOriginalWeight] = useState<number | null>(null);
+
+  const filteredProduction = useMemo(() => {
+    return production.filter(batch => {
+      const matchesName = batch.title?.toLowerCase().includes(searchName.toLowerCase());
+      const matchesDate = !searchDate || batch.manufDate === searchDate;
+      return matchesName && matchesDate;
+    });
+  }, [production, searchName, searchDate]);
 
   const startEdit = (batch: any) => {
     setEditingId(batch.id);
     setProductionLine(batch.productionLine);
+    const weight = parseFloat(batch.weight.toString().replace(/[^0-9.]/g, '')) || 0;
+    setOriginalWeight(weight);
     setItems([{
       title: batch.title,
       rawMeat: batch.rawMeat || '',
@@ -979,11 +1191,27 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
         // Update single batch
         const ref = doc(db, 'production_batches', editingId);
         const item = items[0];
+        const newWeight = parseFloat(item.weight.toString().replace(/[^0-9.]/g, '')) || 0;
+        const weightDiff = newWeight - (originalWeight || 0);
+
         await setDoc(ref, {
           ...item,
           productionLine,
           updatedAt: serverTimestamp(),
         }, { merge: true });
+
+        // Update inventory if weight changed
+        if (weightDiff !== 0) {
+          const existingInvItem = inventory.find(i => i.name === item.title);
+          if (existingInvItem) {
+            const invDocRef = doc(db, 'inventory', existingInvItem.id);
+            await updateDoc(invDocRef, {
+              currentStock: increment(weightDiff),
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+
         alert('생산일지가 성공적으로 수정되었습니다.');
       } else {
         // Create multiple batches
@@ -995,30 +1223,31 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
           const ref = doc(batchRef);
           
           // 1. Save production batch
+          const existingInvItem = inventory.find(i => i.name === item.title);
           await setDoc(ref, {
             ...item,
             productionLine,
             batchId,
+            sku: existingInvItem?.sku || `SKU-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
             status: '완료',
             createdAt: serverTimestamp(),
           });
 
           // 2. Pass to inventory
-          const existingInvItem = inventory.find(i => i.name === item.title);
           const weightValue = parseFloat(item.weight.toString().replace(/[^0-9.]/g, '')) || 0;
 
           if (existingInvItem) {
             // Update existing stock
             const invDocRef = doc(db, 'inventory', existingInvItem.id);
             const updateData: any = {
-              currentStock: (Number(existingInvItem.currentStock) || 0) + weightValue,
+              currentStock: increment(weightValue),
               updatedAt: serverTimestamp(),
             };
             
             if (item.manufDate) updateData.manufactureDate = item.manufDate;
             if (item.expiryDate) updateData.expiryDate = item.expiryDate;
 
-            await setDoc(invDocRef, updateData, { merge: true });
+            await updateDoc(invDocRef, updateData);
           } else {
             // Create new inventory item
             const newInvDocRef = doc(inventoryRef);
@@ -1229,12 +1458,42 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
         <h3 className="text-2xl font-black text-primary uppercase flex items-center gap-3">
           <History className="w-8 h-8" /> 최근 생산 일지
         </h3>
+
+        <div className="flex flex-col md:flex-row gap-4 bg-white p-4 border-2 border-outline-variant rounded-2xl shadow-sm">
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-5 h-5" />
+            <input 
+              type="text" 
+              placeholder="품목명으로 검색..." 
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="w-full pl-12 pr-4 h-12 rounded-xl bg-surface-container border-2 border-transparent focus:border-primary outline-none transition-all font-black text-on-surface"
+            />
+          </div>
+          <div className="flex-1 relative">
+            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-5 h-5" />
+            <input 
+              type="date" 
+              value={searchDate}
+              onChange={(e) => setSearchDate(e.target.value)}
+              className="w-full pl-12 pr-4 h-12 rounded-xl bg-surface-container border-2 border-transparent focus:border-primary outline-none transition-all font-black uppercase text-on-surface"
+            />
+          </div>
+          { (searchName || searchDate) && (
+            <button 
+              onClick={() => { setSearchName(''); setSearchDate(''); }}
+              className="px-6 h-12 rounded-xl bg-error/10 text-error font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all flex items-center gap-2"
+            >
+              <X className="w-5 h-5" /> 필터 초기화
+            </button>
+          )}
+        </div>
         <div className="overflow-hidden border-2 border-outline-variant rounded-2xl bg-white shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container border-b border-outline-variant text-base uppercase font-black text-outline">
                 <tr>
-                  <th className="p-4 whitespace-nowrap">배치 ID / 라인</th>
+                  <th className="p-4 whitespace-nowrap">SKU</th>
                   <th className="p-4 whitespace-nowrap">품목명</th>
                   <th className="p-4 whitespace-nowrap">원육</th>
                   <th className="p-4 text-center whitespace-nowrap">중량</th>
@@ -1243,15 +1502,19 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {[...production].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).map((batch, i) => (
-                  <tr key={i} className="hover:bg-surface-container transition-colors group">
-                    <td className="p-4 whitespace-nowrap">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-mono text-outline font-black tracking-widest">{batch.batchId}</span>
-                        <span className="w-fit px-3 py-1 bg-primary/10 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
+                {[...filteredProduction].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).map((batch, i) => {
+                  const invItem = inventory.find(inv => inv.name === batch.title);
+                  const displaySku = invItem?.sku || batch.sku || batch.batchId;
+                  
+                  return (
+                    <tr key={i} className="hover:bg-surface-container transition-colors group">
+                      <td className="p-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-mono text-outline font-black tracking-widest">{displaySku}</span>
+                          <span className="w-fit px-3 py-1 bg-primary/10 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 whitespace-nowrap">
                       <p className="text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
                     </td>
                     <td className="p-4 whitespace-nowrap">
@@ -1297,8 +1560,9 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
+                );
+              })}
+            </tbody>
             </table>
           </div>
         </div>
