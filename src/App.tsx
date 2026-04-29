@@ -155,8 +155,8 @@ const DashboardView = ({
   const stats: StatItem[] = [
     { label: '전체 상품', value: inventory.length.toLocaleString(), unit: '개', icon: Package },
     { label: '거래처', value: partners.length.toLocaleString(), unit: '개', icon: Users, color: 'bg-emerald-500' },
-    { label: '오늘 입고', value: '4,250', unit: 'kg', icon: ArrowDownToLine, color: 'bg-primary-container' },
-    { label: '오늘 출고', value: '3,890', unit: 'kg', icon: ArrowUpFromLine, color: 'bg-secondary-container' },
+    { label: '오늘 입고', value: '0', unit: 'kg', icon: ArrowDownToLine, color: 'bg-primary-container' },
+    { label: '오늘 출고', value: '0', unit: 'kg', icon: ArrowUpFromLine, color: 'bg-secondary-container' },
     { label: '주의 필요', value: inventory.filter(i => i.currentStock < i.safetyStock).length.toString(), unit: '개', icon: AlertTriangle, color: 'bg-error' },
   ];
 
@@ -298,8 +298,8 @@ const InventoryView = ({ onNavigate, inventory }: { onNavigate: (view: ViewType,
         {[
           { label: '총 SKU', value: inventory.length.toLocaleString(), color: 'text-primary' },
           { label: '재고 부족', value: inventory.filter(i => i.currentStock < i.safetyStock).length.toString(), color: 'text-error' },
-          { label: '금일 입고', value: '4.2k', unit: 'kg', color: 'text-secondary' },
-          { label: '금일 출고', value: '1.8k', unit: 'kg', color: 'text-tertiary' },
+          { label: '금일 입고', value: '0', unit: 'kg', color: 'text-secondary' },
+          { label: '금일 출고', value: '0', unit: 'kg', color: 'text-tertiary' },
         ].map((item, i) => (
           <div key={i} className="bg-surface-container p-4 rounded-2xl border-2 border-outline-variant/30 flex flex-col gap-1">
             <p className="text-sm font-black text-on-surface-variant uppercase tracking-widest">{item.label}</p>
