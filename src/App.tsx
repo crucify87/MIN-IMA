@@ -332,64 +332,71 @@ const InventoryView = ({ onNavigate, inventory }: { onNavigate: (view: ViewType,
         ))}
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {inventory.map((item, i) => (
           <div 
             key={i} 
             onClick={() => onNavigate('detail', item)}
-            className={`grid grid-cols-1 md:grid-cols-12 items-center gap-4 p-4 bg-white border-2 rounded-2xl hover:border-primary transition-all cursor-pointer group shadow-sm ${item.currentStock < item.safetyStock ? 'border-error/30 bg-error/5' : 'border-outline-variant/30'}`}
+            className={`flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white border-2 rounded-[28px] hover:border-primary transition-all cursor-pointer group shadow-sm relative overflow-hidden ${item.currentStock < item.safetyStock ? 'border-error/30' : 'border-outline-variant/20'}`}
           >
-            <div className="col-span-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center shrink-0 shadow-inner group-hover:bg-primary/5 transition-colors">
-                {item.currentStock < item.safetyStock ? <AlertTriangle className="w-5 h-5 text-error" /> : <Package className="w-5 h-5 text-primary" />}
+            {/* Status Indicator Bar (Mobile accent) */}
+            <div className={`absolute left-0 top-0 bottom-0 w-2 md:hidden ${item.currentStock < item.safetyStock ? 'bg-error' : 'bg-emerald-500'}`} />
+
+            <div className="flex-1 flex items-start gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-colors ${item.currentStock < item.safetyStock ? 'bg-error/10 text-error' : 'bg-primary/5 text-primary'}`}>
+                {item.currentStock < item.safetyStock ? <AlertTriangle className="w-6 h-6" /> : <Package className="w-6 h-6" />}
               </div>
-              <div>
-                <p className="font-black text-xl leading-tight group-hover:text-primary transition-colors tracking-tight">{item.name}</p>
-                <p className="text-sm text-outline font-mono uppercase font-black tracking-widest mt-0.5">{item.sku}</p>
-              </div>
-            </div>
-            <div className="col-span-2 flex md:block justify-between">
-              <span className="md:hidden text-sm font-black text-outline uppercase tracking-widest">카테고리</span>
-              <span className="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-black uppercase tracking-widest">{item.category}</span>
-            </div>
-            <div className="col-span-2 flex md:block justify-between md:text-right">
-              <span className="md:hidden text-sm font-black text-outline uppercase tracking-widest">현재 재고</span>
-              <div>
-                <p className={`font-black text-xl ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>{item.currentStock}{item.unit}</p>
-                <p className="text-sm text-outline font-black mt-0.5">로스율: {item.loss}</p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-black text-2xl leading-tight group-hover:text-primary transition-colors tracking-tight">{item.name}</p>
+                  <span className="px-2.5 py-0.5 bg-surface-container-high text-on-surface-variant rounded-lg text-[10px] font-black uppercase tracking-widest">{item.category}</span>
+                </div>
+                <p className="text-xs text-outline font-mono uppercase font-black tracking-[0.2em]">{item.sku}</p>
               </div>
             </div>
-            <div className="col-span-2 flex md:justify-center items-center gap-2">
-              <CheckCircle2 className={`w-5 h-5 ${item.currentStock < item.safetyStock ? 'text-error' : 'text-emerald-700'}`} />
-              <span className={`text-sm font-black uppercase tracking-widest ${item.currentStock < item.safetyStock ? 'text-error' : 'text-emerald-700'}`}>{item.status}</span>
-            </div>
-            <div className="col-span-2 text-right flex items-center justify-end gap-2">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigate('detail', item);
-                }}
-                className="h-10 px-4 border-2 border-primary text-primary rounded-xl text-sm font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
-              >
-                수정
-              </button>
-              <button 
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
-                    try {
-                      await deleteDoc(doc(db, 'inventory', item.id));
-                      alert('삭제되었습니다.');
-                    } catch (error) {
-                      handleFirestoreError(error, OperationType.DELETE, 'inventory');
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-12 items-center border-t md:border-t-0 border-outline-variant/30 pt-4 md:pt-0">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-outline uppercase tracking-widest">현재 재고</p>
+                <p className={`font-black text-2xl tabular-nums ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
+                  {item.currentStock}<span className="text-sm ml-0.5 font-bold">{item.unit}</span>
+                </p>
+              </div>
+              
+              <div className="space-y-1 hidden md:block">
+                <p className="text-[10px] font-black text-outline uppercase tracking-widest">상태</p>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse' : 'bg-emerald-500'}`} />
+                  <span className={`text-sm font-black uppercase tracking-widest ${item.currentStock < item.safetyStock ? 'text-error' : 'text-emerald-700'}`}>{item.status}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 md:pl-4">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigate('detail', item);
+                  }}
+                  className="h-12 px-6 bg-primary/5 text-primary border-2 border-primary/20 rounded-2xl text-sm font-black uppercase hover:bg-primary hover:text-white transition-all active:scale-95 flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" /> <span className="hidden sm:inline">관리</span>
+                </button>
+                <button 
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
+                      try {
+                        await deleteDoc(doc(db, 'inventory', item.id));
+                      } catch (error) {
+                        handleFirestoreError(error, OperationType.DELETE, 'inventory');
+                      }
                     }
-                  }
-                }}
-                className="p-2 text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all"
-                title="삭제"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+                  }}
+                  className="w-12 h-12 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-2xl transition-all border-2 border-transparent hover:border-error/20"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
