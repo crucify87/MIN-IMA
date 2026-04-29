@@ -522,28 +522,7 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
                     className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
                   />
                 </div>
-                {isAdmin && (
-                  <>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-primary uppercase px-1">매입 단가</label>
-                      <input 
-                        type="number" 
-                        value={editData.purchasePrice} 
-                        onChange={e => setEditData({...editData, purchasePrice: Number(e.target.value)})}
-                        className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-primary uppercase px-1">판매 단가</label>
-                      <input 
-                        type="number" 
-                        value={editData.salesPrice} 
-                        onChange={e => setEditData({...editData, salesPrice: Number(e.target.value)})}
-                        className="w-full h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-xl"
-                      />
-                    </div>
-                  </>
-                )}
+
               </div>
               <div className="flex gap-3 pt-4">
                 <button 
@@ -573,9 +552,6 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
         </div>
         {!isEditingInfo && (
           <div className="flex flex-col items-end gap-4 min-w-[240px]">
-            <div className="bg-emerald-100 text-emerald-800 px-8 py-3 rounded-2xl flex items-center gap-3 shadow-md text-lg font-black uppercase tracking-widest border-2 border-emerald-200">
-              <CheckCircle2 className="w-6 h-6 fill-emerald-800 text-emerald-100" /> {item.status.toUpperCase()} STATUS
-            </div>
             <button 
               onClick={() => setIsEditingInfo(true)}
               className="flex items-center gap-3 text-primary text-2xl font-black hover:underline uppercase tracking-widest decoration-4 underline-offset-8"
@@ -586,196 +562,199 @@ const ItemDetailView = ({ onNavigate, userData, item }: { onNavigate: (view: Vie
         )}
       </div>
 
-      <div className="flex flex-col gap-6">
-        {isUpdatingStock ? (
-          <div className="bg-primary/5 p-8 rounded-[40px] border-4 border-primary shadow-2xl space-y-6 animate-in zoom-in-95">
-            <div className="flex justify-between items-center">
-              <h3 className="text-3xl font-black text-primary uppercase tracking-tight flex items-center gap-4">
-                <Package className="w-10 h-10" /> 재고 수량 업데이트
-              </h3>
-              <p className="text-xl font-black text-outline">기존 재고: {item.currentStock}{item.unit}</p>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="flex-1 relative">
-                <input 
-                  type="number" 
-                  value={newStock}
-                  onChange={e => setNewStock(e.target.value)}
-                  className="w-full h-24 px-8 rounded-3xl border-4 border-primary text-5xl font-black focus:outline-none shadow-inner"
-                  autoFocus
-                />
-                <span className="absolute right-8 top-1/2 -translate-y-1/2 text-4xl font-black text-primary">{item.unit}</span>
-              </div>
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={handleUpdateStock}
-                  disabled={loading}
-                  className="h-24 px-12 bg-primary text-white rounded-3xl font-black text-2xl uppercase tracking-widest shadow-xl hover:opacity-90 transition-all disabled:opacity-50"
-                >
-                  {loading ? '처리 중...' : '확인'}
-                </button>
-                <button 
-                  onClick={() => {
-                    setIsUpdatingStock(false);
-                    setNewStock(item.currentStock);
-                  }}
-                  className="h-14 px-12 bg-white text-outline border-2 border-outline-variant rounded-2xl font-black text-lg uppercase tracking-widest hover:bg-surface-container transition-all"
-                >
-                  취소
-                </button>
+      <div className="space-y-8">
+        {/* 재고 현황 지표 (LARGE HEADER) */}
+        <div className="bg-white border-4 border-primary/20 rounded-[40px] p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute right-0 top-0 opacity-10 translate-x-1/4 -translate-y-1/4">
+            <TrendingUp className="w-64 h-64 text-primary" />
+          </div>
+          
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-12 items-center">
+            <div className="space-y-4">
+              <h3 className="text-xl font-black text-primary uppercase tracking-[0.3em]">현재 재고 현황</h3>
+              <div className="flex items-baseline gap-2">
+                <p className="text-8xl font-black text-primary tracking-tighter tabular-nums">
+                  {item.currentStock.toLocaleString()}
+                </p>
+                <span className="text-3xl font-black text-outline uppercase">{item.unit}</span>
               </div>
             </div>
-            <div className="flex gap-4">
-              <button onClick={() => setNewStock(Number(newStock) + 1)} className="flex-1 h-14 bg-white border-2 border-primary text-primary rounded-xl font-black text-xl hover:bg-primary/5">+1</button>
-              <button onClick={() => setNewStock(Number(newStock) + 10)} className="flex-1 h-14 bg-white border-2 border-primary text-primary rounded-xl font-black text-xl hover:bg-primary/5">+10</button>
-              <button onClick={() => setNewStock(Number(newStock) + 50)} className="flex-1 h-14 bg-white border-2 border-primary text-primary rounded-xl font-black text-xl hover:bg-primary/5">+50</button>
-              <button onClick={() => setNewStock(Math.max(0, Number(newStock) - 1))} className="flex-1 h-14 bg-white border-2 border-error text-error rounded-xl font-black text-xl hover:bg-error/5">-1</button>
-              <button onClick={() => setNewStock(Math.max(0, Number(newStock) - 10))} className="flex-1 h-14 bg-white border-2 border-error text-error rounded-xl font-black text-xl hover:bg-error/5">-10</button>
+
+            <div className="grid grid-cols-2 gap-10 md:border-l-4 md:border-outline-variant/30 md:pl-12">
+              <div className="space-y-3">
+                <p className="text-sm font-black text-outline uppercase tracking-widest">안전 재고</p>
+                <p className="text-4xl font-black text-on-surface tracking-tight tabular-nums">{item.safetyStock.toLocaleString()}</p>
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-black text-outline uppercase tracking-widest">손실율(LOSS)</p>
+                <p className="text-4xl font-black text-error tracking-tight tabular-nums">{item.loss}</p>
+              </div>
+            </div>
+
+            <div className="bg-surface-container p-8 rounded-[32px] border-2 border-outline-variant/30 flex flex-col justify-center items-center gap-2">
+              <span className="text-xs font-black text-outline uppercase tracking-widest">적정 재고 대비 공급율</span>
+              <div className="flex items-baseline gap-3">
+                <span className={`text-5xl font-black tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
+                  {Math.round((item.currentStock / item.safetyStock) * 100)}%
+                </span>
+                <div className={`w-4 h-4 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse shadow-[0_0_15px_rgba(255,0,0,0.5)]' : 'bg-primary'}`} />
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="flex gap-6">
+        </div>
+
+        {/* 재고 업데이트 영역 */}
+        <div className="flex flex-col gap-6">
+          {isUpdatingStock ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-primary/5 p-10 rounded-[40px] border-4 border-primary shadow-2xl space-y-8"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="text-3xl font-black text-primary uppercase tracking-tight flex items-center gap-4">
+                  <Package className="w-10 h-10" /> 실재고 수량 수정
+                </h3>
+                <p className="text-xl font-black text-outline">기존 실적: {item.currentStock}{item.unit}</p>
+              </div>
+              <div className="flex flex-col lg:flex-row items-center gap-8">
+                <div className="flex-1 w-full relative">
+                  <input 
+                    type="number" 
+                    value={newStock}
+                    onChange={e => setNewStock(e.target.value)}
+                    className="w-full h-32 px-10 rounded-[32px] border-4 border-primary text-7xl font-black focus:outline-none shadow-inner tracking-tighter tabular-nums"
+                    autoFocus
+                  />
+                  <span className="absolute right-10 top-1/2 -translate-y-1/2 text-4xl font-black text-primary/40 uppercase">{item.unit}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-4 w-full lg:w-72">
+                  <button 
+                    onClick={handleUpdateStock}
+                    disabled={loading}
+                    className="h-20 flex-1 bg-primary text-white rounded-[24px] font-black text-2xl uppercase tracking-widest shadow-[0_15px_30px_rgba(var(--primary-rgb),0.3)] hover:translate-y-[-4px] active:translate-y-0 transition-all disabled:opacity-50"
+                  >
+                    {loading ? '저장 중...' : '변경 완료'}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsUpdatingStock(false);
+                      setNewStock(item.currentStock);
+                    }}
+                    className="h-20 flex-1 bg-white text-outline border-4 border-outline-variant rounded-[24px] font-black text-xl uppercase tracking-widest hover:bg-surface-container transition-all"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+                {[
+                  { label: '+1', val: 1, color: 'border-primary text-primary' },
+                  { label: '+10', val: 10, color: 'border-primary text-primary' },
+                  { label: '+50', val: 50, color: 'border-primary text-primary' },
+                  { label: '-1', val: -1, color: 'border-error text-error' },
+                  { label: '-10', val: -10, color: 'border-error text-error' },
+                ].map((btn, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setNewStock(Math.max(0, Number(newStock) + btn.val))} 
+                    className={`h-16 bg-white border-2 rounded-2xl font-black text-2xl hover:bg-surface-container transition-all shadow-sm ${btn.color}`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
             <button 
               onClick={() => setIsUpdatingStock(true)}
-              className="flex-1 bg-primary text-white h-20 rounded-[28px] flex items-center justify-center gap-4 font-black text-2xl shadow-xl hover:opacity-90 active:scale-95 transition-all uppercase tracking-widest"
+              className="w-full bg-primary text-white h-24 rounded-[32px] flex items-center justify-center gap-6 font-black text-3xl shadow-[0_20px_40px_rgba(var(--primary-rgb),0.2)] hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-[0.2em]"
             >
-              <Package className="w-8 h-8" /> 재고 업데이트
+              <Package className="w-10 h-10" /> 재고 수량 업데이트 (UPDATE)
             </button>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Admin Section */}
-        <div className="border-2 border-outline-variant rounded-[40px] p-10 space-y-8 shadow-2xl bg-surface-container-low relative overflow-hidden group">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-black text-primary uppercase tracking-widest">관리자 전용 관리</h3>
-              <h3 className={`bg-primary/10 text-primary text-[8px] px-4 py-1.5 rounded-xl font-black tracking-widest ${isAdmin ? 'bg-emerald-500 text-white shadow-lg' : ''}`}>{isAdmin ? 'VERIFIED ADMIN' : 'ADMIN ONLY'}</h3>
-            </div>
-            {isAdmin ? <Verified className="w-8 h-8 text-emerald-600" /> : <Lock className="w-8 h-8 text-primary" />}
-          </div>
-          <div className={`grid grid-cols-2 gap-y-10 pt-6 transition-all duration-700 ${isAdmin ? '' : 'blur-[12px] select-none pointer-events-none opacity-30 shadow-inner'}`}>
-            <div>
-              <p className="text-lg font-black text-outline uppercase tracking-widest mb-2">매입 단가</p>
-              <p className="text-4xl font-black tracking-tight">₩ {item.purchasePrice?.toLocaleString() || '0'}</p>
-            </div>
-            <div>
-              <p className="text-lg font-black text-outline uppercase tracking-widest mb-2">판매 단가</p>
-              <p className="text-4xl font-black tracking-tight">₩ {item.salesPrice?.toLocaleString() || '0'}</p>
-            </div>
-            <div className="col-span-2 p-10 bg-white rounded-[32px] border-2 border-outline-variant flex justify-between items-center shadow-xl">
-              <div>
-                <p className="text-xl font-black text-outline uppercase tracking-widest mb-2">마진율</p>
-                <p className="text-5xl font-black text-primary tracking-tighter">{margin > 0 ? '+' : ''}{marginPercent}%</p>
-              </div>
-              <p className="text-6xl font-black text-emerald-600 tracking-tighter">₩ {margin?.toLocaleString() || '0'}</p>
-            </div>
-          </div>
-          {!isAdmin && (
-            <div className="absolute inset-0 top-20 flex flex-col items-center justify-center bg-white/10 backdrop-blur-[4px] z-10 transition-all">
-              <div className="text-center space-y-6 bg-white p-10 rounded-[32px] shadow-2xl border-4 border-outline-variant/30">
-                <p className="text-primary font-black text-2xl uppercase tracking-widest">권한 확인 후 열람 가능</p>
-                <button className="bg-primary text-white h-16 px-10 rounded-2xl text-lg font-black shadow-2xl flex items-center gap-4 mx-auto cursor-not-allowed opacity-60 uppercase tracking-widest scale-110">
-                  <Verified className="w-6 h-6" /> 관리자 권한 필요
-                </button>
-              </div>
-            </div>
           )}
         </div>
 
-        {/* Health */}
-        <div className="bg-white border-2 border-outline-variant rounded-[40px] p-10 space-y-10 shadow-2xl flex flex-col justify-between overflow-hidden">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-black text-on-surface-variant uppercase tracking-widest">재고 현황 지표</h3>
-            <TrendingUp className="w-8 h-8 text-outline" />
-          </div>
-          <div className="grid grid-cols-3 gap-8 items-end pb-4">
-            <div className="space-y-4">
-              <p className="text-lg font-black text-outline uppercase tracking-widest">현재 재고</p>
-              <p className="text-6xl font-black text-primary leading-none tracking-tighter">{item.currentStock}</p>
+        {/* 하단 2열 정보 섹션 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* 제품 규격 및 보관 정보 */}
+          <div className="bg-white border-2 border-outline-variant rounded-[40px] p-10 shadow-xl space-y-10 group hover:border-primary/30 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-outline uppercase tracking-[0.3em]">STORAGE & SPECS</h3>
+                <p className="text-3xl font-black text-on-surface tracking-tight">제품 규격 및 보관 정보</p>
+              </div>
+              <Warehouse className="w-10 h-10 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
             </div>
-            <div className="space-y-2 border-l-2 border-outline-variant/30 pl-6">
-              <p className="text-[8px] font-black text-outline uppercase tracking-widest">안전 재고</p>
-              <p className="text-3xl font-black text-on-surface-variant tracking-tight">{item.safetyStock}</p>
-            </div>
-            <div className="space-y-2 border-l-2 border-outline-variant/30 pl-6">
-              <p className="text-[8px] font-black text-outline uppercase tracking-widest">로스율</p>
-              <p className="text-3xl font-black text-error tracking-tight">{item.loss}</p>
-            </div>
-          </div>
-          <div className="bg-surface-container-highest p-4 rounded-2xl flex items-center justify-between mt-4">
-            <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">적정 재고 대비</span>
-            <span className="text-lg font-mono text-primary font-black tracking-widest">+175%</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Specs */}
-      <div className="bg-white border border-outline-variant rounded-2xl p-6 space-y-6 shadow-sm">
-        <div className="flex items-center justify-between border-b border-surface-variant pb-4">
-          <h3 className="text-[7px] font-bold text-on-surface-variant uppercase tracking-widest">제품 규격 및 보관 정보</h3>
-          <Warehouse className="w-4 h-4 text-outline" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <p className="text-4xl font-black text-primary">{item.unit || '단위 미정'}</p>
-            <div className="flex items-start gap-4 p-4 bg-surface-container-low rounded-xl border border-surface-variant">
-              <MapPin className="text-secondary w-6 h-6 mt-1" />
-              <div>
-                <p className="text-[7px] font-bold text-outline uppercase tracking-wider">주요 보관 위치</p>
-                <p className="text-lg font-bold">{item.location || '위치 정보 없음'}</p>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              {[
-                { l: '재고 관리 방식', v: '선입선출 (FIFO)' },
-                { l: '최근 입고일', v: '2023-11-20' },
-                { l: '출고 예정일', v: '2023-11-28' },
-                { l: '소비기한', v: '2024-05-20', c: 'text-error' },
-              ].map((item, i) => (
-                <div key={i}>
-                  <p className="text-[7px] font-bold text-outline uppercase mb-0.5">{item.l}</p>
-                  <p className={`text-md font-bold ${item.c || ''}`}>{item.v}</p>
+            <div className="grid grid-cols-1 gap-6">
+              <div className="p-8 bg-surface-container/30 rounded-[32px] border-2 border-outline-variant/30 space-y-3">
+                <p className="text-xs font-black text-outline uppercase tracking-widest">주요 보관 위치 (LOCATION)</p>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary text-white rounded-2xl shadow-lg">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                  <p className="text-3xl font-black text-on-surface tracking-tighter">{item.location || 'N/A'}</p>
                 </div>
-              ))}
-            </div>
-            <div className="space-y-2 pt-2">
-              <div className="flex justify-between text-[7px] font-bold uppercase tracking-wider">
-                <span className="text-on-surface-variant">창고 점유율</span>
-                <span className="text-primary">82%</span>
               </div>
-              <div className="w-full bg-surface-variant h-3 rounded-full overflow-hidden">
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="p-8 bg-surface-container/30 rounded-[32px] border-2 border-outline-variant/30 space-y-2">
+                  <p className="text-xs font-black text-outline uppercase tracking-widest">관리 방식</p>
+                  <p className="text-2xl font-black tracking-tight">FIFO (선입선출)</p>
+                </div>
+                <div className="p-8 bg-surface-container/30 rounded-[32px] border-2 border-outline-variant/30 space-y-2 text-right">
+                  <p className="text-xs font-black text-outline uppercase tracking-widest">최근 입고</p>
+                  <p className="text-2xl font-black font-mono tracking-tight text-primary">2024.03.20</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t-2 border-outline-variant/20">
+              <div className="flex justify-between items-end">
+                <span className="text-sm font-black text-outline uppercase tracking-widest">창고 점유율 STATUS</span>
+                <span className="text-4xl font-black text-primary tabular-nums">82<span className="text-xl">%</span></span>
+              </div>
+              <div className="w-full bg-surface-container h-6 rounded-full overflow-hidden border-2 border-outline-variant/30 p-1">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: '82%' }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
-                  className="bg-primary h-full rounded-full" 
+                  className="bg-primary h-full rounded-full shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]" 
                 />
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* History */}
-      <div className="bg-white border border-outline-variant rounded-2xl p-6 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[7px] font-bold text-on-surface-variant uppercase tracking-widest">최근 활동 내역</h3>
-          <History className="w-4 h-4 text-outline" />
-        </div>
-        <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[2px] before:bg-surface-variant">
-          <div className="relative">
-            <div className="absolute -left-[20px] top-1.5 w-[10px] h-[10px] rounded-full bg-primary ring-4 ring-white shadow-sm"></div>
-            <p className="text-[9px] font-bold text-primary">신규 입고: #B-9021</p>
-            <p className="text-[7px] font-bold text-outline uppercase">오전 10:45 · 2023.11.20</p>
-          </div>
-          <div className="relative">
-            <div className="absolute -left-[20px] top-1.5 w-[10px] h-[10px] rounded-full bg-outline-variant ring-4 ring-white shadow-sm"></div>
-            <p className="text-[9px] font-bold text-on-surface">정기 재고 조사 완료</p>
-            <p className="text-[7px] font-bold text-outline uppercase">오후 03:20 · 2023.11.18</p>
+          {/* 최근 활동 내역 */}
+          <div className="bg-white border-2 border-outline-variant rounded-[40px] p-10 shadow-xl flex flex-col group hover:border-primary/30 transition-colors">
+            <div className="flex items-center justify-between mb-12">
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-outline uppercase tracking-[0.3em]">RECENT ACTIVITY</h3>
+                <p className="text-3xl font-black text-on-surface tracking-tight">최근 활동 내역</p>
+              </div>
+              <History className="w-10 h-10 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
+            </div>
+            
+            <div className="relative pl-10 space-y-12 flex-1 max-h-[480px] overflow-y-auto custom-scrollbar pr-4">
+              <div className="absolute left-[19px] top-4 bottom-4 w-1 bg-outline-variant/30 rounded-full" />
+              
+              {[
+                { title: '신규 입고: #B-9021', time: '오전 10:45 · 2024.03.20', type: 'in', desc: '냉동창고 A-1 입고 완료', color: 'bg-emerald-500' },
+                { title: '재고 조사 완료', time: '오후 03:20 · 2024.03.18', type: 'check', desc: '실재고 합치 확인됨', color: 'bg-outline' },
+                { title: '가공 출하', time: '오후 01:15 · 2024.03.15', type: 'out', desc: '육정가공센터 박스 출하', color: 'bg-primary' }
+              ].map((activity, idx) => (
+                <div key={idx} className="relative group/item">
+                  <div className={`absolute -left-[30px] top-2 w-5 h-5 rounded-full ring-8 ring-white shadow-md transition-all group-hover/item:scale-150 ${activity.color}`} />
+                  <div className="space-y-2">
+                    <p className="text-xl font-black text-on-surface tracking-tight">{activity.title}</p>
+                    <p className="text-xs font-black text-outline uppercase tracking-widest">{activity.time}</p>
+                    <div className="p-4 bg-surface-container/50 rounded-2xl border border-outline-variant/20 mt-3 italic text-on-surface-variant font-bold text-sm">
+                      "{activity.desc}"
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
