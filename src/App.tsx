@@ -2065,6 +2065,8 @@ export default function App() {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
+  const [isFabOpen, setIsFabOpen] = useState(false);
+  
   const [inventory, setInventory] = useState<any[]>([]);
   const [production, setProduction] = useState<any[]>([]);
   const [logistics, setLogistics] = useState<any[]>([]);
@@ -2349,9 +2351,40 @@ export default function App() {
       </nav>
 
       {/* Floating Action Button (Mobile Only) */}
-      <button className="lg:hidden fixed right-6 bottom-20 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform">
-        <Plus className="w-8 h-8" />
-      </button>
+      <div className="lg:hidden fixed right-6 bottom-24 z-50">
+        <AnimatePresence>
+          {isFabOpen && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.5, y: 50 }}
+              className="absolute bottom-20 right-0 flex flex-col gap-3 items-end"
+            >
+              {navItems.map((item, idx) => (
+                <motion.button
+                  key={item.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  onClick={() => {
+                    handleNavigate(item.id as ViewType);
+                    setIsFabOpen(false);
+                  }}
+                  className={`min-w-[160px] px-8 py-4 rounded-2xl text-base font-black shadow-2xl transition-all border-2 active:scale-95 ${currentView === item.id || (currentView === 'detail' && item.id === 'inventory') ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-outline-variant'}`}
+                >
+                  {item.label}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <button 
+          onClick={() => setIsFabOpen(!isFabOpen)}
+          className={`w-16 h-16 rounded-[24px] shadow-[0_20px_40px_rgba(var(--primary-rgb),0.3)] flex items-center justify-center transition-all active:scale-90 ${isFabOpen ? 'bg-error text-white rotate-45' : 'bg-primary text-white'}`}
+        >
+          <Plus className="w-10 h-10" />
+        </button>
+      </div>
 
       <style>{`
         @keyframes spin-slow {
