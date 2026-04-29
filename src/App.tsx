@@ -152,6 +152,14 @@ const DashboardView = ({
   logistics: any[],
   partners: any[]
 }) => {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const lowStockItems = inventory.filter(item => item.currentStock < item.safetyStock);
+  const cautionStockItems = inventory.filter(item => item.currentStock >= item.safetyStock && item.currentStock < item.safetyStock * 1.5);
+  const allAlerts = [...lowStockItems, ...cautionStockItems];
+  const displayedAlerts = isExpanded ? allAlerts : allAlerts.slice(0, 3);
+
   const stats: StatItem[] = [
     { label: '전체 상품', value: inventory.length.toLocaleString(), unit: '개', icon: Package },
     { label: '거래처', value: partners.length.toLocaleString(), unit: '개', icon: Users, color: 'bg-emerald-500' },
@@ -163,18 +171,21 @@ const DashboardView = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
+      <section className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-2 border-outline-variant/30 pb-6">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
           <h1 className="text-5xl font-black text-primary tracking-tight">대시보드</h1>
-          <p className="text-lg text-on-surface-variant font-medium">2024년 3월 24일 실시간 재고 및 생산 현황</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="bg-white border border-outline px-5 py-2.5 rounded-xl flex items-center gap-2 text-base font-bold hover:bg-surface-variant transition-colors">
-            <FileText className="w-5 h-5" /> PDF 내보내기
-          </button>
-          <button className="bg-primary text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-base font-bold shadow-sm hover:opacity-90">
-            <Plus className="w-5 h-5" /> 신규 등록
-          </button>
+          <div className="flex items-center gap-3 bg-surface-container px-4 py-2.5 rounded-2xl border-2 border-outline-variant/50 shadow-sm hover:border-primary/30 transition-all group">
+            <CalendarDays className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-outline uppercase tracking-widest hidden md:block">조회 기준일</span>
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent font-mono font-black text-base outline-none cursor-pointer text-on-surface"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -190,59 +201,92 @@ const DashboardView = ({
           <h3 className="text-2xl font-black flex items-center gap-3">
             <AlertTriangle className="text-error w-6 h-6" /> 안전 재고 알림
           </h3>
-          <div className="space-y-4">
-            {inventory.filter(item => item.currentStock < item.safetyStock).map((item, idx) => (
-              <div key={idx} className="bg-error-container p-6 rounded-2xl border border-error/20 space-y-4">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-black text-on-error-container text-xl">{item.name}</h4>
-                  <span className="bg-error text-white px-3 py-1 rounded-full text-[9px] font-black uppercase">위험</span>
-                </div>
-                <p className="text-lg text-on-error-container/90 font-bold">현재고: {item.currentStock}{item.unit} | 기준치: {item.safetyStock}{item.unit}</p>
-                <div className="flex gap-3 pt-2">
-                  <button className="bg-on-error-container text-white px-6 py-2.5 rounded-xl text-base font-black">지금 발주</button>
-                  <button className="border border-on-error-container/30 text-on-error-container px-6 py-2.5 rounded-xl text-base font-black">무시</button>
-                </div>
+          <div className="space-y-3">
+            {displayedAlerts.length === 0 ? (
+              <div className="bg-surface-container p-8 rounded-2xl border-2 border-dashed border-outline-variant/50 text-center">
+                <p className="font-black text-outline uppercase tracking-widest">현재 재고 알림 없음</p>
               </div>
-            ))}
-            {inventory.filter(item => item.currentStock >= item.safetyStock && item.currentStock < item.safetyStock * 1.5).map((item, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-2xl border border-outline-variant space-y-2">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-black text-xl">{item.name}</h4>
-                  <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[9px] font-black uppercase">부족</span>
-                </div>
-                <p className="text-lg text-on-surface-variant font-bold">현재고: {item.currentStock}{item.unit} | 기준치: {item.safetyStock}{item.unit}</p>
-              </div>
-            ))}
+            ) : (
+              <>
+                {displayedAlerts.map((item, idx) => {
+                  const isCritical = item.currentStock < item.safetyStock;
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-5 rounded-2xl border transition-all ${
+                        isCritical 
+                          ? 'bg-error-container border-error/20' 
+                          : 'bg-white border-outline-variant shadow-sm'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className={`font-black text-xl tracking-tight ${isCritical ? 'text-on-error-container' : 'text-on-surface'}`}>
+                          {item.name}
+                        </h4>
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                          isCritical ? 'bg-error text-white' : 'bg-secondary-container text-on-secondary-container'
+                        }`}>
+                          {isCritical ? '위험' : '주의'}
+                        </span>
+                      </div>
+                      <p className={`text-base font-bold ${isCritical ? 'text-on-error-container/80' : 'text-on-surface-variant'}`}>
+                        현재: <span className="font-black">{item.currentStock}{item.unit}</span> | 
+                        기준: <span className="font-black">{item.safetyStock}{item.unit}</span>
+                      </p>
+                    </div>
+                  );
+                })}
+                
+                {allAlerts.length > 3 && (
+                  <button 
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="w-full py-4 bg-surface-container hover:bg-surface-variant transition-colors rounded-2xl border-2 border-outline-variant/30 text-sm font-black text-outline uppercase tracking-[0.2em] flex items-center justify-center gap-2 group"
+                  >
+                    {isExpanded ? (
+                      <>접기 <ChevronUp className="w-4 h-4 group-hover:-translate-y-1 transition-transform" /></>
+                    ) : (
+                      <>전체 {allAlerts.length}개 펼쳐보기 <ChevronDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" /></>
+                    )}
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-2xl font-black text-on-surface">최근 생산 활동</h3>
-            <button onClick={() => onNavigate('production')} className="text-primary text-lg font-black tracking-widest hover:underline uppercase">전체 보기</button>
           </div>
           <div className="overflow-hidden border border-outline-variant rounded-3xl bg-white shadow-sm">
             <table className="w-full text-left">
-              <thead className="bg-surface-container border-b border-outline-variant text-[8px] uppercase font-black text-outline">
+              <thead className="bg-surface-container border-b border-outline-variant text-sm uppercase font-black text-outline">
                 <tr>
                   <th className="p-6">SKU</th>
                   <th className="p-6">품목</th>
                   <th className="p-6 text-center">생산량</th>
-                  <th className="p-6 text-center">로스율</th>
+                  <th className="p-6 text-center">수율/로스</th>
                   <th className="p-6 text-right">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {production.slice(0, 5).map((row, i) => (
                   <tr key={i} className="hover:bg-surface-container transition-colors">
-                    <td className="p-6 text-lg font-mono text-outline font-black tracking-widest">{row.batchId}</td>
-                    <td className="p-6 text-2xl font-black text-on-surface">{row.title}</td>
-                    <td className="p-6 text-2xl font-mono font-black text-primary text-center">
-                      {row.weight.toString().toLowerCase().includes('kg') ? row.weight : `${row.weight}kg`}
+                    <td className="p-6 text-xl font-mono text-outline font-black tracking-widest">{row.batchId || row.sku}</td>
+                    <td className="p-6 text-3xl font-black text-on-surface leading-tight">{row.title}</td>
+                    <td className="p-6 text-3xl font-mono font-black text-primary text-center">
+                      {row.weight?.toString().toLowerCase().includes('kg') ? row.weight : `${row.weight}kg`}
                     </td>
-                    <td className={`p-6 text-xl font-mono font-black text-center ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-primary'}`}>{row.yield}</td>
+                    <td className="p-6 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className={`text-2xl font-mono font-black ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-emerald-600'}`}>
+                          {row.yield || (row.loss ? `${100 - parseFloat(row.loss)}%` : '-')}
+                        </span>
+                        {row.loss && <span className="text-sm font-black text-error/60">Loss: {row.loss}%</span>}
+                      </div>
+                    </td>
                     <td className="p-6 text-right">
-                      <span className={`px-6 py-2 rounded-full text-base font-black uppercase tracking-widest shadow-sm ${row.color}`}>{row.status}</span>
+                      <span className={`px-6 py-2 rounded-full text-lg font-black uppercase tracking-widest shadow-sm ${row.color || 'bg-primary/10 text-primary'}`}>{row.status}</span>
                     </td>
                   </tr>
                 ))}
@@ -1568,31 +1612,31 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                     <tr key={i} className="hover:bg-surface-container transition-colors group">
                       <td className="p-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1">
-                          <span className="text-sm font-mono text-outline font-black tracking-widest">{displaySku}</span>
-                          <span className="w-fit px-3 py-1 bg-primary/10 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
+                          <span className="text-base font-mono text-outline font-black tracking-widest">{displaySku}</span>
+                          <span className="w-fit px-3 py-1 bg-primary/10 rounded-lg text-xs font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
                         </div>
                       </td>
                       <td className="p-4 whitespace-nowrap">
-                      <p className="text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
+                      <p className="text-2xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
                     </td>
                     <td className="p-4 whitespace-nowrap">
-                      <span className="px-3 py-1.5 bg-surface-container rounded-xl text-sm font-black text-on-surface-variant">
+                      <span className="px-3 py-1.5 bg-surface-container rounded-xl text-base font-black text-on-surface-variant">
                         {batch.rawMeat || '미지정'}
                       </span>
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
-                      <p className="text-xl font-black text-primary">
+                      <p className="text-2xl font-black text-primary">
                         {batch.weight.toString().toLowerCase().includes('kg') ? batch.weight : `${batch.weight}kg`}
                       </p>
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
-                      <p className="text-xl font-black text-emerald-600">
+                      <p className="text-2xl font-black text-emerald-600">
                         {100 - (parseFloat(batch.loss || '0'))}%
                       </p>
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
                       <div className="flex flex-col items-center gap-1">
-                        <span className="text-xl font-black text-error">{batch.loss || '0'}%</span>
+                        <span className="text-2xl font-black text-error">{batch.loss || '0'}%</span>
                         <div className="w-24 h-2 bg-error/10 rounded-full overflow-hidden">
                           <div className="h-full bg-error" style={{ width: `${Math.min(parseFloat(batch.loss || '0') * 5, 100)}%` }} />
                         </div>
