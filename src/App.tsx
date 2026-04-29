@@ -119,14 +119,20 @@ interface StatItem {
 
 const StatCard = ({ item }: { item: StatItem, key?: React.Key }) => {
   return (
-    <div className="bg-white border-2 border-outline-variant p-6 rounded-[24px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group">
-      <p className="text-xs md:text-sm font-black text-outline uppercase tracking-[0.2em] mb-2">{item.label}</p>
-      <p className="text-3xl md:text-5xl font-black text-on-surface tabular-nums tracking-tighter">
-        {item.value}<span className="text-lg md:text-2xl font-bold ml-1 text-outline-variant uppercase">{item.unit}</span>
-      </p>
+    <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
+      <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{item.label}</p>
+      <div className="flex items-baseline gap-1">
+        <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
+          {item.value}
+        </p>
+        <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">{item.unit}</span>
+      </div>
       {item.trend && (
-        <div className={`flex items-center gap-1 text-sm md:text-lg mt-2 font-black ${item.trendDir === 'up' ? 'text-emerald-600' : 'text-error'}`}>
-          {item.trendDir === 'up' ? <TrendingUp className="w-4 h-4 md:w-5 md:h-5" /> : <AlertTriangle className="w-4 h-4 md:w-5 md:h-5" />}
+        <div className={`flex items-center gap-1.5 text-xs md:text-sm mt-4 font-black px-4 py-1.5 rounded-full border-2 ${
+          item.trendDir === 'up' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-error bg-error/5 border-error/10'
+        }`}>
+          {item.trendDir === 'up' ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
           {item.trend}
         </div>
       )}
@@ -300,42 +306,53 @@ const DashboardView = ({
           </button>
         </div>
         
-        <div className="overflow-hidden border-2 border-outline-variant rounded-[32px] bg-white shadow-xl">
+        <div className="overflow-hidden border-2 border-outline-variant/20 rounded-[40px] bg-white shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-surface-container/50 border-b-2 border-outline-variant text-[10px] uppercase font-black text-outline tracking-widest">
+              <thead className="bg-surface-container/30 border-b border-outline-variant/30 text-[10px] uppercase font-black text-outline tracking-[0.2em]">
                 <tr>
-                  <th className="p-6">ID/SKU</th>
-                  <th className="p-6">품목 (ITEM)</th>
-                  <th className="p-6 text-center">생산량 (QTY)</th>
-                  <th className="p-6 text-center">수율/로스</th>
-                  <th className="p-6 text-right">상태</th>
+                  <th className="px-8 py-6">BATCH/SKU</th>
+                  <th className="px-8 py-6">품목 (ITEM)</th>
+                  <th className="px-8 py-6 text-center">생산량 (QTY)</th>
+                  <th className="px-8 py-6 text-center">수율 지표</th>
+                  <th className="px-8 py-6 text-right">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {production.slice(0, 5).map((row, i) => (
-                  <tr key={i} className="hover:bg-primary/5 transition-colors group/row">
-                    <td className="p-6 text-lg font-mono text-outline font-black tracking-widest">{row.batchId || row.sku}</td>
-                    <td className="p-6">
-                       <p className="text-2xl font-black text-on-surface leading-tight group-hover/row:text-primary transition-colors">{row.title}</p>
+                  <tr key={i} className="hover:bg-primary/[0.02] transition-colors group/row">
+                    <td className="px-8 py-7">
+                      <span className="text-sm font-mono text-outline font-black tracking-widest px-3 py-1 bg-surface-container rounded-lg">{row.batchId || row.sku}</span>
                     </td>
-                    <td className="p-6 text-3xl font-mono font-black text-primary text-center tabular-nums">
-                      {row.weight?.toString().toLowerCase().includes('kg') ? row.weight : `${row.weight}kg`}
+                    <td className="px-8 py-7">
+                       <p className="text-xl md:text-2xl font-black text-on-surface leading-none tracking-tighter group-hover/row:text-primary transition-colors">{row.title}</p>
+                       <p className="text-[10px] font-bold text-outline-variant uppercase tracking-widest mt-1">PRODUCTION LINE A1</p>
                     </td>
-                    <td className="p-6 text-center">
+                    <td className="px-8 py-7 text-center">
                       <div className="flex flex-col items-center">
-                        <span className={`text-xl font-black tabular-nums ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-emerald-600'}`}>
-                          {row.yield || (row.loss ? `${100 - parseFloat(row.loss)}%` : '-')}
+                        <span className="text-2xl md:text-3xl font-black text-primary tracking-tighter tabular-nums">
+                          {row.weight?.toString().toLowerCase().includes('kg') ? row.weight.replace('kg', '') : row.weight}
+                          <span className="text-xs md:text-sm ml-0.5 text-outline uppercase">kg</span>
                         </span>
-                        {row.loss && <span className="text-[10px] font-black text-error/60 uppercase tracking-widest">Loss: {row.loss}%</span>}
                       </div>
                     </td>
-                    <td className="p-6 text-right">
-                      <span className={`px-5 py-1.5 rounded-xl text-sm font-black uppercase tracking-widest shadow-sm border-2 ${
+                    <td className="px-8 py-7 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className={`text-lg md:text-xl font-black tabular-nums tracking-tight ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-emerald-600'}`}>
+                          {row.yield || (row.loss ? `${100 - parseFloat(row.loss)}%` : '-')}
+                        </span>
+                        {row.loss && <span className="text-[9px] font-black text-error/50 uppercase tracking-widest mt-0.5">Loss {row.loss}%</span>}
+                      </div>
+                    </td>
+                    <td className="px-8 py-7 text-right">
+                      <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border-2 ${
                         row.status === '완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                        row.status === '진행중' ? 'bg-primary/5 text-primary border-primary/10' : 
-                        'bg-surface-container text-outline border-outline-variant/20'
-                      }`}>{row.status}</span>
+                        row.status === '진행중' ? 'bg-primary/5 text-primary border-primary/20 animate-pulse' : 
+                        'bg-surface-container text-outline border-outline-variant/30'
+                      }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${row.status === '완료' ? 'bg-emerald-500' : row.status === '진행중' ? 'bg-primary' : 'bg-outline'}`} />
+                        {row.status}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -405,12 +422,12 @@ const InventoryView = ({ onNavigate, inventory, isAuthorized = false }: { onNavi
           { label: '총 SKU', value: inventory.length.toLocaleString(), color: 'text-primary' },
           { label: '재고 부족', value: inventory.filter(i => i.currentStock < i.safetyStock).length.toString(), color: 'text-error' },
           { label: `${timeFilter} 입고`, value: timeFilter === '일간' ? '250' : timeFilter === '주간' ? '1,420' : '5,800', unit: 'kg', color: 'text-secondary' },
-          { label: `${timeFilter} 출고`, value: timeFilter === '일간' ? '180' : timeFilter === '주간' ? '980' : '4,250', unit: 'kg', color: 'text-tertiary' },
+          { label: `${timeFilter} 출고`, value: timeFilter === '일간' ? '180' : timeFilter === '주간' ? '980' : '4,250', unit: 'kg', color: 'text-emerald-500' },
         ].map((item, i) => (
-          <div key={i} className="bg-surface-container p-4 rounded-2xl border-2 border-outline-variant/30 flex flex-col gap-1">
-            <p className="text-sm font-black text-on-surface-variant uppercase tracking-widest">{item.label}</p>
-            <p className={`text-3xl font-black ${item.color}`}>
-              {item.value}<span className="text-lg font-bold ml-1">{item.unit || ''}</span>
+          <div key={i} className="bg-white p-5 rounded-3xl border-2 border-outline-variant/30 flex flex-col gap-2 shadow-sm hover:border-primary/30 transition-colors">
+            <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.2em]">{item.label}</p>
+            <p className={`text-2xl md:text-4xl font-black tabular-nums tracking-tighter ${item.color}`}>
+              {item.value}<span className="text-sm md:text-xl font-bold ml-1 text-outline-variant uppercase">{item.unit || ''}</span>
             </p>
           </div>
         ))}
@@ -421,47 +438,59 @@ const InventoryView = ({ onNavigate, inventory, isAuthorized = false }: { onNavi
           <div 
             key={i} 
             onClick={() => onNavigate('detail', item)}
-            className={`flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white border-2 rounded-[28px] hover:border-primary transition-all cursor-pointer group shadow-sm relative overflow-hidden ${item.currentStock < item.safetyStock ? 'border-error/30' : 'border-outline-variant/20'}`}
+            className={`flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white border-2 rounded-[32px] hover:border-primary hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden ${item.currentStock < item.safetyStock ? 'border-error/30 bg-error/[0.02]' : 'border-outline-variant/15'}`}
           >
             {/* Status Indicator Bar (Mobile accent) */}
-            <div className={`absolute left-0 top-0 bottom-0 w-2 md:hidden ${item.currentStock < item.safetyStock ? 'bg-error' : 'bg-emerald-500'}`} />
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 md:hidden ${item.currentStock < item.safetyStock ? 'bg-error' : 'bg-emerald-500'}`} />
 
             <div className="flex-1 flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-colors ${item.currentStock < item.safetyStock ? 'bg-error/10 text-error' : 'bg-primary/5 text-primary'}`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
                 {item.currentStock < item.safetyStock ? <AlertTriangle className="w-6 h-6" /> : <Package className="w-6 h-6" />}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 overflow-hidden">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-black text-2xl leading-tight group-hover:text-primary transition-colors tracking-tight">{item.name}</p>
-                  <span className="px-2.5 py-0.5 bg-surface-container-high text-on-surface-variant rounded-lg text-[10px] font-black uppercase tracking-widest">{item.category}</span>
+                  <p className="font-black text-2xl md:text-3xl leading-none group-hover:text-primary transition-colors tracking-tighter truncate">{item.name}</p>
+                  <span className="px-3 py-1 bg-surface-container text-on-surface-variant rounded-full text-[9px] font-black uppercase tracking-widest border border-outline-variant/30">{item.category}</span>
                 </div>
-                <p className="text-xs text-outline font-mono uppercase font-black tracking-[0.2em]">{item.sku}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] md:text-xs text-outline font-mono font-black tracking-widest px-2 py-0.5 bg-surface-container/50 rounded-lg">{item.sku}</span>
+                  <div className="flex items-center gap-1 text-[10px] font-black text-outline uppercase tracking-widest lg:hidden">
+                    <MapPin className="w-3 h-3" /> {item.location}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-12 items-center border-t md:border-t-0 border-outline-variant/30 pt-4 md:pt-0">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 xl:gap-16 items-center border-t md:border-t-0 border-outline-variant/30 pt-4 md:pt-0">
               <div className="space-y-1">
-                <p className="text-[10px] font-black text-outline uppercase tracking-widest">현재 재고</p>
-                <p className={`font-black text-2xl tabular-nums ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
-                  {item.currentStock}<span className="text-sm ml-0.5 font-bold">{item.unit}</span>
-                </p>
+                <p className="text-[10px] font-black text-outline uppercase tracking-widest">현재 실재고</p>
+                <div className="flex items-baseline gap-1">
+                  <p className={`font-black text-2xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
+                    {item.currentStock.toLocaleString()}
+                  </p>
+                  <span className="text-xs font-black text-outline uppercase">{item.unit}</span>
+                </div>
               </div>
 
               {isAuthorized && (
-                <div className="space-y-1 hidden lg:block">
-                  <p className="text-[10px] font-black text-outline uppercase tracking-widest">단가 정보 (COST/PRICE)</p>
-                  <p className="font-black text-sm text-on-surface tabular-nums">
-                    매입: <span className="text-primary">{item.purchasePrice?.toLocaleString()}</span> / 
-                    판매: <span className="text-secondary">{item.salesPrice?.toLocaleString()}</span>
-                  </p>
+                <div className="space-y-1 hidden xl:block">
+                  <p className="text-[10px] font-black text-outline uppercase tracking-widest">수익성 단가</p>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-outline uppercase leading-none mb-1">C: ₩{item.purchasePrice?.toLocaleString()}</span>
+                    <span className="text-sm font-black text-secondary tracking-tight">P: ₩{item.salesPrice?.toLocaleString()}</span>
+                  </div>
                 </div>
               )}
               
-              <div className="space-y-1 hidden md:block">
-                <p className="text-[10px] font-black text-outline uppercase tracking-widest">상태</p>
-                <div className="flex items-center gap-1.5">
+              <div className="space-y-1 hidden lg:block">
+                <p className="text-[10px] font-black text-outline uppercase tracking-widest">운영 상태</p>
+                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border-2 ${
+                  item.currentStock < item.safetyStock 
+                    ? 'bg-error/5 border-error/20 text-error' 
+                    : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                }`}>
                   <div className={`w-2 h-2 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse' : 'bg-emerald-500'}`} />
-                  <span className={`text-sm font-black uppercase tracking-widest ${item.currentStock < item.safetyStock ? 'text-error' : 'text-emerald-700'}`}>{item.status}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">{item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}</span>
                 </div>
               </div>
 
@@ -471,7 +500,7 @@ const InventoryView = ({ onNavigate, inventory, isAuthorized = false }: { onNavi
                     e.stopPropagation();
                     onNavigate('detail', item);
                   }}
-                  className="h-12 px-6 bg-primary/5 text-primary border-2 border-primary/20 rounded-2xl text-sm font-black uppercase hover:bg-primary hover:text-white transition-all active:scale-95 flex items-center gap-2"
+                  className="h-12 px-6 bg-white border-2 border-outline-variant/30 rounded-2xl text-xs font-black uppercase tracking-widest hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center gap-2 shadow-sm"
                 >
                   <Edit3 className="w-4 h-4" /> <span className="hidden sm:inline">관리</span>
                 </button>
@@ -506,7 +535,18 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
   const [loading, setLoading] = useState(false);
 
   // Edit states
-  const [editData, setEditData] = useState({ ...item });
+  const [editData, setEditData] = useState({
+    name: '',
+    sku: '',
+    category: '',
+    unit: '',
+    currentStock: 0,
+    safetyStock: 0,
+    location: '',
+    purchasePrice: 0,
+    salesPrice: 0,
+    ...item
+  });
   const [newStock, setNewStock] = useState(item?.currentStock || 0);
   
   if (!item) return <div>상품 정보가 없습니다.</div>;
@@ -1401,7 +1441,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
     const weight = parseFloat(batch.weight.toString().replace(/[^0-9.]/g, '')) || 0;
     setOriginalWeight(weight);
     setItems([{
-      title: batch.title,
+      title: batch.title || '',
       rawMeat: batch.rawMeat || '',
       weight: batch.weight.toString().toLowerCase().replace('kg', '').trim(),
       loss: batch.loss || '',
