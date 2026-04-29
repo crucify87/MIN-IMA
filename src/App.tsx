@@ -841,6 +841,20 @@ const LogisticsView = ({
     setShowForm(false);
   };
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('정말로 이 물류 기록을 삭제하시겠습니까?')) return;
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'logistics', id));
+      alert('물류 기록이 삭제되었습니다.');
+      if (editingId === id) resetForm();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'logistics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const startEdit = (record: any) => {
     setEditingId(record.id);
     setFormData({
@@ -1109,6 +1123,16 @@ const LogisticsView = ({
                       className="h-10 px-6 border-2 border-primary text-primary rounded-xl text-sm font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
                     >
                       수정
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(item.id);
+                      }}
+                      className="h-10 px-4 border-2 border-error text-error rounded-xl text-sm font-black uppercase hover:bg-error hover:text-white transition-all shadow-sm active:scale-95 flex items-center justify-center"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
