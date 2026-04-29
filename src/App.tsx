@@ -302,146 +302,19 @@ const DashboardView = ({
 };
 
 const InventoryView = ({ onNavigate, inventory }: { onNavigate: (view: ViewType, item?: any) => void, inventory: any[] }) => {
-  const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    category: '소고기',
-    unit: 'kg',
-    safetyStock: '',
-    currentStock: '0',
-    location: 'A-1',
-    purchasePrice: '',
-    salesPrice: '',
-    status: 'active',
-    loss: '0'
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await addDoc(collection(db, 'inventory'), {
-        ...formData,
-        safetyStock: Number(formData.safetyStock),
-        currentStock: Number(formData.currentStock),
-        purchasePrice: Number(formData.purchasePrice),
-        salesPrice: Number(formData.salesPrice),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      alert('신규 품목이 등록되었습니다.');
-      setShowForm(false);
-      setFormData({
-        name: '',
-        sku: '',
-        category: '소고기',
-        unit: 'kg',
-        safetyStock: '',
-        currentStock: '0',
-        location: 'A-1',
-        purchasePrice: '',
-        salesPrice: '',
-        status: 'active',
-        loss: '0'
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'inventory');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => onNavigate('dashboard')}
-            className="p-3 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="space-y-2">
-            <h2 className="text-5xl font-black text-on-surface tracking-tighter">재고관리</h2>
-          </div>
-        </div>
+      <div className="flex items-center gap-4">
         <button 
-          onClick={() => setShowForm(!showForm)}
-          className={`h-12 px-8 rounded-xl flex items-center gap-3 text-base font-black uppercase transition-all shadow-lg active:scale-95 ${showForm ? 'bg-secondary text-white' : 'bg-primary text-white hover:bg-primary-container'}`}
+          onClick={() => onNavigate('dashboard')}
+          className="p-3 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
         >
-          {showForm ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-          {showForm ? '닫기' : '신규 품목 등록'}
+          <ArrowLeft className="w-5 h-5" />
         </button>
+        <div className="space-y-2">
+          <h2 className="text-5xl font-black text-on-surface tracking-tighter">재고관리</h2>
+        </div>
       </div>
-
-      <AnimatePresence>
-        {showForm && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-white rounded-2xl border-2 border-primary/30 shadow-2xl p-6 mb-8">
-              <h3 className="text-xl font-black text-primary uppercase tracking-widest mb-6">신규 재고 품목 등록</h3>
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">품목명</label>
-                  <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} type="text" placeholder="예: 한우 등심" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">SKU (코드)</label>
-                  <input required value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} type="text" placeholder="예: BN-HD-001" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-mono font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">카테고리</label>
-                  <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold bg-white">
-                    <option>소고기</option>
-                    <option>돼지고기</option>
-                    <option>가금류</option>
-                    <option>기타</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">단위</label>
-                  <input required value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} type="text" placeholder="kg, 개 등" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">현재고</label>
-                  <input required value={formData.currentStock} onChange={e => setFormData({...formData, currentStock: e.target.value})} type="number" step="0.01" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-black text-primary" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">안전재고수준</label>
-                  <input required value={formData.safetyStock} onChange={e => setFormData({...formData, safetyStock: e.target.value})} type="number" step="0.1" placeholder="최소 유지 재고" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">위치</label>
-                  <input value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} type="text" placeholder="냉동창고 A-1" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">매입단가</label>
-                  <input required value={formData.purchasePrice} onChange={e => setFormData({...formData, purchasePrice: e.target.value})} type="number" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">판매단가</label>
-                  <input required value={formData.salesPrice} onChange={e => setFormData({...formData, salesPrice: e.target.value})} type="number" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-outline uppercase px-1">로스율 (%)</label>
-                  <input value={formData.loss} onChange={e => setFormData({...formData, loss: e.target.value})} type="text" className="w-full h-11 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-error" />
-                </div>
-                <div className="md:col-span-2 lg:col-span-1 flex items-end">
-                  <button disabled={loading} type="submit" className="w-full h-11 bg-primary text-white rounded-xl font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-lg active:scale-95 disabled:opacity-50">
-                    {loading ? '등록 중...' : '등록 완료'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
