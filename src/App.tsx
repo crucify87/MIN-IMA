@@ -173,7 +173,7 @@ const DashboardView = ({
       {/* Header */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-2 border-outline-variant/30 pb-6">
         <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
-          <h1 className="text-5xl font-black text-primary tracking-tight">대시보드</h1>
+          <h1 className="text-3xl font-black text-primary tracking-tight">대시보드</h1>
           <div className="flex items-center gap-3 bg-surface-container px-4 py-2.5 rounded-2xl border-2 border-outline-variant/50 shadow-sm hover:border-primary/30 transition-all group">
             <CalendarDays className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
             <div className="flex flex-col">
@@ -312,7 +312,7 @@ const InventoryView = ({ onNavigate, inventory }: { onNavigate: (view: ViewType,
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="space-y-2">
-          <h2 className="text-5xl font-black text-on-surface tracking-tighter">재고관리</h2>
+          <h2 className="text-3xl font-black text-on-surface tracking-tighter">재고관리</h2>
         </div>
       </div>
 
@@ -907,7 +907,7 @@ const LogisticsView = ({
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="space-y-1">
-            <h2 className="text-5xl font-black text-on-surface tracking-tighter">물류현황</h2>
+            <h2 className="text-3xl font-black text-on-surface tracking-tighter">물류현황</h2>
           </div>
         </div>
         <div className="flex gap-3">
@@ -1348,8 +1348,8 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-5xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
-            <p className="text-2xl font-bold text-on-surface-variant mt-1">생산 공정 및 작업 일지 관리</p>
+            <h1 className="text-3xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
+            <p className="text-1xl font-bold text-on-surface-variant mt-1">생산공정 작업일지</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -1791,8 +1791,8 @@ const SettingsView = ({ onNavigate, partners }: { onNavigate?: (view: ViewType) 
           <ArrowLeft className="w-8 h-8" />
         </button>
         <div className="space-y-2">
-          <h2 className="text-5xl font-black text-primary tracking-tighter uppercase leading-none">시스템 설정</h2>
-          <p className="text-2xl text-on-surface-variant font-black tracking-tight pt-1">마스터 데이터 및 환경 설정 관리</p>
+          <h2 className="text-3xl font-black text-primary tracking-tighter uppercase leading-none">시스템 설정</h2>
+          <p className="text-1xl text-on-surface-variant font-black tracking-tight pt-1">관리자 데이터 및 환경 설정</p>
         </div>
       </div>
 
