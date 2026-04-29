@@ -568,7 +568,7 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
         <div className="space-y-2 md:space-y-4 flex-1 w-full">
           {isEditingInfo ? (
             <div className="space-y-4 bg-white p-5 md:p-6 rounded-[24px] border-2 border-primary shadow-lg animate-in fade-in slide-in-from-top-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-primary uppercase px-1">품목명</label>
                   <input 
@@ -623,7 +623,24 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
                     className="w-full h-10 md:h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-lg md:text-xl"
                   />
                 </div>
-
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-secondary uppercase px-1">매입 단가 (Cost)</label>
+                  <input 
+                    type="number" 
+                    value={editData.purchasePrice} 
+                    onChange={e => setEditData({...editData, purchasePrice: Number(e.target.value)})}
+                    className="w-full h-10 md:h-12 px-4 rounded-xl border border-outline-variant focus:border-secondary outline-none font-bold text-lg md:text-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-secondary uppercase px-1">판매 단가 (Price)</label>
+                  <input 
+                    type="number" 
+                    value={editData.salesPrice} 
+                    onChange={e => setEditData({...editData, salesPrice: Number(e.target.value)})}
+                    className="w-full h-10 md:h-12 px-4 rounded-xl border border-outline-variant focus:border-secondary outline-none font-bold text-lg md:text-xl"
+                  />
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 pt-2 md:pt-4">
                 <button 
