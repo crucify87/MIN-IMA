@@ -182,7 +182,7 @@ const DashboardView = ({
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline" />
               <input 
                 type="text" 
-                placeholder="상품명 검색..."
+                placeholder="품목 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-12 pl-12 pr-4 bg-white border-2 border-outline-variant/30 rounded-2xl font-bold text-sm focus:border-primary outline-none shadow-sm transition-all"
@@ -231,7 +231,7 @@ const DashboardView = ({
       <section className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <div className="space-y-1">
-            <h3 className="text-sm font-black text-outline uppercase tracking-[0.3em]">INVENTORY FLOW</h3>
+            
             <p className="text-2xl font-black text-on-surface tracking-tight">재고 현황 리스트</p>
           </div>
           <button 
@@ -289,7 +289,7 @@ const DashboardView = ({
       <section className="space-y-6">
         <div className="flex justify-between items-center group">
           <div className="space-y-1">
-            <h3 className="text-sm font-black text-outline uppercase tracking-[0.3em]">MANUFACTURING LOGS</h3>
+         
             <p className="text-3xl font-black text-on-surface tracking-tight">최근 생산 활동</p>
           </div>
           <button 
