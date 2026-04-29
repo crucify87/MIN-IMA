@@ -83,6 +83,17 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "type"]
+    },
+    "adminEmail": {
+      "title": "Admin Email",
+      "description": "Registered administrator emails",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "registeredBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email"]
     }
   },
   "firestore": {
@@ -105,6 +116,10 @@
     "/partners/{partnerId}": {
       "schema": "partner",
       "description": "Business partners"
+    },
+    "/admin_emails/{emailId}": {
+      "schema": "adminEmail",
+      "description": "List of authorized administrator emails"
     }
   }
 }

@@ -21,6 +21,12 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isEmailVerified() { return request.auth.token.email_verified == true; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        request.auth.token.email == 'crucify87@gmail.com' ||
+        exists(/databases/$(database)/documents/admin_emails/$(request.auth.token.email))
+      );
+    }
 
     // Helper for user validation
     function isValidUser(data) {
@@ -73,6 +79,12 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn() && isEmailVerified();
       allow delete: if isSignedIn() && isEmailVerified();
+    }
+
+    // 6. Admin Emails
+    match /admin_emails/{email} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
     }
   }
 }
