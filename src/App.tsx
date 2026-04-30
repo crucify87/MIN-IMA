@@ -120,7 +120,7 @@ interface StatItem {
 
 const AppLogo = ({ className = "w-12 h-12" }: { className?: string }) => {
   return (
-    <div className={`${className} relative flex items-center justify-center overflow-hidden rounded-2xl p-1 bg-white`}>
+    <div className={`${className} relative flex items-center justify-center overflow-hidden rounded-xl p-1 bg-white`}>
       <svg viewBox="0 0 512 512" className="w-full h-full">
         <defs>
           <linearGradient id="cowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -2717,7 +2717,7 @@ export default function App() {
           className="max-w-xl w-full bg-white p-12 rounded-[48px] shadow-2xl border-4 border-outline-variant/30 text-center space-y-10"
         >
           {/* App Icon (Optimized for 512x512 viewport) */}
-          <div className="bg-white p-4 rounded-[40px] flex items-center justify-center mx-auto shadow-2xl shadow-primary/20 scale-125 mb-6">
+          <div className="bg-white p-4 rounded-xl flex items-center justify-center mx-auto shadow-2xl shadow-primary/20 scale-125 mb-6">
             <AppLogo className="w-32 h-32" />
           </div>
           <div className="space-y-4">
@@ -2726,14 +2726,11 @@ export default function App() {
           </div>
           <button 
             onClick={handleLogin}
-            className="w-full h-20 bg-white border-4 border-outline-variant rounded-3xl flex items-center justify-center gap-4 font-black text-xl text-on-surface hover:bg-surface-container transition-all active:scale-95 shadow-lg"
+            className="w-full h-20 bg-white border-4 border-outline-variant rounded-3xl flex items-center justify-center gap-4 font-black text-base md:text-xl text-on-surface hover:bg-surface-container transition-all active:scale-95 shadow-lg"
           >
             <img src="https://www.google.com/favicon.ico" className="w-8 h-8" alt="Google" />
             구글 계정으로 로그인
           </button>
-          <p className="text-lg text-outline uppercase font-black tracking-[0.3em] leading-relaxed opacity-60">
-            INDUSTRIAL INVENTORY & PRODUCTION MANAGEMENT DASHBOARD
-          </p>
         </motion.div>
       </div>
     );
