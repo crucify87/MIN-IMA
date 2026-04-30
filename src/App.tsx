@@ -1297,7 +1297,7 @@ const LogisticsView = ({
                   </div>
 
                   <div className="md:col-span-2 space-y-2">
-                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">무게 (KG)</label>
+                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">중량 (KG)</label>
                     <input required value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})} type="number" step="0.01" placeholder="0.0" className="w-full h-10 px-3 rounded-xl border border-outline-variant focus:border-primary outline-none text-base font-black text-primary bg-white shadow-inner" />
                   </div>
 
@@ -1419,7 +1419,9 @@ const LogisticsView = ({
                     <h3 className="text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{item.item || item.title}</h3>
                     <div className="flex flex-wrap items-center gap-4 mt-2">
                       <p className="flex items-center gap-2 text-sm text-on-surface-variant font-bold"><Truck className="w-4 h-4 text-outline" /> {item.partner}</p>
-                      <p className="text-lg font-black text-primary uppercase tracking-widest">{item.weight ? `${item.weight} KG` : item.qty}</p>
+                      <p className="text-lg font-black text-primary uppercase tracking-widest">
+                        {item.weight ? (item.weight.toString().toLowerCase().includes('kg') ? item.weight.toUpperCase() : `${item.weight} KG`) : item.qty}
+                      </p>
                       <p className="text-[9px] font-black text-outline uppercase bg-surface-container px-3 py-1 rounded-lg tracking-widest">{item.freightType || '운임미지정'}</p>
                     </div>
                   </div>
@@ -1471,12 +1473,12 @@ const LogisticsView = ({
 const ProductionView = ({ production, inventory, onNavigate }: { production: any[], inventory: any[], onNavigate?: (view: ViewType) => void }) => {
   const [showForm, setShowForm] = useState(false);
   const [productionLine, setProductionLine] = useState('삼산공장');
-  const [items, setItems] = useState([{ title: '', rawMeat: '', weight: '', loss: '', manufDate: '', expiryDate: '' }]);
+  const [items, setItems] = useState([{ title: '', rawMeat: '', input: '', production: '', yield: '', loss: '', manufDate: '', expiryDate: '' }]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchName, setSearchName] = useState('');
   const [searchDate, setSearchDate] = useState('');
-  const [originalWeight, setOriginalWeight] = useState<number | null>(null);
+  const [originalProduction, setOriginalProduction] = useState<number | null>(null);
 
   const filteredProduction = useMemo(() => {
     return production.filter(batch => {
@@ -1486,7 +1488,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
     });
   }, [production, searchName, searchDate]);
 
-  const handleDeleteProduction = async (id: string, batchTitle: string, weight: any) => {
+  const handleDeleteProduction = async (id: string, batchTitle: string, productionQty: any) => {
     if (!window.confirm('정말로 이 생산 기록을 삭제하시겠습니까? 관련 재고가 자동으로 차감됩니다.')) return;
     setLoading(true);
     try {
@@ -1494,12 +1496,12 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
       await deleteDoc(doc(db, 'production_batches', id));
 
       // 2. Adjust inventory (decrease stock)
-      const weightValue = parseFloat(weight.toString().replace(/[^0-9.]/g, '')) || 0;
+      const prodValue = parseFloat(productionQty.toString().replace(/[^0-9.]/g, '')) || 0;
       const existingInvItem = inventory.find(i => i.name === batchTitle);
       if (existingInvItem) {
         const invDocRef = doc(db, 'inventory', existingInvItem.id);
         await updateDoc(invDocRef, {
-          currentStock: increment(-weightValue),
+          currentStock: increment(-prodValue),
           updatedAt: serverTimestamp()
         });
       }
@@ -1516,12 +1518,14 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
   const startEdit = (batch: any) => {
     setEditingId(batch.id);
     setProductionLine(batch.productionLine);
-    const weight = parseFloat(batch.weight.toString().replace(/[^0-9.]/g, '')) || 0;
-    setOriginalWeight(weight);
+    const prodVal = parseFloat((batch.production || batch.weight || '0').toString().replace(/[^0-9.]/g, '')) || 0;
+    setOriginalProduction(prodVal);
     setItems([{
       title: batch.title || '',
       rawMeat: batch.rawMeat || '',
-      weight: batch.weight.toString().toLowerCase().replace('kg', '').trim(),
+      input: batch.input || '',
+      production: (batch.production || batch.weight || '').toString().toLowerCase().replace('kg', '').trim(),
+      yield: batch.yield || '',
       loss: batch.loss || '',
       manufDate: batch.manufDate || '',
       expiryDate: batch.expiryDate || ''
@@ -1532,12 +1536,12 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
 
   const cancelEdit = () => {
     setEditingId(null);
-    setItems([{ title: '', rawMeat: '', weight: '', loss: '', manufDate: '', expiryDate: '' }]);
+    setItems([{ title: '', rawMeat: '', input: '', production: '', yield: '', loss: '', manufDate: '', expiryDate: '' }]);
     setShowForm(false);
   };
 
   const addItem = () => {
-    setItems([...items, { title: '', rawMeat: '', weight: '', loss: '', manufDate: '', expiryDate: '' }]);
+    setItems([...items, { title: '', rawMeat: '', input: '', production: '', yield: '', loss: '', manufDate: '', expiryDate: '' }]);
   };
 
   const removeItem = (index: number) => {
@@ -1548,7 +1552,27 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
 
   const updateItem = (index: number, field: string, value: string) => {
     const newItems = [...items];
-    (newItems[index] as any)[field] = value;
+    const item = { ...newItems[index], [field]: value };
+    
+    // Auto calculate yield and loss
+    if (field === 'input' || field === 'production') {
+      const inputVal = parseFloat(field === 'input' ? value : item.input) || 0;
+      const prodVal = parseFloat(field === 'production' ? value : item.production) || 0;
+      
+      if (inputVal > 0) {
+        const yieldVal = (prodVal / inputVal) * 100;
+        item.yield = yieldVal.toFixed(1);
+        item.loss = (100 - yieldVal).toFixed(1);
+      } else if (prodVal > 0) {
+        item.yield = '100'; // Default if production exists but input is 0 (or not yet entered)
+        item.loss = '0';
+      } else {
+        item.yield = '0';
+        item.loss = '0';
+      }
+    }
+    
+    newItems[index] = item;
     setItems(newItems);
   };
 
@@ -1560,22 +1584,24 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
         // Update single batch
         const ref = doc(db, 'production_batches', editingId);
         const item = items[0];
-        const newWeight = parseFloat(item.weight.toString().replace(/[^0-9.]/g, '')) || 0;
-        const weightDiff = newWeight - (originalWeight || 0);
+        const newProd = parseFloat(item.production.toString().replace(/[^0-9.]/g, '')) || 0;
+        const prodDiff = newProd - (originalProduction || 0);
 
+        // Map production to weight for inventory compatibility if needed, but best to save both
         await setDoc(ref, {
           ...item,
+          weight: item.production, // Still save as weight for dashboard cards etc
           productionLine,
           updatedAt: serverTimestamp(),
         }, { merge: true });
 
-        // Update inventory if weight changed
-        if (weightDiff !== 0) {
+        // Update inventory if production quantity changed
+        if (prodDiff !== 0) {
           const existingInvItem = inventory.find(i => i.name === item.title);
           if (existingInvItem) {
             const invDocRef = doc(db, 'inventory', existingInvItem.id);
             await updateDoc(invDocRef, {
-              currentStock: increment(weightDiff),
+              currentStock: increment(prodDiff),
               updatedAt: serverTimestamp()
             });
           }
@@ -1595,6 +1621,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
           const existingInvItem = inventory.find(i => i.name === item.title);
           await setDoc(ref, {
             ...item,
+            weight: item.production, // Compatibility
             productionLine,
             batchId,
             sku: existingInvItem?.sku || `SKU-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
@@ -1603,13 +1630,13 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
           });
 
           // 2. Pass to inventory
-          const weightValue = parseFloat(item.weight.toString().replace(/[^0-9.]/g, '')) || 0;
+          const prodValue = parseFloat(item.production.toString().replace(/[^0-9.]/g, '')) || 0;
 
           if (existingInvItem) {
             // Update existing stock
             const invDocRef = doc(db, 'inventory', existingInvItem.id);
             const updateData: any = {
-              currentStock: increment(weightValue),
+              currentStock: increment(prodValue),
               updatedAt: serverTimestamp(),
             };
             
@@ -1625,8 +1652,8 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
               name: item.title,
               category: '기타',
               unit: 'kg',
-              currentStock: weightValue,
-              safetyStock: Math.floor(weightValue * 0.2),
+              currentStock: prodValue,
+              safetyStock: Math.floor(prodValue * 0.2),
               location: '생산라인',
               purchasePrice: 0,
               salesPrice: 0,
@@ -1644,7 +1671,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
         alert('생산일지와 재고 데이터가 시스템에 연동되었습니다.');
       }
       
-      setItems([{ title: '', rawMeat: '', weight: '', loss: '', manufDate: '', expiryDate: '' }]);
+      setItems([{ title: '', rawMeat: '', input: '', production: '', yield: '', loss: '', manufDate: '', expiryDate: '' }]);
       setEditingId(null);
       setShowForm(false);
     } catch (error) {
@@ -1719,10 +1746,11 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="hidden md:grid grid-cols-12 gap-4 px-6 text-base font-black text-outline uppercase tracking-[0.2em]">
-                  <div className="col-span-3 text-center">품목명</div>
-                  <div className="col-span-3 text-center">원육</div>
-                  <div className="col-span-2 text-center text-primary">중량 (kg)</div>
+                <div className="hidden md:grid grid-cols-12 gap-x-4 px-6 text-sm font-black text-outline uppercase tracking-[0.2em]">
+                  <div className="col-span-2 text-center">품목명</div>
+                  <div className="col-span-2 text-center">원육정보</div>
+                  <div className="col-span-2 text-center text-primary">투입량 (kg)</div>
+                  <div className="col-span-2 text-center text-primary-600">생산량 (kg)</div>
                   <div className="col-span-2 text-center text-emerald-600">수율 (%)</div>
                   <div className="col-span-1 text-center text-error">로스 (%)</div>
                   <div className="col-span-1"></div>
@@ -1735,22 +1763,27 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                       animate={{ opacity: 1, y: 0 }}
                       className="p-4 bg-surface-container rounded-2xl border-2 border-outline-variant/30 flex flex-col md:grid md:grid-cols-12 gap-4 items-center group/item hover:border-primary/30 transition-all shadow-sm"
                     >
-                      <div className="w-full md:col-span-3">
-                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명 입력" className="w-full h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-lg transition-all font-black shadow-inner" />
-                      </div>
-                      <div className="w-full md:col-span-3">
-                        <input required value={item.rawMeat} onChange={e => updateItem(idx, 'rawMeat', e.target.value)} type="text" placeholder="원육 정보" className="w-full h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-bold shadow-inner" />
+                      <div className="w-full md:col-span-2">
+                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명" className="w-full h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-black shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-2">
-                        <input required value={item.weight} onChange={e => updateItem(idx, 'weight', e.target.value)} type="text" placeholder="0.0" className="w-full h-12 px-2 text-center rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-lg transition-all font-mono font-black text-primary shadow-inner" />
+                        <input value={item.rawMeat} onChange={e => updateItem(idx, 'rawMeat', e.target.value)} type="text" placeholder="원육 정보" className="w-full h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-sm transition-all font-bold shadow-inner text-outline" />
+                      </div>
+                      <div className="w-full md:col-span-2">
+                        <input required value={item.input} onChange={e => updateItem(idx, 'input', e.target.value)} type="text" placeholder="투입량" className="w-full h-12 px-2 text-center rounded-xl bg-white border-2 border-primary/20 focus:border-primary outline-none text-lg transition-all font-mono font-black text-primary shadow-inner" />
+                      </div>
+                      <div className="w-full md:col-span-2">
+                        <input required value={item.production} onChange={e => updateItem(idx, 'production', e.target.value)} type="text" placeholder="생산량" className="w-full h-12 px-2 text-center rounded-xl bg-white border-2 border-primary/20 focus:border-primary outline-none text-lg transition-all font-mono font-black text-primary shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-2">
                         <div className="w-full h-12 flex items-center justify-center rounded-xl bg-emerald-50 border-2 border-emerald-100 text-lg font-mono font-black text-emerald-600 shadow-inner">
-                          {100 - (parseFloat(item.loss) || 0)}%
+                          {item.yield || '0'}%
                         </div>
                       </div>
                       <div className="w-full md:col-span-1">
-                        <input required value={item.loss} onChange={e => updateItem(idx, 'loss', e.target.value)} type="text" placeholder="0.0" className="w-full h-12 px-2 text-center rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-lg transition-all font-mono font-black text-error shadow-inner" />
+                        <div className="w-full h-12 flex items-center justify-center rounded-xl bg-error/5 border-2 border-error/10 text-lg font-mono font-black text-error shadow-inner">
+                          {item.loss || '0'}%
+                        </div>
                       </div>
                       <div className="w-full md:col-span-1 flex justify-center">
                         {items.length > 1 && (
@@ -1792,39 +1825,55 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
       </AnimatePresence>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-base font-black text-outline uppercase tracking-widest">총 생산 배치</span>
-          <div className="flex items-end justify-between mt-2">
-            <span className="text-5xl font-black text-primary tracking-tighter">{production.length}</span>
-            <Factory className="text-secondary w-10 h-10" />
+        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">생산 건수</p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{production.length}</p>
+            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
           </div>
         </div>
-        <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-base font-black text-outline uppercase tracking-widest">평균 로스율</span>
-          <div className="flex items-end justify-between mt-2">
-            <span className="text-5xl font-black text-error tracking-tighter">
-              {(production.reduce((acc, curr) => acc + parseFloat(curr.loss || '0'), 0) / (production.length || 1)).toFixed(1)}%
-            </span>
-            <AlertTriangle className="text-error w-10 h-10" />
+
+        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 group-hover:h-2 transition-all" />
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 투입량</p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
+              {(production.reduce((acc, curr) => acc + (parseFloat(curr.input) || 0), 0)).toLocaleString()}
+            </p>
+            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
           </div>
         </div>
-        <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-base font-black text-outline uppercase tracking-widest">전체 총 생산량</span>
-          <div className="flex items-end justify-between mt-2">
-            <span className="text-4xl font-black text-primary tracking-tighter">
+
+        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/10 group-hover:h-2 transition-all" />
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 생산량</p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
               {(production.reduce((acc, curr) => {
-                const val = parseFloat(curr.weight?.toString().toLowerCase().replace('kg', '').trim() || '0');
+                const val = parseFloat((curr.production || curr.weight || '0').toString().toLowerCase().replace('kg', '').trim());
                 return acc + (isNaN(val) ? 0 : val);
-              }, 0)).toLocaleString()} <span className="text-xl font-black ml-1 text-outline">kg</span>
-            </span>
-            <TrendingUp className="text-emerald-600 w-10 h-10" />
+              }, 0)).toLocaleString()}
+            </p>
+            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
           </div>
         </div>
-        <div className="bg-white p-6 border-2 border-outline-variant rounded-2xl shadow-sm flex flex-col gap-2">
-          <span className="text-base font-black text-outline uppercase tracking-widest">가동 라인</span>
-          <div className="flex items-end justify-between mt-2">
-            <span className="text-5xl font-black text-primary">3</span>
-            <CheckCircle2 className="text-emerald-500 w-10 h-10" />
+
+        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-600/20 group-hover:h-2 transition-all" />
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 수율</p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-4xl md:text-6xl font-black text-emerald-600 tabular-nums tracking-tighter leading-none">
+              {(() => {
+                const totalInput = production.reduce((acc, curr) => acc + (parseFloat(curr.input) || 0), 0);
+                const totalProd = production.reduce((acc, curr) => {
+                  const val = parseFloat((curr.production || curr.weight || '0').toString().toLowerCase().replace('kg', '').trim());
+                  return acc + (isNaN(val) ? 0 : val);
+                }, 0);
+                return totalInput > 0 ? ((totalProd / totalInput) * 100).toFixed(1) : '0.0';
+              })()}
+            </p>
+            <span className="text-sm md:text-xl font-black text-emerald-600/40 uppercase tracking-widest">%</span>
           </div>
         </div>
       </section>
@@ -1868,10 +1917,10 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
             <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container border-b border-outline-variant text-base uppercase font-black text-outline">
                 <tr>
-                  <th className="p-4 whitespace-nowrap">SKU</th>
+                  <th className="p-4 whitespace-nowrap">SKU/라인</th>
                   <th className="p-4 whitespace-nowrap">품목명</th>
-                  <th className="p-4 whitespace-nowrap">원육</th>
-                  <th className="p-4 text-center whitespace-nowrap">중량</th>
+                  <th className="p-4 text-center whitespace-nowrap">투입량</th>
+                  <th className="p-4 text-center whitespace-nowrap text-primary">생산량</th>
                   <th className="p-4 text-center whitespace-nowrap">수율</th>
                   <th className="p-4 text-center whitespace-nowrap">Loss율</th>
                   <th className="p-4 text-right whitespace-nowrap">관리</th>
@@ -1891,21 +1940,24 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                         </div>
                       </td>
                       <td className="p-4 whitespace-nowrap">
-                      <p className="text-2xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <span className="px-3 py-1.5 bg-surface-container rounded-xl text-base font-black text-on-surface-variant">
-                        {batch.rawMeat || '미지정'}
+                        <div className="space-y-1">
+                          <p className="text-2xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
+                          <p className="text-xs font-bold text-outline-variant uppercase tracking-widest">{batch.rawMeat}</p>
+                        </div>
+                      </td>
+                    <td className="p-4 text-center whitespace-nowrap">
+                      <span className="text-xl font-black text-outline-variant tabular-nums">
+                        {batch.input ? `${batch.input}kg` : '-'}
                       </span>
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
-                      <p className="text-2xl font-black text-primary">
-                        {batch.weight.toString().toLowerCase().includes('kg') ? batch.weight : `${batch.weight}kg`}
+                      <p className="text-2xl font-black text-primary tabular-nums">
+                        {(batch.production || batch.weight || '0').toString().toLowerCase().includes('kg') ? (batch.production || batch.weight) : `${(batch.production || batch.weight)}kg`}
                       </p>
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
                       <p className="text-2xl font-black text-emerald-600">
-                        {100 - (parseFloat(batch.loss || '0'))}%
+                        {batch.yield || (100 - parseFloat(batch.loss || '0'))}%
                       </p>
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
@@ -1938,7 +1990,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                             <Edit3 className="w-5 h-5" />
                           </button>
                           <button 
-                            onClick={() => handleDeleteProduction(batch.id, batch.title, batch.weight)}
+                            onClick={() => handleDeleteProduction(batch.id, batch.title, (batch.production || batch.weight))}
                             className="p-3 bg-error/10 text-error rounded-xl hover:bg-error hover:text-white transition-all shadow-sm active:scale-90"
                             title="기록 삭제"
                           >
@@ -2091,32 +2143,6 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
       alert('관리자 권한이 삭제되었습니다.');
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'admin_emails');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetData = async () => {
-    if (!confirm('경고: 모든 입고, 출고, 생산 내역이 영구적으로 삭제됩니다. 계속하시겠습니까?')) return;
-    setLoading(true);
-    try {
-      const deletePromises: Promise<any>[] = [];
-      
-      // Delete logistics
-      logistics.forEach((l: any) => {
-        deletePromises.push(deleteDoc(doc(db, 'logistics', l.id)));
-      });
-      
-      // Delete production
-      production.forEach((p: any) => {
-        deletePromises.push(deleteDoc(doc(db, 'production_batches', p.id)));
-      });
-      
-      await Promise.all(deletePromises);
-      alert('모든 내역이 초기화되었습니다. (0건)');
-      window.location.reload();
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, 'bulk');
     } finally {
       setLoading(false);
     }
@@ -2518,23 +2544,6 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                     </button>
                   </div>
                 ))}
-              </div>
-
-              <div className="pt-12 border-t border-outline-variant/30 mt-12 space-y-6">
-                <div className="text-center">
-                  <AlertTriangle className="w-12 h-12 text-error mx-auto mb-3" />
-                  <h3 className="text-2xl font-black text-error uppercase tracking-tight">시스템 데이터 초기화</h3>
-                  <p className="text-sm text-outline font-bold uppercase tracking-widest mt-1">모든 입고, 출고, 생산 데이터가 삭제되어 0으로 초기화됩니다.</p>
-                </div>
-                <div className="flex justify-center">
-                  <button 
-                    onClick={handleResetData}
-                    disabled={loading}
-                    className="px-12 h-16 bg-error text-white rounded-[24px] font-black text-xl uppercase tracking-widest shadow-xl shadow-error/20 hover:opacity-90 active:scale-95 transition-all flex items-center gap-4"
-                  >
-                    <Trash2 className="w-6 h-6" /> {loading ? '처리 중...' : '전체 내역 초기화 (0으로 만들기)'}
-                  </button>
-                </div>
               </div>
             </div>
           </div>
