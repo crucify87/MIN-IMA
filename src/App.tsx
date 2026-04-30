@@ -119,30 +119,36 @@ interface StatItem {
 
 const AppLogo = ({ className = "w-12 h-12" }: { className?: string }) => {
   return (
-    <div className={`${className} relative flex items-center justify-center overflow-hidden rounded-2xl`}>
-      <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
+    <div className={`${className} relative flex items-center justify-center overflow-hidden rounded-2xl p-1 bg-white`}>
+      <svg viewBox="0 0 512 512" className="w-full h-full">
         <defs>
           <linearGradient id="cowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#10b981" /> {/* emerald-500 */}
+            <stop offset="50%" stopColor="#4b5563" /> {/* gray-600 */}
             <stop offset="100%" stopColor="#ef4444" /> {/* red-500 */}
           </linearGradient>
         </defs>
-        {/* Stylized Cow Silhouette */}
+        
+        {/* Professional Cow Silhouette based on provided reference */}
         <path 
-          d="M90,40 Q95,40 95,45 Q95,50 90,55 L85,55 Q80,75 75,85 L65,85 L65,70 L40,70 L40,85 L30,85 Q20,85 15,75 Q10,70 10,50 Q10,30 30,25 Q50,20 70,25 Q80,28 85,35" 
+          d="M480,240 c0,-60 -40,-85 -70,-85 c-15,0 -25,10 -30,20 c-40,-25 -110,-35 -170,-20 c-70,15 -120,60 -135,140 c-5,30 -10,140 -5,170 c2,15 15,25 30,25 c15,0 25,-10 30,-25 l15,-100 l40,100 c5,15 20,25 35,25 c15,0 25,-10 30,-25 l30,-120 l30,120 c5,15 20,25 35,25 c15,0 25,-10 30,-25 l40,-150 c10,-10 50,0 65,15 c15,15 20,50 10,70 c20,0 40,-10 50,-30 c10,-20 10,-80 -10,-110 Z" 
           fill="url(#cowGradient)"
         />
-        {/* Internal Icons (Simplified white icons) */}
-        <g fill="white" transform="scale(0.4) translate(40, 60)">
+        
+        {/* Internal Flowing Arrow and Icons */}
+        <g fill="white">
+          {/* Main Flow Path */}
+          <path d="M130,260 c20,-5 40,-5 50,15 s20,50 60,50 h120 l-30,-40 h30 l60,50 l-60,50 h-30 l30,-40 h-120 c-60,0 -80,-60 -110,-60 c-10,0 -20,5 -30,15 Z" opacity="0.9" />
+          
           {/* Barn */}
-          <path d="M10,40 L30,20 L50,40 L50,60 L10,60 Z M25,45 H35 V60 H25 Z" />
+          <path d="M150,220 l15,-12 l15,12 v18 h-30 z M160,228 h10 v10 h-10 z" />
+          
           {/* Leaf */}
-          <path d="M60,40 Q80,20 100,40 Q80,60 60,40 Z" transform="translate(10, -10) rotate(-45)" />
+          <path d="M200,210 c15,-15 30,0 15,15 c-15,15 -30,0 -15,-15" transform="rotate(-15, 215, 217)" />
+          
           {/* Gears */}
-          <circle cx="80" cy="70" r="10" />
-          <path d="M75,55 L85,55 L85,85 L75,85 Z" transform="rotate(45, 80, 70)" />
-          {/* Arrow */}
-          <path d="M110,50 L90,30 L90,40 L60,40 L60,60 L90,60 L90,70 Z" />
+          <circle cx="260" cy="275" r="10" />
+          <circle cx="285" cy="295" r="10" />
         </g>
       </svg>
     </div>
@@ -2718,8 +2724,9 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-xl w-full bg-white p-12 rounded-[48px] shadow-2xl border-4 border-outline-variant/30 text-center space-y-10"
         >
-          <div className="bg-white p-2 rounded-[24px] flex items-center justify-center mx-auto shadow-2xl shadow-primary/20 scale-150 mb-4">
-            <AppLogo className="w-16 h-16" />
+          {/* App Icon (Optimized for 512x512 viewport) */}
+          <div className="bg-white p-4 rounded-[40px] flex items-center justify-center mx-auto shadow-2xl shadow-primary/20 scale-125 mb-6">
+            <AppLogo className="w-32 h-32" />
           </div>
           <div className="space-y-4">
             <h1 className="text-6xl font-black text-primary tracking-tighter uppercase leading-none">MIN IMA</h1>
