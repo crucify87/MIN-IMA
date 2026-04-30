@@ -115,6 +115,40 @@ interface StatItem {
   icon: any;
 }
 
+// --- Icons ---
+
+const AppLogo = ({ className = "w-12 h-12" }: { className?: string }) => {
+  return (
+    <div className={`${className} relative flex items-center justify-center overflow-hidden rounded-2xl`}>
+      <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
+        <defs>
+          <linearGradient id="cowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#10b981" /> {/* emerald-500 */}
+            <stop offset="100%" stopColor="#ef4444" /> {/* red-500 */}
+          </linearGradient>
+        </defs>
+        {/* Stylized Cow Silhouette */}
+        <path 
+          d="M90,40 Q95,40 95,45 Q95,50 90,55 L85,55 Q80,75 75,85 L65,85 L65,70 L40,70 L40,85 L30,85 Q20,85 15,75 Q10,70 10,50 Q10,30 30,25 Q50,20 70,25 Q80,28 85,35" 
+          fill="url(#cowGradient)"
+        />
+        {/* Internal Icons (Simplified white icons) */}
+        <g fill="white" transform="scale(0.4) translate(40, 60)">
+          {/* Barn */}
+          <path d="M10,40 L30,20 L50,40 L50,60 L10,60 Z M25,45 H35 V60 H25 Z" />
+          {/* Leaf */}
+          <path d="M60,40 Q80,20 100,40 Q80,60 60,40 Z" transform="translate(10, -10) rotate(-45)" />
+          {/* Gears */}
+          <circle cx="80" cy="70" r="10" />
+          <path d="M75,55 L85,55 L85,85 L75,85 Z" transform="rotate(45, 80, 70)" />
+          {/* Arrow */}
+          <path d="M110,50 L90,30 L90,40 L60,40 L60,60 L90,60 L90,70 Z" />
+        </g>
+      </svg>
+    </div>
+  );
+};
+
 // --- Components ---
 
 const StatCard = ({ item }: { item: StatItem, key?: React.Key }) => {
@@ -161,11 +195,41 @@ const DashboardView = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [timeFilter, setTimeFilter] = useState('주간');
 
-  const stats: StatItem[] = [
-    { label: `${timeFilter} 입고`, value: timeFilter === '일간' ? '1,250' : timeFilter === '주간' ? '8,750' : '35,000', unit: 'kg', icon: ArrowDownToLine },
-    { label: `${timeFilter} 출고`, value: timeFilter === '일간' ? '840' : timeFilter === '주간' ? '5,880' : '23,500', unit: 'kg', icon: ArrowUpFromLine },
-    { label: '생산 관리', value: production.length.toString(), unit: '건', icon: Factory },
-  ];
+  const stats = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Calculate based on timeFilter
+    const filteredLogs = logistics.filter(l => {
+      const logDate = l.date || l.createdAt?.toDate().toISOString().split('T')[0];
+      if (!logDate) return false;
+      
+      if (timeFilter === '일간') {
+        return logDate === selectedDate;
+      } else if (timeFilter === '주간') {
+        const d = new Date(selectedDate);
+        const start = new Date(d.setDate(d.getDate() - 7)).toISOString().split('T')[0];
+        return logDate >= start && logDate <= selectedDate;
+      } else {
+        const d = new Date(selectedDate);
+        const start = new Date(d.setMonth(d.getMonth() - 1)).toISOString().split('T')[0];
+        return logDate >= start && logDate <= selectedDate;
+      }
+    });
+
+    const inWeight = filteredLogs
+      .filter(l => l.type === '입고')
+      .reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
+    
+    const outWeight = filteredLogs
+      .filter(l => l.type === '출고')
+      .reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
+
+    return [
+      { label: `${timeFilter} 입고`, value: inWeight.toLocaleString(), unit: 'kg', icon: ArrowDownToLine },
+      { label: `${timeFilter} 출고`, value: outWeight.toLocaleString(), unit: 'kg', icon: ArrowUpFromLine },
+      { label: '생산 관리', value: production.length.toString(), unit: '건', icon: Factory },
+    ];
+  }, [logistics, production, timeFilter, selectedDate]);
 
   const filteredInventory = inventory.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -365,9 +429,22 @@ const DashboardView = ({
   );
 };
 
-const InventoryView = ({ onNavigate, inventory, isAuthorized = false }: { onNavigate: (view: ViewType, item?: any) => void, inventory: any[], isAuthorized?: boolean }) => {
+const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false }: { onNavigate: (view: ViewType, item?: any) => void, inventory: any[], logistics: any[], isAuthorized?: boolean }) => {
   const [timeFilter, setTimeFilter] = useState('주간');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const stats = useMemo(() => {
+    // InventoryView gets logistics from props now (I will update props in main App)
+    const inWeight = (logistics || []).filter(l => l.type === '입고').reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
+    const outWeight = (logistics || []).filter(l => l.type === '출고').reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
+
+    return [
+      { label: '총 SKU', value: inventory.length.toLocaleString(), color: 'text-primary' },
+      { label: '재고 부족', value: inventory.filter(i => i.currentStock < i.safetyStock).length.toString(), color: 'text-error' },
+      { label: `${timeFilter} 입고`, value: inWeight.toLocaleString(), unit: 'kg', color: 'text-secondary' },
+      { label: `${timeFilter} 출고`, value: outWeight.toLocaleString(), unit: 'kg', color: 'text-emerald-500' },
+    ];
+  }, [inventory, logistics, timeFilter]);
 
   return (
     <div className="space-y-6">
@@ -413,17 +490,12 @@ const InventoryView = ({ onNavigate, inventory, isAuthorized = false }: { onNavi
               {t}
             </button>
           ))}
+          </div>
         </div>
       </div>
-    </div>
 
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: '총 SKU', value: inventory.length.toLocaleString(), color: 'text-primary' },
-          { label: '재고 부족', value: inventory.filter(i => i.currentStock < i.safetyStock).length.toString(), color: 'text-error' },
-          { label: `${timeFilter} 입고`, value: timeFilter === '일간' ? '250' : timeFilter === '주간' ? '1,420' : '5,800', unit: 'kg', color: 'text-secondary' },
-          { label: `${timeFilter} 출고`, value: timeFilter === '일간' ? '180' : timeFilter === '주간' ? '980' : '4,250', unit: 'kg', color: 'text-emerald-500' },
-        ].map((item, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((item, i) => (
           <div key={i} className="bg-white p-5 rounded-3xl border-2 border-outline-variant/30 flex flex-col gap-2 shadow-sm hover:border-primary/30 transition-colors">
             <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.2em]">{item.label}</p>
             <p className={`text-2xl md:text-4xl font-black tabular-nums tracking-tighter ${item.color}`}>
@@ -1881,7 +1953,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
   );
 };
 
-const SettingsView = ({ onNavigate, partners, adminEmails = [], user }: { onNavigate?: (view: ViewType) => void, partners: any[], adminEmails?: any[], user: User | null }) => {
+const SettingsView = ({ onNavigate, partners, logistics = [], production = [], adminEmails = [], user }: { onNavigate?: (view: ViewType) => void, partners: any[], logistics: any[], production: any[], adminEmails?: any[], user: User | null }) => {
   const [activeTab, setActiveTab] = useState<'product' | 'partner' | 'admin'>('product');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2013,6 +2085,32 @@ const SettingsView = ({ onNavigate, partners, adminEmails = [], user }: { onNavi
       alert('관리자 권한이 삭제되었습니다.');
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'admin_emails');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetData = async () => {
+    if (!confirm('경고: 모든 입고, 출고, 생산 내역이 영구적으로 삭제됩니다. 계속하시겠습니까?')) return;
+    setLoading(true);
+    try {
+      const deletePromises: Promise<any>[] = [];
+      
+      // Delete logistics
+      logistics.forEach((l: any) => {
+        deletePromises.push(deleteDoc(doc(db, 'logistics', l.id)));
+      });
+      
+      // Delete production
+      production.forEach((p: any) => {
+        deletePromises.push(deleteDoc(doc(db, 'production_batches', p.id)));
+      });
+      
+      await Promise.all(deletePromises);
+      alert('모든 내역이 초기화되었습니다. (0건)');
+      window.location.reload();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'bulk');
     } finally {
       setLoading(false);
     }
@@ -2415,6 +2513,23 @@ const SettingsView = ({ onNavigate, partners, adminEmails = [], user }: { onNavi
                   </div>
                 ))}
               </div>
+
+              <div className="pt-12 border-t border-outline-variant/30 mt-12 space-y-6">
+                <div className="text-center">
+                  <AlertTriangle className="w-12 h-12 text-error mx-auto mb-3" />
+                  <h3 className="text-2xl font-black text-error uppercase tracking-tight">시스템 데이터 초기화</h3>
+                  <p className="text-sm text-outline font-bold uppercase tracking-widest mt-1">모든 입고, 출고, 생산 데이터가 삭제되어 0으로 초기화됩니다.</p>
+                </div>
+                <div className="flex justify-center">
+                  <button 
+                    onClick={handleResetData}
+                    disabled={loading}
+                    className="px-12 h-16 bg-error text-white rounded-[24px] font-black text-xl uppercase tracking-widest shadow-xl shadow-error/20 hover:opacity-90 active:scale-95 transition-all flex items-center gap-4"
+                  >
+                    <Trash2 className="w-6 h-6" /> {loading ? '처리 중...' : '전체 내역 초기화 (0으로 만들기)'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -2487,12 +2602,12 @@ export default function App() {
             updatedAt: serverTimestamp(),
           }, { merge: true });
 
-          // Seed if empty
-          const empty = await isDatabaseEmpty();
-          if (empty) {
-            console.log("Database is empty, seeding...");
-            await seedDatabase();
-          }
+          // Automatic seeding removed per user request to start with 0 data
+          // const empty = await isDatabaseEmpty();
+          // if (empty) {
+          //   console.log("Database is empty, seeding...");
+          //   await seedDatabase();
+          // }
         } catch (error) {
           console.error("Error syncing profile or seeding:", error);
         }
@@ -2603,8 +2718,8 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-xl w-full bg-white p-12 rounded-[48px] shadow-2xl border-4 border-outline-variant/30 text-center space-y-10"
         >
-          <div className="bg-primary text-white w-24 h-24 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-primary/30">
-            <Warehouse className="w-12 h-12" />
+          <div className="bg-white p-2 rounded-[24px] flex items-center justify-center mx-auto shadow-2xl shadow-primary/20 scale-150 mb-4">
+            <AppLogo className="w-16 h-16" />
           </div>
           <div className="space-y-4">
             <h1 className="text-6xl font-black text-primary tracking-tighter uppercase leading-none">MIN IMA</h1>
@@ -2631,8 +2746,8 @@ export default function App() {
       <header className="bg-white/80 backdrop-blur-md border-b border-outline-variant fixed top-0 w-full z-50 h-16 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 h-full flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="bg-primary text-white p-2 rounded-lg shadow-inner">
-              <Warehouse className="w-5 h-5" />
+            <div className="bg-white p-1 rounded-lg shadow-sm border border-outline-variant/30">
+              <AppLogo className="w-8 h-8" />
             </div>
             <span className="text-xl font-black text-primary tracking-tighter uppercase">MIN IMA</span>
           </div>
@@ -2704,11 +2819,11 @@ export default function App() {
                 transition={{ duration: 0.2 }}
               >
                 {currentView === 'dashboard' && <DashboardView onNavigate={handleNavigate} inventory={inventory} production={production} logistics={logistics} partners={partners} />}
-                {currentView === 'inventory' && <InventoryView onNavigate={handleNavigate} inventory={inventory} isAuthorized={isAuthorized} />}
+                {currentView === 'inventory' && <InventoryView onNavigate={handleNavigate} inventory={inventory} logistics={logistics} isAuthorized={isAuthorized} />}
                 {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} isAuthorized={isAuthorized} />}
                 {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} />}
                 {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} />}
-                {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} partners={partners} adminEmails={adminEmails} user={user} />}
+                {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} partners={partners} logistics={logistics} production={production} adminEmails={adminEmails} user={user} />}
               </motion.div>
             </AnimatePresence>
           </div>
