@@ -247,19 +247,21 @@ const DashboardView = ({
           
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             {/* Search Bar */}
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-outline" />
+            <div className="relative group flex-1 sm:flex-none">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-outline">
+                <Search className="w-5 h-5" />
+              </div>
               <input 
                 type="text" 
-                placeholder="품목 검색..."
+                placeholder="품목 검색"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-12 pl-12 pr-4 bg-white border-2 border-outline-variant/30 rounded-2xl font-bold text-sm focus:border-primary outline-none shadow-sm transition-all"
+                className="w-full sm:w-48 h-12 pl-12 pr-6 bg-white border-2 border-outline-variant/30 rounded-2xl font-black text-sm tracking-widest focus:border-primary outline-none shadow-sm transition-all appearance-none"
               />
             </div>
 
             {/* Calendar */}
-            <div className="relative group sm:w-auto">
+            <div className="relative group flex-1 sm:flex-none">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-primary">
                 <Calendar className="w-5 h-5" />
               </div>
@@ -267,19 +269,19 @@ const DashboardView = ({
                 type="date" 
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full sm:w-auto h-12 pl-12 pr-6 bg-white border-2 border-outline-variant/30 rounded-2xl font-black text-sm uppercase tracking-widest focus:border-primary outline-none shadow-sm transition-all appearance-none cursor-pointer"
+                className="w-full sm:w-48 h-12 pl-12 pr-6 bg-white border-2 border-outline-variant/30 rounded-2xl font-black text-sm uppercase tracking-widest focus:border-primary outline-none shadow-sm transition-all appearance-none cursor-pointer"
               />
             </div>
 
             {/* Tabs */}
-            <div className="bg-surface-container p-1 rounded-2xl flex items-center border-2 border-outline-variant/30">
+            <div className="bg-surface-container p-1 rounded-2xl flex items-center border-2 border-outline-variant/30 w-fit">
               {['일간', '주간', '월간'].map((t) => (
                 <button 
                   key={t}
                   onClick={() => setTimeFilter(t)}
-                  className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                     timeFilter === t 
-                      ? 'bg-primary text-white shadow-md' 
+                      ? 'bg-primary text-white shadow-lg' 
                       : 'text-outline hover:bg-surface-container-high'
                   }`}
                 >
@@ -323,21 +325,18 @@ const DashboardView = ({
               return (
                 <motion.div 
                   key={idx}
-                  whileHover={{ y: -4 }}
-                  className={`min-w-[280px] md:min-w-[320px] p-6 bg-white border-2 rounded-[32px] shadow-lg snap-start cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
+                  whileHover={{ y: -2 }}
+                  className={`min-w-[280px] md:min-w-[320px] p-4 md:p-5 bg-white border-2 rounded-[24px] shadow-sm snap-start cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
                   onClick={() => onNavigate('detail', item)}
                 >
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isAlert ? 'bg-error/10 text-error' : 'bg-primary/5 text-primary'}`}>
-                        <Package className="w-5 h-5" />
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="font-black text-lg truncate leading-tight group-hover:text-primary transition-colors">{item.name}</p>
-                        <p className="text-[10px] font-black text-outline uppercase tracking-widest truncate">{item.sku}</p>
-                      </div>
+                  <div className="space-y-3">
+                    <div className="overflow-hidden items-end flex justify-between gap-2">
+                       <div>
+                         <p className="font-black text-lg truncate leading-tight group-hover:text-primary transition-colors">{item.name}</p>
+                         <p className="text-[10px] font-black text-outline uppercase tracking-widest truncate">{item.sku}</p>
+                       </div>
                     </div>
-                    <div className="flex justify-between items-end border-t border-outline-variant/10 pt-4">
+                    <div className="flex justify-between items-end border-t border-outline-variant/10 pt-3">
                       <div>
                         <p className="text-[10px] font-black text-outline uppercase tracking-widest mb-1">실재고 수량</p>
                         <p className={`text-3xl font-black tabular-nums ${isAlert ? 'text-error' : 'text-primary'}`}>
