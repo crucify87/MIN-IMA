@@ -46,7 +46,8 @@ import {
   LogIn,
   X,
   TrendingDown,
-  ArrowLeft
+  ArrowLeft,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, loginWithGoogle, logout, db, User } from './lib/firebase';
@@ -168,14 +169,6 @@ const StatCard = ({ item }: { item: StatItem, key?: React.Key }) => {
         </p>
         <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">{item.unit}</span>
       </div>
-      {item.trend && (
-        <div className={`flex items-center gap-1.5 text-xs md:text-sm mt-4 font-black px-4 py-1.5 rounded-full border-2 ${
-          item.trendDir === 'up' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-error bg-error/5 border-error/10'
-        }`}>
-          {item.trendDir === 'up' ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-          {item.trend}
-        </div>
-      )}
     </div>
   );
 };
@@ -438,6 +431,7 @@ const DashboardView = ({
 const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false }: { onNavigate: (view: ViewType, item?: any) => void, inventory: any[], logistics: any[], isAuthorized?: boolean }) => {
   const [timeFilter, setTimeFilter] = useState('주간');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const stats = useMemo(() => {
     // InventoryView gets logistics from props now (I will update props in main App)
@@ -451,6 +445,14 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
       { label: `${timeFilter} 출고`, value: outWeight.toLocaleString(), unit: 'kg', color: 'text-emerald-500' },
     ];
   }, [inventory, logistics, timeFilter]);
+
+  const filteredInventory = useMemo(() => {
+    return inventory.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [inventory, searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -468,6 +470,20 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          {/* Search Input */}
+          <div className="relative group flex-1 sm:flex-none">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-outline">
+              <Search className="w-5 h-5" />
+            </div>
+            <input 
+              type="text" 
+              placeholder="품목 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-48 h-12 pl-12 pr-6 bg-white border-2 border-outline-variant/30 rounded-2xl font-black text-sm tracking-widest focus:border-primary outline-none shadow-sm transition-all appearance-none"
+            />
+          </div>
+
           {/* Calendar Picker */}
           <div className="relative group flex-1 sm:flex-none">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-primary">
@@ -482,12 +498,12 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
           </div>
 
           {/* Time Filter Tabs */}
-          <div className="bg-surface-container p-1 rounded-2xl flex items-center border-2 border-outline-variant/30 flex-1 sm:flex-none">
+          <div className="bg-surface-container p-1 rounded-2xl flex items-center border-2 border-outline-variant/30 w-fit">
           {['일간', '주간', '월간'].map((t) => (
             <button 
               key={t}
               onClick={() => setTimeFilter(t)}
-              className={`flex-1 md:px-8 py-2 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                 timeFilter === t 
                   ? 'bg-primary text-white shadow-lg' 
                   : 'text-outline hover:bg-surface-container-high'
@@ -502,105 +518,121 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((item, i) => (
-          <div key={i} className="bg-white p-5 rounded-3xl border-2 border-outline-variant/30 flex flex-col gap-2 shadow-sm hover:border-primary/30 transition-colors">
-            <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.2em]">{item.label}</p>
-            <p className={`text-2xl md:text-4xl font-black tabular-nums tracking-tighter ${item.color}`}>
-              {item.value}<span className="text-sm md:text-xl font-bold ml-1 text-outline-variant uppercase">{item.unit || ''}</span>
-            </p>
+          <div key={i} className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-full h-1 group-hover:h-2 transition-all ${
+              item.label.includes('부족') ? 'bg-error/20' : 
+              item.label.includes('입고') ? 'bg-secondary/20' :
+              item.label.includes('출고') ? 'bg-emerald-600/20' : 'bg-primary/20'
+            }`} />
+            <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{item.label}</p>
+            <div className="flex items-baseline gap-1">
+              <p className={`text-4xl md:text-6xl font-black tabular-nums tracking-tighter leading-none ${item.color}`}>
+                {item.value}
+              </p>
+              {item.unit && <span className={`text-sm md:text-xl font-black uppercase tracking-widest ${item.color === 'text-on-surface' ? 'text-outline-variant' : item.color.replace('text-', 'text-/40')}`}>{item.unit}</span>}
+              {!item.unit && item.label.includes('SKU') && <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">종</span>}
+              {!item.unit && item.label.includes('부족') && <span className="text-sm md:text-xl font-black text-error/40 uppercase tracking-widest">건</span>}
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="space-y-4">
-        {inventory.map((item, i) => (
-          <div 
-            key={i} 
-            onClick={() => onNavigate('detail', item)}
-            className={`flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white border-2 rounded-[32px] hover:border-primary hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden ${item.currentStock < item.safetyStock ? 'border-error/30 bg-error/[0.02]' : 'border-outline-variant/15'}`}
-          >
-            {/* Status Indicator Bar (Mobile accent) */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 md:hidden ${item.currentStock < item.safetyStock ? 'bg-error' : 'bg-emerald-500'}`} />
-
-            <div className="flex-1 flex items-start gap-4">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
-                {item.currentStock < item.safetyStock ? <AlertTriangle className="w-6 h-6" /> : <Package className="w-6 h-6" />}
-              </div>
-              <div className="space-y-1 overflow-hidden">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-black text-2xl md:text-3xl leading-none group-hover:text-primary transition-colors tracking-tighter truncate">{item.name}</p>
-                  <span className="px-3 py-1 bg-surface-container text-on-surface-variant rounded-full text-[9px] font-black uppercase tracking-widest border border-outline-variant/30">{item.category}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] md:text-xs text-outline font-mono font-black tracking-widest px-2 py-0.5 bg-surface-container/50 rounded-lg">{item.sku}</span>
-                  <div className="flex items-center gap-1 text-[10px] font-black text-outline uppercase tracking-widest lg:hidden">
-                    <MapPin className="w-3 h-3" /> {item.location}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 xl:gap-16 items-center border-t md:border-t-0 border-outline-variant/30 pt-4 md:pt-0">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black text-outline uppercase tracking-widest">현재 실재고</p>
-                <div className="flex items-baseline gap-1">
-                  <p className={`font-black text-2xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
-                    {item.currentStock.toLocaleString()}
-                  </p>
-                  <span className="text-xs font-black text-outline uppercase">{item.unit}</span>
-                </div>
-              </div>
-
-              {isAuthorized && (
-                <div className="space-y-1 hidden xl:block">
-                  <p className="text-[10px] font-black text-outline uppercase tracking-widest">수익성 단가</p>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-outline uppercase leading-none mb-1">C: ₩{item.purchasePrice?.toLocaleString()}</span>
-                    <span className="text-sm font-black text-secondary tracking-tight">P: ₩{item.salesPrice?.toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-1 hidden lg:block">
-                <p className="text-[10px] font-black text-outline uppercase tracking-widest">운영 상태</p>
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border-2 ${
-                  item.currentStock < item.safetyStock 
-                    ? 'bg-error/5 border-error/20 text-error' 
-                    : 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse' : 'bg-emerald-500'}`} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 md:pl-4">
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigate('detail', item);
-                  }}
-                  className="h-12 px-6 bg-white border-2 border-outline-variant/30 rounded-2xl text-xs font-black uppercase tracking-widest hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center gap-2 shadow-sm"
+      <div className="bg-white border-2 border-outline-variant/30 rounded-[40px] shadow-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-surface-container/50 border-b-2 border-outline-variant/10">
+                <th className="px-6 py-5 text-center text-base font-black text-outline uppercase tracking-[0.2em]">SKU/위치</th>
+                <th className="px-6 py-5 text-left text-base font-black text-outline uppercase tracking-[0.2em]">품목 정보</th>
+                <th className="px-6 py-5 text-left text-base font-black text-outline uppercase tracking-[0.2em]">카테고리</th>
+                <th className="px-6 py-5 text-right text-base font-black text-outline uppercase tracking-[0.2em]">현재 재고</th>
+                <th className="px-6 py-5 text-center text-base font-black text-outline uppercase tracking-[0.2em]">상태</th>
+                <th className="px-6 py-5 text-right text-base font-black text-outline uppercase tracking-[0.2em]">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredInventory.map((item, i) => (
+                <tr 
+                  key={i} 
+                  onClick={() => onNavigate('detail', item)}
+                  className={`border-b border-outline-variant/5 hover:bg-surface-container/30 transition-colors cursor-pointer group ${item.currentStock < item.safetyStock ? 'bg-error/[0.02]' : ''}`}
                 >
-                  <Edit3 className="w-4 h-4" /> <span className="hidden sm:inline">관리</span>
-                </button>
-                <button 
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
-                      try {
-                        await deleteDoc(doc(db, 'inventory', item.id));
-                      } catch (error) {
-                        handleFirestoreError(error, OperationType.DELETE, 'inventory');
-                      }
-                    }
-                  }}
-                  className="w-12 h-12 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-2xl transition-all border-2 border-transparent hover:border-error/20"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+                  <td className="px-6 py-6 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-lg text-outline font-mono font-black tracking-widest">{item.sku}</span>
+                      <span className="text-base text-outline/60 font-black uppercase tracking-widest mt-1">{item.location}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
+                        {item.currentStock < item.safetyStock ? <AlertTriangle className="w-10 h-10" /> : <Package className="w-10 h-10" />}
+                      </div>
+                      <p className="font-black text-3xl md:text-4xl text-on-surface group-hover:text-primary transition-colors tracking-tighter truncate max-w-[400px]">
+                        {item.name}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <span className="px-6 py-2.5 bg-surface-container text-on-surface-variant rounded-full text-base font-black uppercase tracking-widest border border-outline-variant/30">
+                      {item.category}
+                    </span>
+                  </td>
+                  <td className="px-6 py-6 text-right">
+                    <div className="flex items-baseline justify-end gap-1">
+                      <p className={`font-black text-4xl md:text-5xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
+                        {item.currentStock.toLocaleString()}
+                      </p>
+                      <span className="text-base font-black text-outline uppercase">{item.unit}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6 text-center">
+                    <div className={`inline-flex items-center gap-3 px-6 py-2.5 rounded-full border-2 ${
+                      item.currentStock < item.safetyStock 
+                        ? 'bg-error/5 border-error/20 text-error' 
+                        : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                    }`}>
+                      <div className={`w-3 h-3 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse' : 'bg-emerald-500'}`} />
+                      <span className="text-base font-black uppercase tracking-widest">{item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6 text-right">
+                    <div className="flex items-center justify-end gap-3">
+                      <div className="flex flex-col items-center gap-1 group/edit">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigate('detail', item);
+                          }}
+                          className="w-14 h-14 bg-white border-2 border-outline-variant/30 rounded-2xl text-outline hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center shadow-sm"
+                        >
+                          <Edit3 className="w-6 h-6" />
+                        </button>
+                      </div>
+                      <div className="flex flex-col items-center gap-1 group/delete">
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
+                              try {
+                                await deleteDoc(doc(db, 'inventory', item.id));
+                              } catch (error) {
+                                handleFirestoreError(error, OperationType.DELETE, 'inventory');
+                              }
+                            }
+                          }}
+                          className="w-14 h-14 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-2xl transition-all border-2 border-transparent hover:border-error/20"
+                        >
+                          <Trash2 className="w-6 h-6" />
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -665,6 +697,10 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
 
   const margin = item.salesPrice - item.purchasePrice;
   const marginPercent = ((margin / item.purchasePrice) * 100).toFixed(1);
+
+  const displayStock = isUpdatingStock ? Number(newStock) : item.currentStock;
+  const safeStock = item.safetyStock || 1;
+  const supplyRate = Math.round((displayStock / safeStock) * 100);
 
   return (
     <div className="space-y-4 md:space-y-6 px-1 md:px-0">
@@ -809,31 +845,27 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
             <div className="space-y-2 md:space-y-4">
               <h3 className="text-sm md:text-xl font-black text-primary uppercase tracking-[0.2em] md:tracking-[0.3em]">현재 재고 현황</h3>
               <div className="flex items-baseline gap-2">
-                <p className="text-5xl md:text-8xl font-black text-primary tracking-tighter tabular-nums">
-                  {item.currentStock.toLocaleString()}
+                <p className={`text-5xl md:text-8xl font-black tracking-tighter tabular-nums transition-colors ${isUpdatingStock && displayStock !== item.currentStock ? 'text-secondary' : 'text-primary'}`}>
+                  {displayStock.toLocaleString()}
                 </p>
                 <span className="text-xl md:text-3xl font-black text-outline uppercase">{item.unit}</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 md:gap-10 md:border-l-4 md:border-outline-variant/30 md:pl-12">
+            <div className="grid grid-cols-1 gap-6 md:gap-10 md:border-l-4 md:border-outline-variant/30 md:pl-12">
               <div className="space-y-1 md:space-y-3">
                 <p className="text-[10px] md:text-sm font-black text-outline uppercase tracking-widest">안전 재고</p>
                 <p className="text-2xl md:text-4xl font-black text-on-surface tracking-tight tabular-nums">{item.safetyStock.toLocaleString()}</p>
-              </div>
-              <div className="space-y-1 md:space-y-3">
-                <p className="text-[10px] md:text-sm font-black text-outline uppercase tracking-widest">손실율(LOSS)</p>
-                <p className="text-2xl md:text-4xl font-black text-error tracking-tight tabular-nums">{item.loss}</p>
               </div>
             </div>
 
             <div className="bg-surface-container p-5 md:p-8 rounded-[24px] md:rounded-[32px] border-2 border-outline-variant/30 flex flex-col justify-center items-center gap-1 md:gap-2">
               <span className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest text-center">적정 재고 대비 공급율</span>
               <div className="flex items-baseline gap-2 md:gap-3">
-                <span className={`text-3xl md:text-5xl font-black tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
-                  {Math.round((item.currentStock / item.safetyStock) * 100)}%
+                <span className={`text-3xl md:text-5xl font-black tabular-nums tracking-tighter ${displayStock < safeStock ? 'text-error' : 'text-primary'}`}>
+                  {supplyRate}%
                 </span>
-                <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse shadow-[0_0_10px_rgba(255,0,0,0.5)]' : 'bg-primary'}`} />
+                <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full ${displayStock < safeStock ? 'bg-error animate-pulse shadow-[0_0_10px_rgba(255,0,0,0.5)]' : 'bg-primary'}`} />
               </div>
             </div>
           </div>
@@ -993,84 +1025,36 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
         )}
 
         {/* 하단 2열 정보 섹션 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          {/* 제품 규격 및 보관 정보 */}
-          <div className="bg-white border-2 border-outline-variant rounded-[24px] md:rounded-[40px] p-6 md:p-10 shadow-lg md:shadow-xl space-y-6 md:space-y-10 group hover:border-primary/30 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h3 className="text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em] md:tracking-[0.3em]">STORAGE & SPECS</h3>
-                <p className="text-xl md:text-3xl font-black text-on-surface tracking-tight">제품 규격 및 보관 정보</p>
-              </div>
-              <Warehouse className="w-6 h-6 md:w-10 md:h-10 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
+        <div className="bg-white border-2 border-outline-variant rounded-[24px] md:rounded-[40px] p-6 md:p-10 shadow-lg md:shadow-xl group hover:border-primary/30 transition-colors">
+          <div className="flex items-center justify-between mb-8 md:mb-10">
+            <div className="space-y-1">
+              <h3 className="text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em] md:tracking-[0.3em]">RECENT ACTIVITY</h3>
+              <p className="text-xl md:text-3xl font-black text-on-surface tracking-tight">최근 활동 내역</p>
             </div>
-
-            <div className="grid grid-cols-1 gap-4 md:gap-6">
-              <div className="p-5 md:p-8 bg-surface-container/30 rounded-[20px] md:rounded-[32px] border-2 border-outline-variant/30 space-y-2 md:space-y-3">
-                <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest">주요 보관 위치 (LOCATION)</p>
-                <div className="flex items-center gap-3 md:gap-4">
-                  <div className="p-2 md:p-3 bg-primary text-white rounded-xl md:rounded-2xl shadow-md">
-                    <MapPin className="w-4 h-4 md:w-6 md:h-6" />
-                  </div>
-                  <p className="text-lg md:text-3xl font-black text-on-surface tracking-tighter">{item.location || 'N/A'}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 md:gap-6">
-                <div className="p-5 md:p-8 bg-surface-container/30 rounded-[20px] md:rounded-[32px] border-2 border-outline-variant/30 space-y-1 md:space-y-2">
-                  <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest">관리 방식</p>
-                  <p className="text-base md:text-2xl font-black tracking-tight">FIFO (선입선출)</p>
-                </div>
-                <div className="p-5 md:p-8 bg-surface-container/30 rounded-[20px] md:rounded-[32px] border-2 border-outline-variant/30 space-y-1 md:space-y-2 text-right">
-                  <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest">최근 입고</p>
-                  <p className="text-base md:text-2xl font-black font-mono tracking-tight text-primary">2024.03.20</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 md:space-y-4 pt-4 border-t-2 border-outline-variant/20">
-              <div className="flex justify-between items-end">
-                <span className="text-[10px] md:text-sm font-black text-outline uppercase tracking-widest">창고 점유율 STATUS</span>
-                <span className="text-2xl md:text-4xl font-black text-primary tabular-nums">82<span className="text-sm md:text-xl">%</span></span>
-              </div>
-              <div className="w-full bg-surface-container h-4 md:h-6 rounded-full overflow-hidden border-2 border-outline-variant/30 p-0.5 md:p-1">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: '82%' }}
-                  className="bg-primary h-full rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)]" 
-                />
-              </div>
-            </div>
+            <History className="w-6 h-6 md:w-10 md:h-10 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
           </div>
-
-          {/* 최근 활동 내역 */}
-          <div className="bg-white border-2 border-outline-variant rounded-[24px] md:rounded-[40px] p-6 md:p-10 shadow-lg md:shadow-xl flex flex-col group hover:border-primary/30 transition-colors">
-            <div className="flex items-center justify-between mb-8 md:mb-12">
-              <div className="space-y-1">
-                <h3 className="text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em] md:tracking-[0.3em]">RECENT ACTIVITY</h3>
-                <p className="text-xl md:text-3xl font-black text-on-surface tracking-tight">최근 활동 내역</p>
-              </div>
-              <History className="w-6 h-6 md:w-10 md:h-10 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
-            </div>
+          
+          <div className="relative pt-6 md:pt-8 w-full overflow-x-auto pb-4 custom-scrollbar">
+            <div className="absolute top-[35px] md:top-[43px] left-0 right-0 h-1 bg-outline-variant/30 rounded-full min-w-[800px]" />
             
-            <div className="relative pl-6 md:pl-10 space-y-8 md:space-y-12 flex-1 max-h-[320px] md:max-h-[480px] overflow-y-auto custom-scrollbar pr-2 md:pr-4">
-              <div className="absolute left-[11px] md:left-[19px] top-4 bottom-4 w-1 bg-outline-variant/30 rounded-full" />
-              
-              {[
-                { title: '신규 입고: #B-9021', time: '오전 10:45 · 2024.03.20', type: 'in', desc: '냉동창고 A-1 입고 완료', color: 'bg-emerald-500' },
-                { title: '재고 조사 완료', time: '오후 03:20 · 2024.03.18', type: 'check', desc: '실재고 합치 확인됨', color: 'bg-outline' },
-                { title: '가공 출하', time: '오후 01:15 · 2024.03.15', type: 'out', desc: '육정가공센터 박스 출하', color: 'bg-primary' }
-              ].map((activity, idx) => (
-                <div key={idx} className="relative group/item">
-                  <div className={`absolute -left-[20px] md: -left-[30px] top-1 md:top-2 w-3 h-3 md:w-5 md:h-5 rounded-full ring-4 md:ring-8 ring-white shadow-md transition-all group-hover/item:scale-150 ${activity.color}`} />
-                  <div className="space-y-1 md:space-y-2">
-                    <p className="text-base md:text-xl font-black text-on-surface tracking-tight">{activity.title}</p>
-                    <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest">{activity.time}</p>
-                    <div className="p-3 md:p-4 bg-surface-container/50 rounded-xl md:rounded-2xl border border-outline-variant/20 mt-2 md:mt-3 italic text-on-surface-variant font-bold text-xs md:text-sm">
-                      "{activity.desc}"
-                    </div>
+            <div className="flex gap-6 md:gap-10 min-w-max px-2">
+            {[
+              { title: '신규 입고: #B-9021', time: '오전 10:45 · 2024.03.20', type: 'in', desc: '냉동창고 A-1 입고 완료', color: 'bg-emerald-500' },
+              { title: '재고 조사 완료', time: '오후 03:20 · 2024.03.18', type: 'check', desc: '실재고 합치 확인됨', color: 'bg-outline' },
+              { title: '가공 출하', time: '오후 01:15 · 2024.03.15', type: 'out', desc: '육정가공센터 박스 출하', color: 'bg-primary' },
+              { title: '품질 검수 완료', time: '오전 09:00 · 2024.03.12', type: 'check', desc: 'A등급 판정', color: 'bg-secondary' }
+            ].map((activity, idx) => (
+              <div key={idx} className="relative group/item w-[280px] shrink-0">
+                <div className={`absolute top-0 left-4 w-4 h-4 md:w-5 md:h-5 rounded-full ring-4 md:ring-8 ring-white shadow-md transition-transform group-hover/item:scale-150 ${activity.color} z-10`} />
+                <div className="pt-10 md:pt-14 space-y-1 md:space-y-2">
+                  <p className="text-base md:text-xl font-black text-on-surface tracking-tight">{activity.title}</p>
+                  <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest">{activity.time}</p>
+                  <div className="p-3 md:p-4 bg-surface-container/50 rounded-xl md:rounded-2xl border border-outline-variant/20 mt-3 italic text-on-surface-variant font-bold text-xs md:text-sm">
+                    "{activity.desc}"
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
             </div>
           </div>
         </div>
@@ -1332,32 +1316,32 @@ const LogisticsView = ({
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-        <div className="bg-white p-8 border border-outline-variant rounded-3xl shadow-sm flex flex-col gap-4">
-          <span className="text-lg font-black text-outline uppercase tracking-widest">금일 총 물동량</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-black text-on-surface">{stats.weight.toLocaleString()}</span>
-            <span className="text-2xl text-outline font-black">KG</span>
-          </div>
-          <div className="flex items-center gap-2 text-emerald-600 font-mono text-base font-black bg-emerald-50 w-fit px-4 py-2 rounded-xl">
-            <TrendingUp className="w-5 h-5" /> 최근 업데이트: {new Date().toLocaleTimeString()}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">금일 총 물동량</p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.weight.toLocaleString()}</p>
+            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
           </div>
         </div>
-        <div className="bg-white p-8 border border-outline-variant border-l-8 border-l-emerald-500 rounded-3xl shadow-sm flex flex-col gap-4">
-          <span className="text-xl font-black text-outline uppercase tracking-widest text-emerald-700">금일 입고</span>
-          <div className="flex items-baseline gap-3 text-emerald-700">
-            <span className="text-6xl font-black">{stats.inCount.toString().padStart(2, '0')}</span>
-            <span className="text-3xl text-outline font-black">건</span>
+
+        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/10 group-hover:h-2 transition-all" />
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">금일 입고</p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.inCount}</p>
+            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
           </div>
-          <span className="text-base text-outline font-black uppercase tracking-widest opacity-70">오늘의 총 입고 작업 수</span>
         </div>
-        <div className="bg-white p-8 border border-outline-variant border-l-8 border-l-blue-500 rounded-3xl shadow-sm flex flex-col gap-4">
-          <span className="text-xl font-black text-outline uppercase tracking-widest text-blue-700">금일 출고</span>
-          <div className="flex items-baseline gap-3 text-blue-700">
-            <span className="text-6xl font-black">{stats.outCount.toString().padStart(2, '0')}</span>
-            <span className="text-3xl text-outline font-black">건</span>
+
+        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/10 group-hover:h-2 transition-all" />
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">금일 출고</p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.outCount}</p>
+            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
           </div>
-          <span className="text-base text-outline font-black uppercase tracking-widest opacity-70">오늘의 총 출고 작업 수</span>
         </div>
       </div>
 
@@ -2759,8 +2743,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-surface flex flex-col">
       {/* Top Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-outline-variant fixed top-0 w-full z-50 h-16 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 h-full flex justify-between items-center">
+      <header className="bg-white/80 backdrop-blur-md border-b border-outline-variant fixed top-0 w-full z-50 h-[88px] md:h-20 shadow-xs">
+        <div className="w-full px-6 md:px-10 h-full flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white p-1 rounded-lg shadow-sm border border-outline-variant/30">
               <AppLogo className="w-8 h-8" />
@@ -2803,9 +2787,9 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 pt-16">
+      <div className="flex flex-1 pt-[88px] md:pt-20">
         {/* Desktop Sidebar Sidebar */}
-        <aside className="hidden lg:flex flex-col fixed left-0 top-16 bottom-0 w-20 bg-white border-r border-outline-variant items-center py-8 gap-10">
+        <aside className="hidden lg:flex flex-col fixed left-0 top-[88px] md:top-20 bottom-0 w-20 bg-white border-r border-outline-variant items-center py-8 gap-10">
           {navItems.map((item) => (
             <button
               key={item.id}
