@@ -358,7 +358,7 @@ const DashboardView = ({
         <div className="flex justify-between items-center group">
           <div className="space-y-1">
          
-            <p className="text-3xl font-black text-on-surface tracking-tight">최근 생산 활동</p>
+            <p className="text-4xl md:text-5xl font-black text-on-surface tracking-tight">최근 생산 활동</p>
           </div>
           <button 
             onClick={() => onNavigate('production')}
@@ -371,7 +371,7 @@ const DashboardView = ({
         <div className="overflow-hidden border-2 border-outline-variant/20 rounded-[40px] bg-white shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-surface-container/30 border-b border-outline-variant/30 text-[10px] uppercase font-black text-outline tracking-[0.2em]">
+              <thead className="bg-surface-container/30 border-b border-outline-variant/30 text-xs md:text-[15px] uppercase font-black text-outline tracking-[0.2em]">
                 <tr>
                   <th className="px-8 py-6">BATCH/SKU</th>
                   <th className="px-8 py-6">품목 (ITEM)</th>
@@ -384,30 +384,30 @@ const DashboardView = ({
                 {production.slice(0, 5).map((row, i) => (
                   <tr key={i} className="hover:bg-primary/[0.02] transition-colors group/row">
                     <td className="px-8 py-7">
-                      <span className="text-sm font-mono text-outline font-black tracking-widest px-3 py-1 bg-surface-container rounded-lg">{row.batchId || row.sku}</span>
+                      <span className="text-lg md:text-[21px] font-mono text-outline font-black tracking-widest px-3 py-1 bg-surface-container rounded-lg">{row.batchId || row.sku}</span>
                     </td>
                     <td className="px-8 py-7">
-                       <p className="text-xl md:text-2xl font-black text-on-surface leading-none tracking-tighter group-hover/row:text-primary transition-colors">{row.title}</p>
-                       <p className="text-[10px] font-bold text-outline-variant uppercase tracking-widest mt-1">PRODUCTION LINE A1</p>
+                       <p className="text-3xl md:text-4xl font-black text-on-surface leading-none tracking-tighter group-hover/row:text-primary transition-colors">{row.title}</p>
+                       <p className="text-xs md:text-[15px] font-bold text-outline-variant uppercase tracking-widest mt-2 px-1">PRODUCTION LINE A1</p>
                     </td>
                     <td className="px-8 py-7 text-center">
                       <div className="flex flex-col items-center">
-                        <span className="text-2xl md:text-3xl font-black text-primary tracking-tighter tabular-nums">
+                        <span className="text-4xl md:text-5xl font-black text-primary tracking-tighter tabular-nums">
                           {row.weight?.toString().toLowerCase().includes('kg') ? row.weight.replace('kg', '') : row.weight}
-                          <span className="text-xs md:text-sm ml-0.5 text-outline uppercase">kg</span>
+                          <span className="text-base md:text-xl ml-1 text-outline uppercase tracking-widest">kg</span>
                         </span>
                       </div>
                     </td>
                     <td className="px-8 py-7 text-center">
                       <div className="flex flex-col items-center">
-                        <span className={`text-lg md:text-xl font-black tabular-nums tracking-tight ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-emerald-600'}`}>
+                        <span className={`text-3xl md:text-4xl font-black tabular-nums tracking-tight ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-emerald-600'}`}>
                           {row.yield || (row.loss ? `${100 - parseFloat(row.loss)}%` : '-')}
                         </span>
-                        {row.loss && <span className="text-[9px] font-black text-error/50 uppercase tracking-widest mt-0.5">Loss {row.loss}%</span>}
+                        {row.loss && <span className="text-[14px] font-black text-error/50 uppercase tracking-widest mt-1">Loss {row.loss}%</span>}
                       </div>
                     </td>
                     <td className="px-8 py-7 text-right">
-                      <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border-2 ${
+                      <span className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs md:text-[15px] font-black uppercase tracking-widest border-2 ${
                         row.status === '완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
                         row.status === '진행중' ? 'bg-primary/5 text-primary border-primary/20 animate-pulse' : 
                         'bg-surface-container text-outline border-outline-variant/30'
