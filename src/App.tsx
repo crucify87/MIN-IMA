@@ -326,14 +326,13 @@ const DashboardView = ({
                 <motion.div 
                   key={idx}
                   whileHover={{ y: -2 }}
-                  className={`min-w-[280px] md:min-w-[320px] p-4 md:p-5 bg-white border-2 rounded-[24px] shadow-sm snap-start cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
+                  className={`min-w-[200px] md:min-w-[240px] p-4 md:p-5 bg-white border-2 rounded-[24px] shadow-sm snap-start cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
                   onClick={() => onNavigate('detail', item)}
                 >
                   <div className="space-y-3">
                     <div className="overflow-hidden items-end flex justify-between gap-2">
                        <div>
                          <p className="font-black text-lg truncate leading-tight group-hover:text-primary transition-colors">{item.name}</p>
-                         <p className="text-[10px] font-black text-outline uppercase tracking-widest truncate">{item.sku}</p>
                        </div>
                     </div>
                     <div className="flex justify-between items-end border-t border-outline-variant/10 pt-3">
