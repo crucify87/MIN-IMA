@@ -358,7 +358,7 @@ const DashboardView = ({
         <div className="flex justify-between items-center group">
           <div className="space-y-1">
          
-            <p className="text-4xl md:text-5xl font-black text-on-surface tracking-tight">최근 생산 활동</p>
+            <p className="text-2xl font-black text-on-surface tracking-tight">최근 생산 활동</p>
           </div>
           <button 
             onClick={() => onNavigate('production')}
