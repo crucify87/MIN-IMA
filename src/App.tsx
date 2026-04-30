@@ -541,12 +541,12 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-surface-container/50 border-b-2 border-outline-variant/10">
-                <th className="px-6 py-5 text-center text-base font-black text-outline uppercase tracking-[0.2em]">SKU/위치</th>
-                <th className="px-6 py-5 text-left text-base font-black text-outline uppercase tracking-[0.2em]">품목 정보</th>
-                <th className="px-6 py-5 text-left text-base font-black text-outline uppercase tracking-[0.2em]">카테고리</th>
-                <th className="px-6 py-5 text-right text-base font-black text-outline uppercase tracking-[0.2em]">현재 재고</th>
-                <th className="px-6 py-5 text-center text-base font-black text-outline uppercase tracking-[0.2em]">상태</th>
-                <th className="px-6 py-5 text-right text-base font-black text-outline uppercase tracking-[0.2em]">관리</th>
+                <th className="px-4 py-4 text-center text-sm font-black text-outline uppercase tracking-[0.2em]">SKU/위치</th>
+                <th className="px-4 py-4 text-left text-sm font-black text-outline uppercase tracking-[0.2em]">품목 정보</th>
+                <th className="px-4 py-4 text-left text-sm font-black text-outline uppercase tracking-[0.2em]">카테고리</th>
+                <th className="px-4 py-4 text-right text-sm font-black text-outline uppercase tracking-[0.2em]">현재 재고</th>
+                <th className="px-4 py-4 text-center text-sm font-black text-outline uppercase tracking-[0.2em]">상태</th>
+                <th className="px-4 py-4 text-right text-sm font-black text-outline uppercase tracking-[0.2em]">관리</th>
               </tr>
             </thead>
             <tbody>
@@ -556,56 +556,56 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
                   onClick={() => onNavigate('detail', item)}
                   className={`border-b border-outline-variant/5 hover:bg-surface-container/30 transition-colors cursor-pointer group ${item.currentStock < item.safetyStock ? 'bg-error/[0.02]' : ''}`}
                 >
-                  <td className="px-6 py-6 text-center">
+                  <td className="px-4 py-4 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-lg text-outline font-mono font-black tracking-widest">{item.sku}</span>
-                      <span className="text-base text-outline/60 font-black uppercase tracking-widest mt-1">{item.location}</span>
+                      <span className="text-sm md:text-base text-outline font-mono font-black tracking-widest">{item.sku}</span>
+                      <span className="text-xs text-outline/60 font-black uppercase tracking-widest mt-1">{item.location}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-6">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-4">
-                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
-                        {item.currentStock < item.safetyStock ? <AlertTriangle className="w-10 h-10" /> : <Package className="w-10 h-10" />}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
+                        {item.currentStock < item.safetyStock ? <AlertTriangle className="w-6 h-6" /> : <Package className="w-6 h-6" />}
                       </div>
-                      <p className="font-black text-3xl md:text-4xl text-on-surface group-hover:text-primary transition-colors tracking-tighter truncate max-w-[400px]">
+                      <p className="font-black text-xl md:text-2xl text-on-surface group-hover:text-primary transition-colors tracking-tighter truncate max-w-[300px]">
                         {item.name}
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-6">
-                    <span className="px-6 py-2.5 bg-surface-container text-on-surface-variant rounded-full text-base font-black uppercase tracking-widest border border-outline-variant/30">
+                  <td className="px-4 py-4">
+                    <span className="px-5 py-2 bg-surface-container text-on-surface-variant rounded-full text-sm font-black uppercase tracking-widest border border-outline-variant/30">
                       {item.category}
                     </span>
                   </td>
-                  <td className="px-6 py-6 text-right">
+                  <td className="px-4 py-4 text-right">
                     <div className="flex items-baseline justify-end gap-1">
-                      <p className={`font-black text-4xl md:text-5xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
+                      <p className={`font-black text-2xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
                         {item.currentStock.toLocaleString()}
                       </p>
-                      <span className="text-base font-black text-outline uppercase">{item.unit}</span>
+                      <span className="text-sm font-black text-outline uppercase">{item.unit}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-center">
-                    <div className={`inline-flex items-center gap-3 px-6 py-2.5 rounded-full border-2 ${
+                  <td className="px-4 py-4 text-center">
+                    <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-full border-2 ${
                       item.currentStock < item.safetyStock 
                         ? 'bg-error/5 border-error/20 text-error' 
                         : 'bg-emerald-50 border-emerald-100 text-emerald-700'
                     }`}>
-                      <div className={`w-3 h-3 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse' : 'bg-emerald-500'}`} />
-                      <span className="text-base font-black uppercase tracking-widest">{item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}</span>
+                      <div className={`w-2 h-2 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse' : 'bg-emerald-500'}`} />
+                      <span className="text-sm font-black uppercase tracking-widest">{item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-right">
-                    <div className="flex items-center justify-end gap-3">
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
                       <div className="flex flex-col items-center gap-1 group/edit">
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
                             onNavigate('detail', item);
                           }}
-                          className="w-14 h-14 bg-white border-2 border-outline-variant/30 rounded-2xl text-outline hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center shadow-sm"
+                          className="w-10 h-10 md:w-12 md:h-12 bg-white border-2 border-outline-variant/30 rounded-xl text-outline hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center shadow-sm"
                         >
-                          <Edit3 className="w-6 h-6" />
+                          <Edit3 className="w-5 h-5" />
                         </button>
                       </div>
                       <div className="flex flex-col items-center gap-1 group/delete">
@@ -620,9 +620,10 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
                               }
                             }
                           }}
-                          className="w-14 h-14 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-2xl transition-all border-2 border-transparent hover:border-error/20"
+                          className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all border-2 border-transparent hover:border-error/20"
                         >
-                          <Trash2 className="w-6 h-6" />
+                          <Trash2 className="w-5 h-5" />
+
                         </button>
                       </div>
                     </div>
