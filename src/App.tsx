@@ -46,8 +46,7 @@ import {
   LogIn,
   X,
   TrendingDown,
-  ArrowLeft,
-  Search
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, loginWithGoogle, logout, db, User } from './lib/firebase';
@@ -160,11 +159,11 @@ const AppLogo = ({ className = "w-12 h-12" }: { className?: string }) => {
 
 const StatCard = ({ item }: { item: StatItem, key?: React.Key }) => {
   return (
-    <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+    <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
       <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{item.label}</p>
       <div className="flex items-baseline gap-1">
-        <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
+        <p className="text-3xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
           {item.value}
         </p>
         <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">{item.unit}</span>
@@ -294,7 +293,7 @@ const DashboardView = ({
       </section>
 
       {/* Stats Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {stats.map((s, i) => <StatCard key={i} item={s} />)}
       </section>
 
@@ -303,17 +302,17 @@ const DashboardView = ({
         <div className="flex items-center justify-between px-2">
           <div className="space-y-1">
             
-            <p className="text-2xl font-black text-on-surface tracking-tight">재고 현황 리스트</p>
+            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">재고 현황 리스트</p>
           </div>
           <button 
             onClick={() => onNavigate('inventory')}
-            className="text-primary font-black text-sm uppercase tracking-widest hover:underline decoration-2 underline-offset-4 flex items-center gap-2"
+            className="text-primary font-black text-[10px] md:text-sm uppercase tracking-widest hover:underline decoration-2 underline-offset-4 flex items-center gap-2"
           >
             전체 보기 <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
+        <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x px-1">
           {filteredInventory.length === 0 ? (
             <div className="w-full bg-surface-container py-12 rounded-[32px] border-2 border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-3">
               <Package className="w-10 h-10 text-outline/30" />
@@ -326,23 +325,23 @@ const DashboardView = ({
                 <motion.div 
                   key={idx}
                   whileHover={{ y: -2 }}
-                  className={`min-w-[200px] md:min-w-[240px] p-4 md:p-5 bg-white border-2 rounded-[24px] shadow-sm snap-start cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
+                  className={`min-w-[180px] md:min-w-[240px] p-4 md:p-5 bg-white border-2 rounded-3xl md:rounded-[24px] shadow-sm snap-start cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
                   onClick={() => onNavigate('detail', item)}
                 >
                   <div className="space-y-3">
                     <div className="overflow-hidden items-end flex justify-between gap-2">
                        <div>
-                         <p className="font-black text-lg truncate leading-tight group-hover:text-primary transition-colors">{item.name}</p>
+                         <p className="font-black text-base md:text-lg truncate leading-tight group-hover:text-primary transition-colors">{item.name}</p>
                        </div>
                     </div>
                     <div className="flex justify-between items-end border-t border-outline-variant/10 pt-3">
                       <div>
-                        <p className="text-[10px] font-black text-outline uppercase tracking-widest mb-1">실재고 수량</p>
-                        <p className={`text-3xl font-black tabular-nums ${isAlert ? 'text-error' : 'text-primary'}`}>
-                          {item.currentStock}<span className="text-sm ml-0.5 font-bold uppercase">{item.unit}</span>
+                        <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-1">실재고 수량</p>
+                        <p className={`text-2xl md:text-3xl font-black tabular-nums ${isAlert ? 'text-error' : 'text-primary'}`}>
+                          {item.currentStock}<span className="text-xs md:text-sm ml-0.5 font-bold uppercase">{item.unit}</span>
                         </p>
                       </div>
-                      {isAlert && <AlertTriangle className="w-5 h-5 text-error absolute top-4 right-4 animate-pulse" />}
+                      {isAlert && <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-error absolute top-4 right-4 animate-pulse" />}
                     </div>
                   </div>
                 </motion.div>
@@ -357,61 +356,61 @@ const DashboardView = ({
         <div className="flex justify-between items-center group">
           <div className="space-y-1">
          
-            <p className="text-2xl font-black text-on-surface tracking-tight">최근 생산 활동</p>
+            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">최근 생산 활동</p>
           </div>
           <button 
             onClick={() => onNavigate('production')}
-            className="text-primary font-black text-sm uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
+            className="text-primary font-black text-[10px] md:text-sm uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
           >
             기록 더보기
           </button>
         </div>
         
-        <div className="overflow-hidden border-2 border-outline-variant/20 rounded-[40px] bg-white shadow-xl">
+        <div className="overflow-hidden border-2 border-outline-variant/20 rounded-3xl md:rounded-[40px] bg-white shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-surface-container/30 border-b border-outline-variant/30 text-xs md:text-[15px] uppercase font-black text-outline tracking-[0.2em]">
+              <thead className="bg-surface-container/30 border-b border-outline-variant/30 text-[10px] md:text-[15px] uppercase font-black text-outline tracking-[0.2em]">
                 <tr>
-                  <th className="px-8 py-6">BATCH/SKU</th>
-                  <th className="px-8 py-6">품목 (ITEM)</th>
-                  <th className="px-8 py-6 text-center">생산량 (QTY)</th>
-                  <th className="px-8 py-6 text-center">수율 지표</th>
-                  <th className="px-8 py-6 text-right">상태</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6">BATCH/SKU</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6">품목 (ITEM)</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6 text-center">생산량 (QTY)</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6 text-center">수율 지표</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6 text-right">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {production.slice(0, 5).map((row, i) => (
                   <tr key={i} className="hover:bg-primary/[0.02] transition-colors group/row">
-                    <td className="px-8 py-7">
-                      <span className="text-lg md:text-[21px] font-mono text-outline font-black tracking-widest px-3 py-1 bg-surface-container rounded-lg">{row.batchId || row.sku}</span>
+                    <td className="px-4 md:px-8 py-5 md:py-7">
+                      <span className="text-sm md:text-[21px] font-mono text-outline font-black tracking-widest px-2 md:px-3 py-1 bg-surface-container rounded-lg">{row.batchId || row.sku}</span>
                     </td>
-                    <td className="px-8 py-7">
-                       <p className="text-3xl md:text-4xl font-black text-on-surface leading-none tracking-tighter group-hover/row:text-primary transition-colors">{row.title}</p>
-                       <p className="text-xs md:text-[15px] font-bold text-outline-variant uppercase tracking-widest mt-2 px-1">PRODUCTION LINE A1</p>
+                    <td className="px-4 md:px-8 py-5 md:py-7">
+                       <p className="text-xl md:text-4xl font-black text-on-surface leading-none tracking-tighter group-hover/row:text-primary transition-colors">{row.title}</p>
+                       <p className="text-[10px] md:text-[15px] font-bold text-outline-variant uppercase tracking-widest mt-2 px-1">LINE A1</p>
                     </td>
-                    <td className="px-8 py-7 text-center">
+                    <td className="px-4 md:px-8 py-5 md:py-7 text-center">
                       <div className="flex flex-col items-center">
-                        <span className="text-4xl md:text-5xl font-black text-primary tracking-tighter tabular-nums">
+                        <span className="text-2xl md:text-5xl font-black text-primary tracking-tighter tabular-nums">
                           {row.weight?.toString().toLowerCase().includes('kg') ? row.weight.replace('kg', '') : row.weight}
-                          <span className="text-base md:text-xl ml-1 text-outline uppercase tracking-widest">kg</span>
+                          <span className="text-sm md:text-xl ml-1 text-outline uppercase tracking-widest">kg</span>
                         </span>
                       </div>
                     </td>
-                    <td className="px-8 py-7 text-center">
+                    <td className="px-4 md:px-8 py-5 md:py-7 text-center">
                       <div className="flex flex-col items-center">
-                        <span className={`text-3xl md:text-4xl font-black tabular-nums tracking-tight ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-emerald-600'}`}>
+                        <span className={`text-xl md:text-4xl font-black tabular-nums tracking-tight ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-emerald-600'}`}>
                           {row.yield || (row.loss ? `${100 - parseFloat(row.loss)}%` : '-')}
                         </span>
-                        {row.loss && <span className="text-[14px] font-black text-error/50 uppercase tracking-widest mt-1">Loss {row.loss}%</span>}
+                        {row.loss && <span className="text-[10px] md:text-[14px] font-black text-error/50 uppercase tracking-widest mt-1">Loss {row.loss}%</span>}
                       </div>
                     </td>
-                    <td className="px-8 py-7 text-right">
-                      <span className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs md:text-[15px] font-black uppercase tracking-widest border-2 ${
+                    <td className="px-4 md:px-8 py-5 md:py-7 text-right">
+                      <span className={`inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 md:py-2.5 rounded-full text-[10px] md:text-[15px] font-black uppercase tracking-widest border-2 whitespace-nowrap ${
                         row.status === '완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
                         row.status === '진행중' ? 'bg-primary/5 text-primary border-primary/20 animate-pulse' : 
                         'bg-surface-container text-outline border-outline-variant/30'
                       }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${row.status === '완료' ? 'bg-emerald-500' : row.status === '진행중' ? 'bg-primary' : 'bg-outline'}`} />
+                        <div className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${row.status === '완료' ? 'bg-emerald-500' : row.status === '진행중' ? 'bg-primary' : 'bg-outline'}`} />
                         {row.status}
                       </span>
                     </td>
@@ -514,9 +513,9 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((item, i) => (
-          <div key={i} className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+          <div key={i} className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
             <div className={`absolute top-0 left-0 w-full h-1 group-hover:h-2 transition-all ${
               item.label.includes('부족') ? 'bg-error/20' : 
               item.label.includes('입고') ? 'bg-secondary/20' :
@@ -524,28 +523,28 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
             }`} />
             <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{item.label}</p>
             <div className="flex items-baseline gap-1">
-              <p className={`text-4xl md:text-6xl font-black tabular-nums tracking-tighter leading-none ${item.color}`}>
+              <p className={`text-3xl md:text-6xl font-black tabular-nums tracking-tighter leading-none ${item.color}`}>
                 {item.value}
               </p>
               {item.unit && <span className={`text-sm md:text-xl font-black uppercase tracking-widest ${item.color === 'text-on-surface' ? 'text-outline-variant' : item.color.replace('text-', 'text-/40')}`}>{item.unit}</span>}
-              {!item.unit && item.label.includes('SKU') && <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">종</span>}
-              {!item.unit && item.label.includes('부족') && <span className="text-sm md:text-xl font-black text-error/40 uppercase tracking-widest">건</span>}
+              {!item.unit && item.label.includes('SKU') && <span className="text-xs md:text-xl font-black text-outline-variant uppercase tracking-widest">종</span>}
+              {!item.unit && item.label.includes('부족') && <span className="text-xs md:text-xl font-black text-error/40 uppercase tracking-widest">건</span>}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-white border-2 border-outline-variant/30 rounded-[40px] shadow-lg overflow-hidden">
+      <div className="bg-white border-2 border-outline-variant/30 rounded-3xl md:rounded-[40px] shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-surface-container/50 border-b-2 border-outline-variant/10">
-                <th className="px-4 py-4 text-center text-sm font-black text-outline uppercase tracking-[0.2em]">SKU/위치</th>
-                <th className="px-4 py-4 text-left text-sm font-black text-outline uppercase tracking-[0.2em]">품목 정보</th>
-                <th className="px-4 py-4 text-left text-sm font-black text-outline uppercase tracking-[0.2em]">카테고리</th>
-                <th className="px-4 py-4 text-right text-sm font-black text-outline uppercase tracking-[0.2em]">현재 재고</th>
-                <th className="px-4 py-4 text-center text-sm font-black text-outline uppercase tracking-[0.2em]">상태</th>
-                <th className="px-4 py-4 text-right text-sm font-black text-outline uppercase tracking-[0.2em]">관리</th>
+                <th className="px-4 py-4 text-center text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">SKU/위치</th>
+                <th className="px-4 py-4 text-left text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">품목 정보</th>
+                <th className="px-4 py-4 text-left text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">카테고리</th>
+                <th className="px-4 py-4 text-right text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">현재 재고</th>
+                <th className="px-4 py-4 text-center text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">상태</th>
+                <th className="px-4 py-4 text-right text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">관리</th>
               </tr>
             </thead>
             <tbody>
@@ -557,41 +556,41 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
                 >
                   <td className="px-4 py-4 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-sm md:text-base text-outline font-mono font-black tracking-widest">{item.sku}</span>
-                      <span className="text-xs text-outline/60 font-black uppercase tracking-widest mt-1">{item.location}</span>
+                      <span className="text-xs md:text-base text-outline font-mono font-black tracking-widest">{item.sku}</span>
+                      <span className="text-[10px] text-outline/60 font-black uppercase tracking-widest mt-1">{item.location}</span>
                     </div>
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
-                        {item.currentStock < item.safetyStock ? <AlertTriangle className="w-6 h-6" /> : <Package className="w-6 h-6" />}
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
+                        {item.currentStock < item.safetyStock ? <AlertTriangle className="w-5 h-5 md:w-6 md:h-6" /> : <Package className="w-5 h-5 md:w-6 md:h-6" />}
                       </div>
-                      <p className="font-black text-xl md:text-2xl text-on-surface group-hover:text-primary transition-colors tracking-tighter truncate max-w-[300px]">
+                      <p className="font-black text-lg md:text-2xl text-on-surface group-hover:text-primary transition-colors tracking-tighter truncate max-w-[150px] md:max-w-[300px]">
                         {item.name}
                       </p>
                     </div>
                   </td>
                   <td className="px-4 py-4">
-                    <span className="px-5 py-2 bg-surface-container text-on-surface-variant rounded-full text-sm font-black uppercase tracking-widest border border-outline-variant/30">
+                    <span className="px-3 md:px-5 py-1 md:py-2 bg-surface-container text-on-surface-variant rounded-full text-[10px] md:text-sm font-black uppercase tracking-widest border border-outline-variant/30 whitespace-nowrap">
                       {item.category}
                     </span>
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-baseline justify-end gap-1">
-                      <p className={`font-black text-2xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
+                      <p className={`font-black text-xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
                         {item.currentStock.toLocaleString()}
                       </p>
-                      <span className="text-sm font-black text-outline uppercase">{item.unit}</span>
+                      <span className="text-[10px] md:text-sm font-black text-outline uppercase">{item.unit}</span>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-center">
-                    <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-full border-2 ${
+                    <div className={`inline-flex items-center gap-2 px-3 md:px-5 py-1 md:py-2 rounded-full border-2 ${
                       item.currentStock < item.safetyStock 
                         ? 'bg-error/5 border-error/20 text-error' 
                         : 'bg-emerald-50 border-emerald-100 text-emerald-700'
                     }`}>
                       <div className={`w-2 h-2 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse' : 'bg-emerald-500'}`} />
-                      <span className="text-sm font-black uppercase tracking-widest">{item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}</span>
+                      <span className="text-[10px] md:text-sm font-black uppercase tracking-widest whitespace-nowrap">{item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}</span>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-right">
@@ -816,8 +815,8 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
             </div>
           ) : (
             <>
-              <h1 className="text-3xl md:text-5xl font-black text-primary tracking-tighter leading-tight md:leading-none">{item.name}</h1>
-              <p className="text-base md:text-2xl font-mono text-outline font-black mt-1 md:mt-2 tracking-[0.1em] md:tracking-[0.2em]">{item.sku}</p>
+              <h1 className="text-2xl md:text-5xl font-black text-primary tracking-tighter leading-tight md:leading-none">{item.name}</h1>
+              <p className="text-sm md:text-2xl font-mono text-outline font-black mt-1 md:mt-2 tracking-[0.1em] md:tracking-[0.2em]">{item.sku}</p>
             </>
           )}
         </div>
@@ -835,12 +834,12 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
 
       <div className="space-y-6 md:space-y-8">
         {/* 재고 현황 지표 (LARGE HEADER) */}
-        <div className="bg-white border-2 md:border-4 border-primary/20 rounded-[24px] md:rounded-[40px] p-6 md:p-10 shadow-xl md:shadow-2xl relative overflow-hidden">
+        <div className="bg-white border-2 border-primary/20 rounded-3xl md:rounded-[40px] p-6 md:p-10 shadow-xl md:shadow-2xl relative overflow-hidden">
           <div className="absolute right-0 top-0 opacity-5 md:opacity-10 translate-x-1/4 -translate-y-1/4">
-            <TrendingUp className="w-48 h-48 md:w-64 md:h-64 text-primary" />
+            <TrendingUp className="w-32 h-32 md:w-64 md:h-64 text-primary" />
           </div>
           
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 items-center">
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12 items-center">
             <div className="space-y-2 md:space-y-4">
               <h3 className="text-sm md:text-xl font-black text-primary uppercase tracking-[0.2em] md:tracking-[0.3em]">현재 재고 현황</h3>
               <div className="flex items-baseline gap-2">
@@ -851,20 +850,20 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:gap-10 md:border-l-4 md:border-outline-variant/30 md:pl-12">
+            <div className="grid grid-cols-1 gap-3 md:gap-10 md:border-l-4 md:border-outline-variant/30 md:pl-12">
               <div className="space-y-1 md:space-y-3">
                 <p className="text-[10px] md:text-sm font-black text-outline uppercase tracking-widest">안전 재고</p>
                 <p className="text-2xl md:text-4xl font-black text-on-surface tracking-tight tabular-nums">{item.safetyStock.toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="bg-surface-container p-5 md:p-8 rounded-[24px] md:rounded-[32px] border-2 border-outline-variant/30 flex flex-col justify-center items-center gap-1 md:gap-2">
-              <span className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest text-center">적정 재고 대비 공급율</span>
+            <div className="bg-surface-container p-5 md:p-8 rounded-2xl md:rounded-[32px] border-2 border-outline-variant/30 flex flex-col justify-center items-center gap-1 md:gap-2">
+              <span className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest text-center">공급율</span>
               <div className="flex items-baseline gap-2 md:gap-3">
                 <span className={`text-3xl md:text-5xl font-black tabular-nums tracking-tighter ${displayStock < safeStock ? 'text-error' : 'text-primary'}`}>
                   {supplyRate}%
                 </span>
-                <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full ${displayStock < safeStock ? 'bg-error animate-pulse shadow-[0_0_10px_rgba(255,0,0,0.5)]' : 'bg-primary'}`} />
+                <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full ${displayStock < safeStock ? 'bg-error animate-pulse' : 'bg-primary'}`} />
               </div>
             </div>
           </div>
@@ -890,10 +889,10 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
                     type="number" 
                     value={newStock}
                     onChange={e => setNewStock(e.target.value)}
-                    className="w-full h-20 md:h-32 px-6 md:px-10 rounded-[20px] md:rounded-[32px] border-2 md:border-4 border-primary text-4xl md:text-7xl font-black focus:outline-none shadow-inner tracking-tighter tabular-nums"
+                    className="w-full h-16 md:h-32 px-6 md:px-10 rounded-2xl md:rounded-[32px] border-2 md:border-4 border-primary text-3xl md:text-7xl font-black focus:outline-none shadow-inner tracking-tighter tabular-nums"
                     autoFocus
                   />
-                  <span className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 text-xl md:text-4xl font-black text-primary/40 uppercase">{item.unit}</span>
+                  <span className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 text-base md:text-4xl font-black text-primary/40 uppercase">{item.unit}</span>
                 </div>
                 <div className="flex flex-row lg:flex-col gap-3 w-full lg:w-72">
                   <button 
@@ -935,9 +934,9 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
           ) : (
             <button 
               onClick={() => setIsUpdatingStock(true)}
-              className="w-full bg-primary text-white h-16 md:h-24 rounded-[20px] md:rounded-[32px] flex items-center justify-center gap-4 md:gap-6 font-black text-xl md:text-3xl shadow-[0_10px_30px_rgba(var(--primary-rgb),0.2)] hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-[0.15em] md:tracking-[0.2em]"
+              className="w-full bg-primary text-white h-14 md:h-24 rounded-2xl md:rounded-[32px] flex items-center justify-center gap-4 md:gap-6 font-black text-lg md:text-3xl shadow-lg hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-[0.1em] md:tracking-[0.2em]"
             >
-              <Package className="w-6 h-6 md:w-10 md:h-10" /> 재고 수량 업데이트
+              <Package className="w-5 h-5 md:w-10 md:h-10" /> 재고 수량 업데이트
             </button>
           )}
         </div>
@@ -1202,9 +1201,9 @@ const LogisticsView = ({
         <div className="flex items-center gap-4">
           <button 
             onClick={() => onNavigate?.('dashboard')}
-            className="p-4 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
+            className="p-3 md:p-4 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
           </button>
           <div className="space-y-1">
             <h2 className="text-3xl font-black text-on-surface tracking-tighter">물류현황</h2>
@@ -1315,67 +1314,72 @@ const LogisticsView = ({
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
-          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">금일 총 물동량</p>
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-3 md:mb-4">금일 총 물동량</p>
           <div className="flex items-baseline gap-1">
-            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.weight.toLocaleString()}</p>
-            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
+            <p className="text-3xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.weight.toLocaleString()}</p>
+            <span className="text-xs md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
           </div>
         </div>
 
-        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/10 group-hover:h-2 transition-all" />
-          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">금일 입고</p>
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-3 md:mb-4">금일 입고</p>
           <div className="flex items-baseline gap-1">
-            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.inCount}</p>
-            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
+            <p className="text-3xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.inCount}</p>
+            <span className="text-xs md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
           </div>
         </div>
 
-        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/10 group-hover:h-2 transition-all" />
-          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">금일 출고</p>
+          <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-3 md:mb-4">금일 출고</p>
           <div className="flex items-baseline gap-1">
-            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.outCount}</p>
-            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
+            <p className="text-3xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.outCount}</p>
+            <span className="text-xs md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
           </div>
         </div>
       </div>
 
       {/* Filter Section */}
-      <div className="bg-surface-container p-4 rounded-2xl flex flex-wrap items-center gap-4">
-        <div className="relative w-1/3 min-w-[200px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-4 h-4" />
+      <div className="bg-surface-container p-3 md:p-4 rounded-2xl flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-4 h-4 md:w-5 md:h-5" />
           <input 
             type="text" 
-            placeholder="품목명으로 필터..." 
+            placeholder="품목명 필터..." 
             value={filters.item}
             onChange={e => setFilters({...filters, item: e.target.value})}
-            className="w-full h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-xl outline-none text-sm font-medium focus:border-primary"
+            className="w-full h-10 md:h-12 pl-10 md:pl-12 pr-4 bg-white border border-outline-variant rounded-xl outline-none text-xs md:text-sm font-black focus:border-primary"
           />
         </div>
-        <div className="flex-1 flex items-center gap-2 min-w-[300px]">
-          <CalendarDays className="w-4 h-4 text-outline" />
-          <input 
-            type="date" 
-            value={filters.startDate}
-            onChange={e => setFilters({...filters, startDate: e.target.value})}
-            className="flex-1 h-10 px-3 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none text-center" 
-          />
-          <span className="text-outline text-xs px-1">~</span>
-          <input 
-            type="date" 
-            value={filters.endDate}
-            onChange={e => setFilters({...filters, endDate: e.target.value})}
-            className="flex-1 h-10 px-3 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none text-center" 
-          />
+        <div className="flex items-center gap-2 flex-[2]">
+          <div className="flex-1 relative">
+            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-outline w-3 h-3 md:w-4 md:h-4" />
+            <input 
+              type="date" 
+              value={filters.startDate}
+              onChange={e => setFilters({...filters, startDate: e.target.value})}
+              className="w-full h-10 pl-8 md:pl-10 pr-2 bg-white border border-outline-variant rounded-xl text-[10px] md:text-xs font-bold outline-none" 
+            />
+          </div>
+          <span className="text-outline text-xs">~</span>
+          <div className="flex-1 relative">
+            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-outline w-3 h-3 md:w-4 md:h-4" />
+            <input 
+              type="date" 
+              value={filters.endDate}
+              onChange={e => setFilters({...filters, endDate: e.target.value})}
+              className="w-full h-10 pl-8 md:pl-10 pr-2 bg-white border border-outline-variant rounded-xl text-[10px] md:text-xs font-bold outline-none" 
+            />
+          </div>
         </div>
         {(filters.item || filters.startDate || filters.endDate) && (
           <button 
             onClick={() => setFilters({ item: '', startDate: '', endDate: '' })}
-            className="text-[9px] font-black text-primary uppercase hover:underline"
+            className="text-[10px] font-black text-primary uppercase hover:underline py-1"
           >
             초기화
           </button>
@@ -1391,39 +1395,39 @@ const LogisticsView = ({
                 className="bg-white p-4 border-2 rounded-2xl shadow-sm hover:border-primary transition-all group flex flex-col md:flex-row md:items-center justify-between gap-4 border-outline-variant/30"
               >
                 <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.type === '입고' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-error/10 text-error'}`}>
-                    {item.type === '입고' ? <ArrowDownToLine className="w-5 h-5" /> : <ArrowUpFromLine className="w-5 h-5" />}
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center shrink-0 ${item.type === '입고' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-error/10 text-error'}`}>
+                    {item.type === '입고' ? <ArrowDownToLine className="w-4 h-4 md:w-5 md:h-5" /> : <ArrowUpFromLine className="w-4 h-4 md:w-5 md:h-5" />}
                   </div>
                   <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="text-sm font-black text-outline uppercase tracking-tighter">{item.date || item.createdAt?.toDate().toISOString().split('T')[0]} · {item.time}</span>
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-md text-white uppercase tracking-widest ${item.type === '입고' ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-error shadow-sm shadow-error/20'}`}>{item.type}</span>
+                    <div className="flex items-center gap-2 md:gap-3 mb-1">
+                      <span className="text-[10px] md:text-sm font-black text-outline uppercase tracking-tighter">{item.date || item.createdAt?.toDate().toISOString().split('T')[0]} · {item.time}</span>
+                      <span className={`text-[8px] md:text-[9px] font-black px-1.5 md:px-2 py-0.5 rounded-md text-white uppercase tracking-widest ${item.type === '입고' ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-error shadow-sm shadow-error/20'}`}>{item.type}</span>
                     </div>
-                    <h3 className="text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{item.item || item.title}</h3>
-                    <div className="flex flex-wrap items-center gap-4 mt-2">
-                      <p className="flex items-center gap-2 text-sm text-on-surface-variant font-bold"><Truck className="w-4 h-4 text-outline" /> {item.partner}</p>
-                      <p className="text-lg font-black text-primary uppercase tracking-widest">
+                    <h3 className="text-lg md:text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight leading-none">{item.item || item.title}</h3>
+                    <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-2">
+                      <p className="flex items-center gap-1.5 text-xs md:text-sm text-on-surface-variant font-bold"><Truck className="w-3.5 h-3.5 text-outline" /> {item.partner}</p>
+                      <p className="text-base md:text-lg font-black text-primary uppercase tracking-widest">
                         {item.weight ? (item.weight.toString().toLowerCase().includes('kg') ? item.weight.toUpperCase() : `${item.weight} KG`) : item.qty}
                       </p>
-                      <p className="text-[9px] font-black text-outline uppercase bg-surface-container px-3 py-1 rounded-lg tracking-widest">{item.freightType || '운임미지정'}</p>
+                      <p className="text-[9px] font-black text-outline uppercase bg-surface-container px-2 md:px-3 py-1 rounded-lg tracking-widest">{item.freightType || '운송사미출력'}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between md:justify-end gap-6 pl-2 lg:pl-0 border-t md:border-t-0 pt-4 md:pt-0">
+                <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 pl-2 lg:pl-0 border-t md:border-t-0 pt-3 md:pt-0">
                   <div className="flex flex-col items-end">
-                    <span className={`text-sm font-black flex items-center gap-2 uppercase tracking-widest ${item.status === '완료' ? (item.type === '입고' ? 'text-emerald-700' : 'text-error') : 'text-outline'}`}>
-                      <span className={`w-3 h-3 rounded-full shadow-sm ${item.status === '완료' ? (item.type === '입고' ? 'bg-emerald-500' : 'bg-error') : 'bg-outline-variant'}`} />
+                    <span className={`text-xs md:text-sm font-black flex items-center gap-2 uppercase tracking-widest ${item.status === '완료' ? (item.type === '입고' ? 'text-emerald-700' : 'text-error') : 'text-outline'}`}>
+                      <span className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full shadow-sm ${item.status === '완료' ? (item.type === '입고' ? 'bg-emerald-500' : 'bg-error') : 'bg-outline-variant'}`} />
                       {item.status}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 md:gap-2">
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         startEdit(item);
                       }}
-                      className="h-10 px-6 border-2 border-primary text-primary rounded-xl text-sm font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
+                      className="h-9 md:h-10 px-4 md:px-6 border-2 border-primary text-primary rounded-xl text-xs md:text-sm font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
                     >
                       수정
                     </button>
@@ -1432,7 +1436,7 @@ const LogisticsView = ({
                         e.stopPropagation();
                         handleDelete(item.id);
                       }}
-                      className="h-10 px-4 border-2 border-error text-error rounded-xl text-sm font-black uppercase hover:bg-error hover:text-white transition-all shadow-sm active:scale-95 flex items-center justify-center"
+                      className="h-9 md:h-10 px-3 md:px-4 border-2 border-error text-error rounded-xl text-xs md:text-sm font-black uppercase hover:bg-error hover:text-white transition-all shadow-sm active:scale-95 flex items-center justify-center"
                       title="삭제"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1670,13 +1674,13 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
         <div className="flex items-center gap-4">
           <button 
             onClick={() => onNavigate?.('dashboard')}
-            className="p-3 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
+            className="p-3 md:p-4 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
           </button>
           <div>
-            <h1 className="text-3xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
-            <p className="text-1xl font-bold text-on-surface-variant mt-1">생산공정 작업일지</p>
+            <h1 className="text-2xl md:text-3xl font-black text-primary tracking-tighter uppercase">생산관리</h1>
+            <p className="text-xs md:text-1xl font-bold text-on-surface-variant mt-1">생산공정 작업일지</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -1688,9 +1692,9 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                 setShowForm(!showForm);
               }
             }}
-            className={`${editingId ? 'bg-secondary' : 'bg-primary'} text-white h-12 px-6 rounded-2xl text-base font-black flex items-center gap-3 shadow-lg hover:opacity-90 transition-all active:scale-95 uppercase tracking-widest shadow-primary/20`}
+            className={`${editingId ? 'bg-secondary' : 'bg-primary'} text-white h-12 px-4 md:px-6 rounded-2xl text-sm md:text-base font-black flex items-center gap-3 shadow-lg hover:opacity-90 transition-all active:scale-95 uppercase tracking-widest shadow-primary/20`}
           >
-            {showForm ? (editingId ? <X className="w-6 h-6" /> : <ChevronRight className="w-6 h-6 rotate-90" />) : <Plus className="w-6 h-6" />}
+            {showForm ? (editingId ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronRight className="w-5 h-5 md:w-6 md:h-6 rotate-90" />) : <Plus className="w-5 h-5 md:w-6 md:h-6" />}
             {showForm ? (editingId ? '수정 닫기' : '닫기') : '생산일지 등록'}
           </button>
         </div>
@@ -1704,22 +1708,22 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className={`bg-white p-6 rounded-3xl border-4 ${editingId ? 'border-secondary/20 shadow-secondary/5' : 'border-primary/10 shadow-primary/5'} shadow-2xl space-y-6 relative`}>
+            <div className={`bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border-4 ${editingId ? 'border-secondary/20 shadow-secondary/5' : 'border-primary/10 shadow-primary/5'} shadow-2xl space-y-6 relative`}>
               {editingId && (
                 <div className="absolute top-4 right-4">
-                  <span className="bg-secondary text-white text-xs font-black px-4 py-2 rounded-xl uppercase tracking-[0.2em] animate-pulse shadow-md">EDITING MODE</span>
+                  <span className="bg-secondary text-[10px] text-white font-black px-3 md:px-4 py-1.5 md:py-2 rounded-xl uppercase tracking-[0.1em] md:tracking-[0.2em] animate-pulse shadow-md">EDITING MODE</span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <h3 className="text-3xl font-black text-primary uppercase tracking-widest">
-                  {editingId ? '생산 일지 개별 수정' : '일지 정보 입력'}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h3 className="text-xl md:text-3xl font-black text-primary uppercase tracking-widest">
+                  {editingId ? '생산 일지 수정' : '일지 정보 입력'}
                 </h3>
                 <div className="flex items-center gap-4">
-                  <span className="text-base font-black text-outline uppercase tracking-widest">생산 라인:</span>
+                  <span className="text-xs md:text-base font-black text-outline uppercase tracking-widest">생산 라인:</span>
                   <select 
                     value={productionLine} 
                     onChange={e => setProductionLine(e.target.value)}
-                    className="h-12 px-6 rounded-xl border-2 border-outline-variant focus:border-primary outline-none text-base font-black transition-colors bg-white shadow-sm"
+                    className="h-10 md:h-12 px-4 md:px-6 rounded-xl border-2 border-outline-variant focus:border-primary outline-none text-sm md:text-base font-black transition-colors bg-white shadow-sm"
                   >
                     <option value="삼산공장">삼산공장</option>
                     <option value="언양공장 식육가공">언양공장 식육가공</option>
@@ -1744,31 +1748,41 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                       key={idx} 
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-4 bg-surface-container rounded-2xl border-2 border-outline-variant/30 flex flex-col md:grid md:grid-cols-12 gap-4 items-center group/item hover:border-primary/30 transition-all shadow-sm"
+                      className="p-4 bg-surface-container rounded-2xl border-2 border-outline-variant/30 flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-center group/item hover:border-primary/30 transition-all shadow-sm"
                     >
                       <div className="w-full md:col-span-2">
-                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명" className="w-full h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-base transition-all font-black shadow-inner" />
+                        <label className="md:hidden text-[10px] font-black text-outline uppercase tracking-widest mb-1 block px-1">품목명</label>
+                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명" className="w-full h-10 md:h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-sm md:text-base transition-all font-black shadow-inner" />
                       </div>
                       <div className="w-full md:col-span-2">
-                        <input value={item.rawMeat} onChange={e => updateItem(idx, 'rawMeat', e.target.value)} type="text" placeholder="원육 정보" className="w-full h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-sm transition-all font-bold shadow-inner text-outline" />
+                        <label className="md:hidden text-[10px] font-black text-outline uppercase tracking-widest mb-1 block px-1">원육정보</label>
+                        <input value={item.rawMeat} onChange={e => updateItem(idx, 'rawMeat', e.target.value)} type="text" placeholder="원육 정보" className="w-full h-10 md:h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-xs md:text-sm transition-all font-bold shadow-inner text-outline" />
                       </div>
-                      <div className="w-full md:col-span-2">
-                        <input required value={item.input} onChange={e => updateItem(idx, 'input', e.target.value)} type="text" placeholder="투입량" className="w-full h-12 px-2 text-center rounded-xl bg-white border-2 border-primary/20 focus:border-primary outline-none text-lg transition-all font-mono font-black text-primary shadow-inner" />
-                      </div>
-                      <div className="w-full md:col-span-2">
-                        <input required value={item.production} onChange={e => updateItem(idx, 'production', e.target.value)} type="text" placeholder="생산량" className="w-full h-12 px-2 text-center rounded-xl bg-white border-2 border-primary/20 focus:border-primary outline-none text-lg transition-all font-mono font-black text-primary shadow-inner" />
-                      </div>
-                      <div className="w-full md:col-span-2">
-                        <div className="w-full h-12 flex items-center justify-center rounded-xl bg-emerald-50 border-2 border-emerald-100 text-lg font-mono font-black text-emerald-600 shadow-inner">
-                          {item.yield || '0'}%
+                      <div className="grid grid-cols-2 gap-3 w-full md:col-span-4">
+                        <div>
+                          <label className="md:hidden text-[10px] font-black text-primary uppercase tracking-widest mb-1 block px-1">투입량(kg)</label>
+                          <input required value={item.input} onChange={e => updateItem(idx, 'input', e.target.value)} type="text" placeholder="투입량" className="w-full h-10 md:h-12 px-2 text-center rounded-xl bg-white border-2 border-primary/20 focus:border-primary outline-none text-base md:text-lg transition-all font-mono font-black text-primary shadow-inner" />
+                        </div>
+                        <div>
+                          <label className="md:hidden text-[10px] font-black text-primary-600 uppercase tracking-widest mb-1 block px-1">생산량(kg)</label>
+                          <input required value={item.production} onChange={e => updateItem(idx, 'production', e.target.value)} type="text" placeholder="생산량" className="w-full h-10 md:h-12 px-2 text-center rounded-xl bg-white border-2 border-primary/20 focus:border-primary outline-none text-base md:text-lg transition-all font-mono font-black text-primary shadow-inner" />
                         </div>
                       </div>
-                      <div className="w-full md:col-span-1">
-                        <div className="w-full h-12 flex items-center justify-center rounded-xl bg-error/5 border-2 border-error/10 text-lg font-mono font-black text-error shadow-inner">
-                          {item.loss || '0'}%
+                      <div className="grid grid-cols-2 gap-3 w-full md:col-span-3">
+                        <div>
+                          <label className="md:hidden text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 block px-1">수율(%)</label>
+                          <div className="w-full h-10 md:h-12 flex items-center justify-center rounded-xl bg-emerald-50 border-2 border-emerald-100 text-base md:text-lg font-mono font-black text-emerald-600 shadow-inner">
+                            {item.yield || '0'}%
+                          </div>
+                        </div>
+                        <div>
+                          <label className="md:hidden text-[10px] font-black text-error uppercase tracking-widest mb-1 block px-1">로스(%)</label>
+                          <div className="w-full h-10 md:h-12 flex items-center justify-center rounded-xl bg-error/5 border-2 border-error/10 text-base md:text-lg font-mono font-black text-error shadow-inner">
+                            {item.loss || '0'}%
+                          </div>
                         </div>
                       </div>
-                      <div className="w-full md:col-span-1 flex justify-center">
+                      <div className="w-full md:col-span-1 flex justify-end md:justify-center">
                         {items.length > 1 && (
                           <button 
                             type="button" 
@@ -1783,22 +1797,22 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                   ))}
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 pt-4">
+                <div className="flex flex-col md:flex-row gap-3 md:gap-4 pt-4">
                   {!editingId && (
                     <button 
                       type="button" 
                       onClick={addItem}
-                      className="flex-1 h-14 border-2 border-dashed border-outline-variant rounded-2xl text-xs font-black uppercase tracking-widest text-outline hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-3 shadow-sm"
+                      className="flex-1 h-12 md:h-14 border-2 border-dashed border-outline-variant rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest text-outline hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-3 shadow-sm"
                     >
-                      <Plus className="w-5 h-5" /> 품목 추가 (행 추가)
+                      <Plus className="w-4 h-4 md:w-5 md:h-5" /> 품목 추가 (행 추가)
                     </button>
                   )}
                   <button 
                     disabled={loading} 
                     type="submit" 
-                    className={`h-14 rounded-2xl font-black text-lg uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 ${editingId ? 'flex-1 bg-secondary text-white' : 'flex-[2] bg-primary text-white'}`}
+                    className={`h-12 md:h-14 rounded-2xl font-black text-sm md:text-lg uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 ${editingId ? 'flex-1 bg-secondary text-white' : 'flex-[2] bg-primary text-white'}`}
                   >
-                    {loading ? '기록 중...' : (editingId ? '수정 사항 저장 및 시스템 업데이트' : `${items.length}건의 생산 데이터 시스템 등록`)}
+                    {loading ? '기록 중...' : (editingId ? '수정 및 업데이트' : `${items.length}건 생산 등록`)}
                   </button>
                 </div>
               </form>
@@ -1807,46 +1821,46 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
         )}
       </AnimatePresence>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">생산 건수</p>
           <div className="flex items-baseline gap-1">
-            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{production.length}</p>
-            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
+            <p className="text-3xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{production.length}</p>
+            <span className="text-xs md:text-xl font-black text-outline-variant uppercase tracking-widest">건</span>
           </div>
         </div>
 
-        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 투입량</p>
           <div className="flex items-baseline gap-1">
-            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
+            <p className="text-3xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
               {(production.reduce((acc, curr) => acc + (parseFloat(curr.input) || 0), 0)).toLocaleString()}
             </p>
-            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
+            <span className="text-xs md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
           </div>
         </div>
 
-        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 생산량</p>
           <div className="flex items-baseline gap-1">
-            <p className="text-4xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
+            <p className="text-3xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
               {(production.reduce((acc, curr) => {
                 const val = parseFloat((curr.production || curr.weight || '0').toString().toLowerCase().replace('kg', '').trim());
                 return acc + (isNaN(val) ? 0 : val);
               }, 0)).toLocaleString()}
             </p>
-            <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
+            <span className="text-xs md:text-xl font-black text-outline-variant uppercase tracking-widest">kg</span>
           </div>
         </div>
 
-        <div className="bg-white border-2 border-outline-variant/30 p-8 rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-600/20 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 수율</p>
           <div className="flex items-baseline gap-1">
-            <p className="text-4xl md:text-6xl font-black text-emerald-600 tabular-nums tracking-tighter leading-none">
+            <p className="text-3xl md:text-6xl font-black text-emerald-600 tabular-nums tracking-tighter leading-none">
               {(() => {
                 const totalInput = production.reduce((acc, curr) => acc + (parseFloat(curr.input) || 0), 0);
                 const totalProd = production.reduce((acc, curr) => {
@@ -1862,51 +1876,51 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
       </section>
 
       <div className="space-y-4">
-        <h3 className="text-2xl font-black text-primary uppercase flex items-center gap-3">
-          <History className="w-8 h-8" /> 최근 생산 일지
+        <h3 className="text-xl md:text-2xl font-black text-primary uppercase flex items-center gap-3">
+          <History className="w-6 h-6 md:w-8 md:h-8" /> 최근 생산 일지
         </h3>
 
-        <div className="flex flex-col md:flex-row gap-4 bg-white p-4 border-2 border-outline-variant rounded-2xl shadow-sm">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 bg-white p-3 md:p-4 border-2 border-outline-variant rounded-2xl shadow-sm">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-4 h-4 md:w-5 md:h-5" />
             <input 
               type="text" 
-              placeholder="품목명으로 검색..." 
+              placeholder="품목명 검색..." 
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
-              className="w-full pl-12 pr-4 h-12 rounded-xl bg-surface-container border-2 border-transparent focus:border-primary outline-none transition-all font-black text-on-surface"
+              className="w-full pl-10 md:pl-12 pr-4 h-10 md:h-12 rounded-xl bg-surface-container border-2 border-transparent focus:border-primary outline-none transition-all font-black text-sm md:text-base text-on-surface"
             />
           </div>
           <div className="flex-1 relative">
-            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-5 h-5" />
+            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-4 h-4 md:w-5 md:h-5" />
             <input 
               type="date" 
               value={searchDate}
               onChange={(e) => setSearchDate(e.target.value)}
-              className="w-full pl-12 pr-4 h-12 rounded-xl bg-surface-container border-2 border-transparent focus:border-primary outline-none transition-all font-black uppercase text-on-surface"
+              className="w-full pl-10 md:pl-12 pr-4 h-10 md:h-12 rounded-xl bg-surface-container border-2 border-transparent focus:border-primary outline-none transition-all font-black text-sm md:text-base uppercase text-on-surface"
             />
           </div>
           { (searchName || searchDate) && (
             <button 
               onClick={() => { setSearchName(''); setSearchDate(''); }}
-              className="px-6 h-12 rounded-xl bg-error/10 text-error font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all flex items-center gap-2"
+              className="px-6 h-10 md:h-12 rounded-xl bg-error/10 text-error font-black uppercase text-xs md:text-base tracking-widest hover:bg-error hover:text-white transition-all flex items-center justify-center gap-2"
             >
-              <X className="w-5 h-5" /> 필터 초기화
+              <X className="w-4 h-4 md:w-5 md:h-5" /> 필터 초기화
             </button>
           )}
         </div>
         <div className="overflow-hidden border-2 border-outline-variant rounded-2xl bg-white shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-surface-container border-b border-outline-variant text-base uppercase font-black text-outline">
+              <thead className="bg-surface-container border-b border-outline-variant text-[10px] md:text-base uppercase font-black text-outline">
                 <tr>
-                  <th className="p-4 whitespace-nowrap">SKU/라인</th>
-                  <th className="p-4 whitespace-nowrap">품목명</th>
-                  <th className="p-4 text-center whitespace-nowrap">투입량</th>
-                  <th className="p-4 text-center whitespace-nowrap text-primary">생산량</th>
-                  <th className="p-4 text-center whitespace-nowrap">수율</th>
-                  <th className="p-4 text-center whitespace-nowrap">Loss율</th>
-                  <th className="p-4 text-right whitespace-nowrap">관리</th>
+                  <th className="p-3 md:p-4 whitespace-nowrap">SKU/라인</th>
+                  <th className="p-3 md:p-4 whitespace-nowrap">품목명</th>
+                  <th className="p-3 md:p-4 text-center whitespace-nowrap">투입량</th>
+                  <th className="p-3 md:p-4 text-center whitespace-nowrap text-primary">생산량</th>
+                  <th className="p-3 md:p-4 text-center whitespace-nowrap">수율</th>
+                  <th className="p-3 md:p-4 text-center whitespace-nowrap">Loss율</th>
+                  <th className="p-3 md:p-4 text-right whitespace-nowrap">관리</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
@@ -1916,68 +1930,65 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                   
                   return (
                     <tr key={i} className="hover:bg-surface-container transition-colors group">
-                      <td className="p-4 whitespace-nowrap">
+                      <td className="p-3 md:p-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1">
-                          <span className="text-base font-mono text-outline font-black tracking-widest">{displaySku}</span>
-                          <span className="w-fit px-3 py-1 bg-primary/10 rounded-lg text-xs font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
+                          <span className="text-xs md:text-base font-mono text-outline font-black tracking-widest">{displaySku}</span>
+                          <span className="w-fit px-2 md:px-3 py-0.5 md:py-1 bg-primary/10 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
                         </div>
                       </td>
-                      <td className="p-4 whitespace-nowrap">
+                      <td className="p-3 md:p-4 whitespace-nowrap">
                         <div className="space-y-1">
-                          <p className="text-2xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
-                          <p className="text-xs font-bold text-outline-variant uppercase tracking-widest">{batch.rawMeat}</p>
+                          <p className="text-base md:text-2xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
+                          <p className="text-[9px] md:text-xs font-bold text-outline-variant uppercase tracking-widest">{batch.rawMeat}</p>
                         </div>
                       </td>
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <span className="text-xl font-black text-outline-variant tabular-nums">
+                    <td className="p-3 md:p-4 text-center whitespace-nowrap">
+                      <span className="text-sm md:text-xl font-black text-outline-variant tabular-nums">
                         {batch.input ? `${batch.input}kg` : '-'}
                       </span>
                     </td>
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <p className="text-2xl font-black text-primary tabular-nums">
+                    <td className="p-3 md:p-4 text-center whitespace-nowrap">
+                      <p className="text-lg md:text-2xl font-black text-primary tabular-nums">
                         {(batch.production || batch.weight || '0').toString().toLowerCase().includes('kg') ? (batch.production || batch.weight) : `${(batch.production || batch.weight)}kg`}
                       </p>
                     </td>
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <p className="text-2xl font-black text-emerald-600">
+                    <td className="p-3 md:p-4 text-center whitespace-nowrap">
+                      <p className="text-lg md:text-2xl font-black text-emerald-600">
                         {batch.yield || (100 - parseFloat(batch.loss || '0'))}%
                       </p>
                     </td>
-                    <td className="p-4 text-center whitespace-nowrap">
+                    <td className="p-3 md:p-4 text-center whitespace-nowrap">
                       <div className="flex flex-col items-center gap-1">
-                        <span className="text-2xl font-black text-error">{batch.loss || '0'}%</span>
-                        <div className="w-24 h-2 bg-error/10 rounded-full overflow-hidden">
+                        <span className="text-lg md:text-2xl font-black text-error">{batch.loss || '0'}%</span>
+                        <div className="w-12 md:w-24 h-1 md:h-2 bg-error/10 rounded-full overflow-hidden">
                           <div className="h-full bg-error" style={{ width: `${Math.min(parseFloat(batch.loss || '0') * 5, 100)}%` }} />
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-6">
+                    <td className="p-3 md:p-4 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-3 md:gap-6">
                         <div className="text-right space-y-0.5">
-                          <p className="text-xs font-black text-outline uppercase tracking-widest">
+                          <p className="text-[9px] md:text-xs font-black text-outline uppercase tracking-widest">
                             {batch.manufDate && `제조: ${batch.manufDate}`}
                           </p>
-                          <p className="text-xs font-black text-primary uppercase tracking-widest">
+                          <p className="text-[9px] md:text-xs font-black text-primary uppercase tracking-widest">
                             {batch.expiryDate && `소비: ${batch.expiryDate}`}
                           </p>
-                          <p className="text-[10px] font-bold text-outline-variant uppercase tracking-widest">
-                            등록: {batch.createdAt?.toDate().toLocaleDateString() || '오늘'}
-                          </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1.5 md:gap-2">
                           <button 
                             onClick={() => startEdit(batch)}
-                            className="p-3 bg-secondary/10 text-secondary rounded-xl hover:bg-secondary hover:text-white transition-all shadow-sm active:scale-90"
+                            className="p-2 md:p-3 bg-secondary/10 text-secondary rounded-xl hover:bg-secondary hover:text-white transition-all shadow-sm active:scale-90"
                             title="기록 수정"
                           >
-                            <Edit3 className="w-5 h-5" />
+                            <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
                           </button>
                           <button 
                             onClick={() => handleDeleteProduction(batch.id, batch.title, (batch.production || batch.weight))}
-                            className="p-3 bg-error/10 text-error rounded-xl hover:bg-error hover:text-white transition-all shadow-sm active:scale-90"
+                            className="p-2 md:p-3 bg-error/10 text-error rounded-xl hover:bg-error hover:text-white transition-all shadow-sm active:scale-90"
                             title="기록 삭제"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                           </button>
                         </div>
                       </div>
@@ -2175,37 +2186,37 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
 
   return (
     <div className="space-y-8 pb-12">
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 md:gap-6">
         <button 
           onClick={() => onNavigate?.('dashboard')}
-          className="p-5 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline shadow-sm active:scale-90"
+          className="p-3 md:p-5 bg-surface-container hover:bg-surface-container-high rounded-full transition-all text-outline shadow-sm active:scale-90"
         >
-          <ArrowLeft className="w-8 h-8" />
+          <ArrowLeft className="w-5 h-5 md:w-8 md:h-8" />
         </button>
-        <div className="space-y-2">
-          <h2 className="text-3xl font-black text-primary tracking-tighter uppercase leading-none">시스템 설정</h2>
-          <p className="text-1xl text-on-surface-variant font-black tracking-tight pt-1">관리자 데이터 및 환경 설정</p>
+        <div className="space-y-1 md:space-y-2">
+          <h2 className="text-2xl md:text-3xl font-black text-primary tracking-tighter uppercase leading-none">시스템 설정</h2>
+          <p className="text-xs md:text-1xl text-on-surface-variant font-black tracking-tight pt-1">환경 설정</p>
         </div>
       </div>
 
-      <div className="flex gap-3 p-2 bg-surface-container rounded-[24px] w-fit shadow-inner">
+      <div className="flex flex-wrap gap-2 md:gap-3 p-1.5 md:p-2 bg-surface-container rounded-2xl md:rounded-[24px] w-full md:w-fit shadow-inner">
         <button 
           onClick={() => setActiveTab('product')}
-          className={`px-10 py-4 rounded-2xl text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'product' ? 'bg-white shadow-xl text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
+          className={`flex-1 md:flex-none px-4 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl text-sm md:text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'product' ? 'bg-white shadow-lg text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
         >
-          상품 등록
+          상품
         </button>
         <button 
           onClick={() => setActiveTab('partner')}
-          className={`px-10 py-4 rounded-2xl text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'partner' ? 'bg-white shadow-xl text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
+          className={`flex-1 md:flex-none px-4 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl text-sm md:text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'partner' ? 'bg-white shadow-lg text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
         >
-          거래처 관리
+          거래처
         </button>
         <button 
           onClick={() => setActiveTab('admin')}
-          className={`px-10 py-4 rounded-2xl text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'admin' ? 'bg-white shadow-xl text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
+          className={`flex-1 md:flex-none px-4 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl text-sm md:text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'admin' ? 'bg-white shadow-lg text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
         >
-          관리자 설정
+          관리자
         </button>
       </div>
 
@@ -2213,117 +2224,116 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
         key={activeTab}
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
-        className="bg-white p-8 rounded-3xl border border-outline-variant shadow-sm"
+        className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border border-outline-variant shadow-sm"
       >
         {activeTab === 'product' && (
-          <form onSubmit={handleRegisterProduct} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <form onSubmit={handleRegisterProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
             <div className="md:col-span-2 text-center pb-2">
               <h3 className="text-sm font-black text-primary uppercase tracking-widest">신규 상품(Master) 등록</h3>
             </div>
-            {/* ... product form fields ... */}
-            <div className="space-y-2">
+            
+            <div className="space-y-1.5">
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">SKU 번호</label>
-              <input required value={product.sku} onChange={e => setProduct({...product, sku: e.target.value})} type="text" placeholder="예: SKU-BF-001" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+              <input required value={product.sku} onChange={e => setProduct({...product, sku: e.target.value})} type="text" placeholder="예: SKU-BF-001" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">품목명</label>
-              <input required value={product.name} onChange={e => setProduct({...product, name: e.target.value})} type="text" placeholder="예: 프리미엄 티본" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+              <input required value={product.name} onChange={e => setProduct({...product, name: e.target.value})} type="text" placeholder="예: 프리미엄 티본" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">카테고리</label>
-              <input required value={product.category} onChange={e => setProduct({...product, category: e.target.value})} type="text" placeholder="예: 소고기" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+              <input required value={product.category} onChange={e => setProduct({...product, category: e.target.value})} type="text" placeholder="예: 소고기" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">단위</label>
-              <input required value={product.unit} onChange={e => setProduct({...product, unit: e.target.value})} type="text" placeholder="예: kg" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+              <input required value={product.unit} onChange={e => setProduct({...product, unit: e.target.value})} type="text" placeholder="예: kg" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">현재 재고</label>
-              <input required value={product.currentStock} onChange={e => setProduct({...product, currentStock: e.target.value})} type="number" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+              <input required value={product.currentStock} onChange={e => setProduct({...product, currentStock: e.target.value})} type="number" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">안전 재고</label>
-              <input required value={product.safetyStock} onChange={e => setProduct({...product, safetyStock: e.target.value})} type="number" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+              <input required value={product.safetyStock} onChange={e => setProduct({...product, safetyStock: e.target.value})} type="number" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">매입 단가 (₩)</label>
-              <input required value={product.purchasePrice} onChange={e => setProduct({...product, purchasePrice: e.target.value})} type="number" placeholder="예: 25000" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+              <input required value={product.purchasePrice} onChange={e => setProduct({...product, purchasePrice: e.target.value})} type="number" placeholder="예: 25000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">판매 단가 (₩)</label>
-              <input required value={product.salesPrice} onChange={e => setProduct({...product, salesPrice: e.target.value})} type="number" placeholder="예: 38000" className="w-full h-14 px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-base transition-colors font-bold bg-white" />
+              <input required value={product.salesPrice} onChange={e => setProduct({...product, salesPrice: e.target.value})} type="number" placeholder="예: 38000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
 
-            <div className="md:col-span-2 grid grid-cols-2 gap-8 border-y border-outline-variant/30 py-6 my-2">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-emerald-600" /> 생산(제조) 일자
+            <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8 border-y border-outline-variant/30 py-4 md:py-6 my-2">
+              <div className="space-y-1.5">
+                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
+                  <CalendarDays className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" /> 생산 일자
                 </label>
-                <input value={product.manufactureDate} onChange={e => setProduct({...product, manufactureDate: e.target.value})} type="date" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-surface-container/30" />
+                <input value={product.manufactureDate} onChange={e => setProduct({...product, manufactureDate: e.target.value})} type="date" className="w-full h-11 md:h-14 px-3 md:px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-colors bg-surface-container/30" />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-error" /> 소비기한
+              <div className="space-y-1.5">
+                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-error" /> 소비기한
                 </label>
-                <input value={product.expiryDate} onChange={e => setProduct({...product, expiryDate: e.target.value})} type="date" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-colors bg-surface-container/30" />
+                <input value={product.expiryDate} onChange={e => setProduct({...product, expiryDate: e.target.value})} type="date" className="w-full h-11 md:h-14 px-3 md:px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-colors bg-surface-container/30" />
               </div>
             </div>
 
-            <div className="md:col-span-2 grid grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-primary uppercase tracking-widest px-1">보관 주요 위치</label>
-                <input value={product.location} onChange={e => setProduct({...product, location: e.target.value})} type="text" placeholder="예: A창고 1구역" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-all" />
+            <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8">
+              <div className="space-y-1.5">
+                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">보관 위치</label>
+                <input value={product.location} onChange={e => setProduct({...product, location: e.target.value})} type="text" placeholder="예: A구역" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-all" />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-primary uppercase tracking-widest px-1">상세 선반/칸</label>
-                <input type="text" placeholder="예: 3단 4번 칸" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base transition-all" />
+              <div className="space-y-1.5">
+                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">상세 위치</label>
+                <input type="text" placeholder="예: 3단 4번" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-all" />
               </div>
             </div>
 
-            <div className="md:col-span-2 pt-8">
-              <button disabled={loading} type="submit" className="w-full h-16 bg-primary text-white rounded-2xl font-black text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
-                {loading ? '시스템 처리 중...' : '상품 시스템 등록'}
+            <div className="md:col-span-2 pt-4 md:pt-8">
+              <button disabled={loading} type="submit" className="w-full h-14 md:h-16 bg-primary text-white rounded-2xl font-black text-base md:text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
+                {loading ? '처리 중...' : '상품 시스템 등록'}
               </button>
             </div>
           </form>
         )}
 
         {activeTab === 'partner' && (
-          <div className="space-y-12">
-            <form onSubmit={handlePartnerSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-surface-container/20 p-6 rounded-2xl border border-outline-variant/30 relative">
+          <div className="space-y-6 md:space-y-12">
+            <form onSubmit={handlePartnerSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 bg-surface-container/20 p-3 md:p-6 rounded-xl md:rounded-2xl border border-outline-variant/30 relative">
               {editingPartner && (
-                <div className="absolute top-4 right-4 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
-                  <Edit3 className="w-3 h-3" /> 수정 중
+                <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-primary/10 text-primary px-2.5 md:px-4 py-1.5 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
+                  <Edit3 className="w-2.5 h-2.5 md:w-3 md:h-3" /> 수정 중
                 </div>
               )}
-              {/* ... partner form ... */}
               <div className="md:col-span-2">
-                <h3 className="text-base font-black text-primary uppercase tracking-widest mb-4 text-center">
+                <h3 className="text-xs md:text-base font-black text-primary uppercase tracking-widest mb-1 md:mb-4 text-center">
                   {editingPartner ? '거래처 정보 수정' : '신규 거래처 등록'}
                 </h3>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-black text-primary uppercase tracking-widest px-1">거래처명</label>
-                <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-lg transition-colors font-bold bg-white" />
+              <div className="space-y-1 md:space-y-2">
+                <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">거래처명</label>
+                <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-10 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg transition-colors font-bold bg-white" />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-black text-primary uppercase tracking-widest px-1">유형</label>
-                <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-lg transition-colors appearance-none bg-white font-bold">
+              <div className="space-y-1 md:space-y-2">
+                <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">유형</label>
+                <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-10 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg transition-colors bg-white font-bold">
                   <option value="공급사">공급사</option>
                   <option value="고객사">고객사</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-black text-primary uppercase tracking-widest px-1">연락처</label>
-                <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-lg transition-colors bg-white font-bold" />
+              <div className="space-y-1 md:space-y-2">
+                <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">연락처</label>
+                <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-10 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg transition-colors bg-white font-bold" />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-black text-primary uppercase tracking-widest px-1">주소</label>
-                <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-lg transition-colors bg-white font-bold" />
+              <div className="space-y-1 md:space-y-2">
+                <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">주소</label>
+                <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-10 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg transition-colors bg-white font-bold" />
               </div>
-              <div className="md:col-span-2 flex gap-4 pt-4">
-                <button disabled={loading} type="submit" className="flex-1 h-16 bg-secondary text-white rounded-2xl font-black text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
-                  {loading ? '시스템 처리 중...' : editingPartner ? '수정 완료' : '거래처 등록 완료'}
+              <div className="md:col-span-2 flex flex-col md:flex-row gap-2 md:gap-4 pt-1 md:pt-4">
+                <button disabled={loading} type="submit" className="h-11 md:h-16 bg-secondary text-white rounded-xl md:rounded-2xl font-black text-sm md:text-lg uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
+                  {loading ? '처리 중...' : editingPartner ? '수정 완료' : '등록 완료'}
                 </button>
                 {editingPartner && (
                   <button 
@@ -2332,7 +2342,7 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                       setEditingPartner(null);
                       setPartner({ name: '', contact: '', address: '', type: '공급사' });
                     }}
-                    className="h-16 px-8 bg-surface-container text-outline rounded-2xl font-black text-lg uppercase tracking-widest hover:bg-surface-container-high transition-all"
+                    className="h-12 md:h-16 px-8 bg-surface-container text-outline rounded-2xl font-black text-base md:text-lg uppercase tracking-widest hover:bg-surface-container-high transition-all"
                   >
                     취소
                   </button>
@@ -2342,35 +2352,35 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
 
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h3 className="text-xl font-black text-primary uppercase tracking-tight flex items-center gap-2">
-                  <Users className="w-5 h-5" /> 등록된 거래처 목록
+                <h3 className="text-lg md:text-xl font-black text-primary uppercase tracking-tight flex items-center gap-2">
+                  <Users className="w-5 h-5 md:w-6 md:h-6" /> 거래처 목록
                 </h3>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3">
                   {selectedIds.length > 0 && (
                     <button 
                       onClick={() => handleDeletePartners(selectedIds)}
-                      className="h-10 px-4 bg-error text-white rounded-xl text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-sm"
+                      className="h-10 px-4 bg-error text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-sm"
                     >
                       <Trash2 className="w-4 h-4" />
-                      선택 삭제 ({selectedIds.length})
+                      삭제 ({selectedIds.length})
                     </button>
                   )}
-                  <div className="relative w-full md:w-64">
+                  <div className="relative flex-1 md:w-64 min-w-[150px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-outline w-4 h-4" />
                     <input 
                       type="text" 
                       placeholder="거래처명 검색..." 
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-xl focus:border-primary outline-none text-base font-medium"
+                      className="w-full h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-xl focus:border-primary outline-none text-sm md:text-base font-medium"
                     />
                   </div>
                   <button 
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="h-12 px-5 bg-primary/10 text-primary border border-primary/20 rounded-xl text-base font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center gap-2 whitespace-nowrap"
+                    className="h-10 md:h-12 px-4 md:px-5 bg-primary/10 text-primary border border-primary/20 rounded-xl text-xs md:text-base font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center gap-2"
                   >
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    {isExpanded ? '접기' : '펼쳐서 보기'}
+                    <span className="hidden sm:inline">{isExpanded ? '접기' : '펼치기'}</span>
                   </button>
                 </div>
               </div>
@@ -2381,46 +2391,49 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                 className="overflow-hidden border border-outline-variant rounded-2xl bg-white shadow-sm"
               >
                 <div className={`overflow-x-auto ${isExpanded ? '' : 'max-h-[400px] overflow-y-auto custom-scrollbar'}`}>
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-surface-container-low border-b border-outline-variant text-base uppercase font-black text-outline sticky top-0 z-10">
+                  <table className="w-full text-left border-collapse min-w-[600px]">
+                    <thead className="bg-surface-container-low border-b border-outline-variant text-[10px] md:text-base uppercase font-black text-outline sticky top-0 z-10">
                       <tr>
-                        <th className="p-4 bg-surface-container-low w-12">
+                        <th className="p-3 md:p-4 bg-surface-container-low w-10 md:w-12 text-center">
                           <input 
                             type="checkbox" 
                             checked={filteredPartners.length > 0 && selectedIds.length === filteredPartners.length}
                             onChange={toggleSelectAll}
-                            className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
+                            className="w-4 h-4 md:w-5 md:h-5 rounded border-outline-variant text-primary focus:ring-primary"
                           />
                         </th>
-                        <th className="p-4 bg-surface-container-low">거래처명</th>
-                        <th className="p-4 bg-surface-container-low">유형</th>
-                        <th className="p-4 bg-surface-container-low">연락처</th>
-                        <th className="p-4 bg-surface-container-low">주소</th>
-                        <th className="p-4 text-right bg-surface-container-low">기능</th>
+                        <th className="p-3 md:p-4 bg-surface-container-low">거래처명</th>
+                        <th className="p-3 md:p-4 bg-surface-container-low">유형</th>
+                        <th className="p-3 md:p-4 bg-surface-container-low text-center">연락처</th>
+                        <th className="p-3 md:p-4 text-right bg-surface-container-low pr-6">기능</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/10">
                       {filteredPartners.length > 0 ? (
                         filteredPartners.map((p, i) => (
                           <tr key={i} className={`transition-colors group ${selectedIds.includes(p.id) ? 'bg-primary/5' : 'hover:bg-surface-container'}`}>
-                            <td className="p-4">
+                            <td className="p-3 md:p-4 text-center">
                               <input 
                                 type="checkbox" 
                                 checked={selectedIds.includes(p.id)}
                                 onChange={() => toggleSelect(p.id)}
-                                className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
+                                className="w-4 h-4 md:w-5 md:h-5 rounded border-outline-variant text-primary focus:ring-primary"
                               />
                             </td>
-                            <td className="p-4 font-bold text-on-surface text-lg">{p.name}</td>
-                            <td className="p-4">
-                              <span className={`px-2 py-1 rounded text-sm font-black uppercase ${p.type === '공급사' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                            <td className="p-3 md:p-4">
+                              <div className="flex flex-col">
+                                <span className="font-black text-on-surface text-base md:text-lg tracking-tight leading-tight">{p.name}</span>
+                                <span className="text-[10px] md:hidden text-outline-variant font-bold truncate max-w-[120px]">{p.address}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 md:p-4">
+                              <span className={`px-2 py-0.5 md:py-1 rounded text-[9px] md:text-sm font-black uppercase ${p.type === '공급사' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>
                                 {p.type}
                               </span>
                             </td>
-                            <td className="p-4 text-base text-on-surface-variant font-medium">{p.contact || '-'}</td>
-                            <td className="p-4 text-base text-on-surface-variant font-medium max-w-xs truncate">{p.address || '-'}</td>
-                            <td className="p-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                            <td className="p-3 md:p-4 text-xs md:text-base text-on-surface-variant font-medium text-center">{p.contact || '-'}</td>
+                            <td className="p-3 md:p-4 text-right pr-6">
+                              <div className="flex items-center justify-end gap-1.5 md:gap-2">
                                 <button 
                                   onClick={() => startEditPartner(p)}
                                   className="p-2 text-outline hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
@@ -2441,7 +2454,7 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={6} className="p-8 text-center text-outline font-bold">등록된 거래처가 없거나 검색 결과가 없습니다.</td>
+                          <td colSpan={5} className="p-8 text-center text-outline font-bold">등록된 거래처가 없습니다.</td>
                         </tr>
                       )}
                     </tbody>
@@ -2454,32 +2467,32 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
 
         {/* --- Admin Tab Interface --- */}
         {activeTab === 'admin' && (
-          <div className="space-y-12">
-            <form onSubmit={handleAdminRegister} className="bg-surface-container/20 p-8 rounded-3xl border border-outline-variant/30 space-y-6">
-              <div className="text-center space-y-2">
-                <Lock className="w-10 h-10 text-primary mx-auto mb-2" />
-                <h3 className="text-2xl font-black text-primary uppercase tracking-tight">관리자 계정 등록</h3>
-                <p className="text-sm text-outline font-bold uppercase tracking-widest">구글 이메일을 등록하여 관리자 권한을 부여합니다.</p>
+          <div className="space-y-6 md:space-y-12">
+            <form onSubmit={handleAdminRegister} className="bg-surface-container/20 p-4 md:p-8 rounded-2xl md:rounded-3xl border border-outline-variant/30 space-y-4 md:space-y-6">
+              <div className="text-center space-y-1 md:space-y-2">
+                <Lock className="w-6 h-6 md:w-10 md:h-10 text-primary mx-auto mb-1 md:mb-2" />
+                <h3 className="text-lg md:text-2xl font-black text-primary uppercase tracking-tight">관리자 등록</h3>
+                <p className="text-[9px] md:text-sm text-outline font-bold uppercase tracking-widest">구글 이메일을 등록하여 관리 권한을 부여합니다.</p>
               </div>
 
-              <div className="max-w-2xl mx-auto space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-black text-primary uppercase tracking-widest px-1">등록할 구글 이메일</label>
-                  <div className="flex flex-col sm:flex-row gap-4">
+              <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
+                <div className="space-y-1 md:space-y-2">
+                  <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">등록할 구글 이메일</label>
+                  <div className="flex flex-col md:flex-row gap-2 md:gap-4">
                     <input 
                       required 
                       type="email" 
                       value={adminEmailInput}
                       onChange={(e) => setAdminEmailInput(e.target.value)}
                       placeholder="example@gmail.com"
-                      className="flex-1 h-14 px-6 rounded-2xl border border-outline-variant focus:border-primary outline-none text-lg font-bold shadow-inner"
+                      className="flex-1 h-11 md:h-14 px-4 md:px-6 rounded-xl md:rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg font-bold shadow-inner"
                     />
                     <button 
                       disabled={loading}
                       type="submit"
-                      className="h-14 px-10 bg-primary text-white rounded-2xl font-black text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="h-11 md:h-14 px-6 md:px-10 bg-primary text-white rounded-xl md:rounded-2xl font-black text-sm md:text-lg uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      {loading ? '등록 중...' : <><Plus className="w-5 h-5" /> 등록</>}
+                      {loading ? '기록...' : <><Plus className="w-4 h-4 md:w-5 md:h-5" /> 등록</>}
                     </button>
                   </div>
                 </div>
@@ -2487,43 +2500,43 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
             </form>
 
             <div className="space-y-6">
-              <h3 className="text-xl font-black text-primary uppercase tracking-tight flex items-center gap-2">
-                <Verified className="w-6 h-6" /> 현재 관리자 목록
+              <h3 className="text-lg md:text-xl font-black text-primary uppercase tracking-tight flex items-center gap-2">
+                <Verified className="w-5 h-5 md:w-6 md:h-6" /> 현재 관리자 목록
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Default Master Admin from system instructions */}
-                <div className="p-6 bg-primary/5 border-2 border-primary/20 rounded-[28px] flex items-center justify-between group shadow-sm transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
-                      <Lock className="w-6 h-6" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                {/* Default Master Admin */}
+                <div className="p-4 md:p-6 bg-primary/5 border-2 border-primary/20 rounded-2xl md:rounded-[28px] flex items-center justify-between group shadow-sm transition-all">
+                  <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
+                      <Lock className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
-                    <div>
-                      <p className="font-black text-lg text-primary tracking-tight">crucify87@gmail.com</p>
-                      <p className="text-[10px] font-black text-outline uppercase tracking-widest">Master Administrator (System)</p>
+                    <div className="overflow-hidden">
+                      <p className="font-black text-sm md:text-lg text-primary tracking-tight truncate">crucify87@gmail.com</p>
+                      <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest truncate">Master Admin (System)</p>
                     </div>
                   </div>
-                  <span className="px-3 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase tracking-widest">Master</span>
+                  <span className="shrink-0 px-2 md:px-3 py-1 bg-primary text-white rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-widest ml-2">Master</span>
                 </div>
 
                 {/* Dynamic Admin List */}
                 {adminEmails.map((admin, idx) => (
-                  <div key={idx} className="p-6 bg-white border-2 border-outline-variant/30 rounded-[28px] flex items-center justify-between group hover:border-primary/30 shadow-sm transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-surface-container text-outline rounded-xl flex items-center justify-center group-hover:text-primary transition-colors">
-                        <UserIcon className="w-6 h-6" />
+                  <div key={idx} className="p-4 md:p-6 bg-white border-2 border-outline-variant/30 rounded-2xl md:rounded-[28px] flex items-center justify-between group hover:border-primary/30 shadow-sm transition-all">
+                    <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-surface-container text-outline rounded-xl flex items-center justify-center shrink-0 group-hover:text-primary transition-colors">
+                        <UserIcon className="w-5 h-5 md:w-6 md:h-6" />
                       </div>
-                      <div>
-                        <p className="font-black text-lg text-on-surface tracking-tight truncate max-w-[180px] lg:max-w-none">{admin.email}</p>
-                        <p className="text-[10px] font-black text-outline uppercase tracking-widest">Registered Admin</p>
+                      <div className="overflow-hidden">
+                        <p className="font-black text-sm md:text-lg text-on-surface tracking-tight truncate">{admin.email}</p>
+                        <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest">Registered Admin</p>
                       </div>
                     </div>
                     <button 
                       onClick={() => handleAdminDelete(admin.email)}
                       disabled={loading}
-                      className="w-10 h-10 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all border border-transparent hover:border-error/20"
+                      className="shrink-0 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all border border-transparent hover:border-error/20 ml-2"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
                   </div>
                 ))}
