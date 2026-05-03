@@ -14,6 +14,7 @@ import {
   Bell, 
   Settings, 
   Plus, 
+  Minus,
   FileText, 
   Download, 
   CalendarDays, 
@@ -181,13 +182,15 @@ const DashboardView = ({
   inventory, 
   production, 
   logistics,
-  partners
+  partners,
+  onQuickAdjust
 }: { 
   onNavigate: (view: ViewType, item?: any) => void,
   inventory: any[],
   production: any[],
   logistics: any[],
-  partners: any[]
+  partners: any[],
+  onQuickAdjust?: (item: any, amount: number) => void
 }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -197,21 +200,29 @@ const DashboardView = ({
     const today = new Date().toISOString().split('T')[0];
     
     // Calculate based on timeFilter
-    const filteredLogs = logistics.filter(l => {
-      const logDate = l.date || l.createdAt?.toDate().toISOString().split('T')[0];
-      if (!logDate) return false;
-      
+    const filterByDate = (dateStr: string) => {
+      if (!dateStr) return false;
       if (timeFilter === '일간') {
-        return logDate === selectedDate;
+        return dateStr === selectedDate;
       } else if (timeFilter === '주간') {
         const d = new Date(selectedDate);
         const start = new Date(d.setDate(d.getDate() - 7)).toISOString().split('T')[0];
-        return logDate >= start && logDate <= selectedDate;
+        return dateStr >= start && dateStr <= selectedDate;
       } else {
         const d = new Date(selectedDate);
         const start = new Date(d.setMonth(d.getMonth() - 1)).toISOString().split('T')[0];
-        return logDate >= start && logDate <= selectedDate;
+        return dateStr >= start && dateStr <= selectedDate;
       }
+    };
+
+    const filteredLogs = logistics.filter(l => {
+      const logDate = l.date || l.createdAt?.toDate().toISOString().split('T')[0];
+      return filterByDate(logDate || '');
+    });
+
+    const filteredProds = production.filter(p => {
+      const prodDate = p.manufDate || p.createdAt?.toDate().toISOString().split('T')[0];
+      return filterByDate(prodDate || '');
     });
 
     const inWeight = filteredLogs
@@ -222,12 +233,19 @@ const DashboardView = ({
       .filter(l => l.type === '출고')
       .reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
 
+    const prodWeight = filteredProds
+      .reduce((acc, curr) => {
+        const val = parseFloat((curr.production || curr.weight || '0').toString().replace(/[^0-9.]/g, '')) || 0;
+        return acc + val;
+      }, 0);
+
     const totalInStock = inventory.reduce((acc, curr) => acc + (Number(curr.currentStock) || 0), 0);
 
     return [
       { label: `현재 총 재고`, value: totalInStock.toLocaleString(), unit: 'kg', icon: Package, color: 'text-primary' },
       { label: `${timeFilter} 입고`, value: inWeight.toLocaleString(), unit: 'kg', icon: ArrowDownToLine, color: 'text-emerald-600' },
       { label: `${timeFilter} 출고`, value: outWeight.toLocaleString(), unit: 'kg', icon: ArrowUpFromLine, color: 'text-error' },
+      { label: `${timeFilter} 생산`, value: prodWeight.toLocaleString(), unit: 'kg', icon: Factory, color: 'text-secondary' },
     ];
   }, [logistics, production, inventory, timeFilter, selectedDate]);
 
@@ -321,7 +339,7 @@ const DashboardView = ({
       </section>
 
       {/* Stats Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((s, i) => (
           <div key={i} className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
@@ -378,6 +396,28 @@ const DashboardView = ({
                         <p className={`text-2xl md:text-3xl font-black tabular-nums ${isAlert ? 'text-error' : 'text-primary'}`}>
                           {item.currentStock}<span className="text-xs md:text-sm ml-0.5 font-bold uppercase">{item.unit}</span>
                         </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onQuickAdjust?.(item, -10);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all active:scale-95 z-20"
+                          title="-10kg 조정"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onQuickAdjust?.(item, 10);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-95 z-20"
+                          title="+10kg 조정"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
                       </div>
                       {isAlert && <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-error absolute top-4 right-4 animate-pulse" />}
                     </div>
@@ -480,7 +520,7 @@ const DashboardView = ({
   );
 };
 
-const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false }: { onNavigate: (view: ViewType, item?: any) => void, inventory: any[], logistics: any[], isAuthorized?: boolean }) => {
+const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false, onQuickAdjust }: { onNavigate: (view: ViewType, item?: any) => void, inventory: any[], logistics: any[], isAuthorized?: boolean, onQuickAdjust?: (item: any, amount: number) => void }) => {
   const [timeFilter, setTimeFilter] = useState('주간');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -631,11 +671,35 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
                     </span>
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <div className="flex items-baseline justify-end gap-1">
-                      <p className={`font-black text-xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
-                        {item.currentStock?.toLocaleString()}
-                      </p>
-                      <span className="text-[10px] md:text-sm font-black text-outline uppercase">{item.unit}</span>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex items-baseline justify-end gap-1">
+                        <p className={`font-black text-xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
+                          {item.currentStock?.toLocaleString()}
+                        </p>
+                        <span className="text-[10px] md:text-sm font-black text-outline uppercase">{item.unit}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onQuickAdjust?.(item, -10);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all active:scale-95"
+                          title="-10kg"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onQuickAdjust?.(item, 10);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-95"
+                          title="+10kg"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-center">
@@ -1193,6 +1257,7 @@ const LogisticsView = ({
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [originalRecord, setOriginalRecord] = useState<any | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -1224,14 +1289,63 @@ const LogisticsView = ({
         updatedAt: serverTimestamp(),
       };
 
-      if (editingId) {
-        // To handle update correctly, we'd need the old record to calculate the diff.
-        // For simplicity and to avoid complex diff logic on direct field edits, 
-        // we'll assume the user might manually adjust inventory if they edit a historical record.
-        // Or we could fetch the old record first.
+      if (editingId && originalRecord) {
+        // Calculate diff for inventory sync
+        const oldWeight = Number(originalRecord.weight);
+        const newWeight = weightNum;
+        const oldType = originalRecord.type;
+        const newType = formData.type;
+        const oldItem = originalRecord.item;
+        const newItem = formData.item;
+
         const ref = doc(db, 'logistics', editingId);
         await setDoc(ref, dataToSave, { merge: true });
-        alert('물류 기록이 수정되었습니다. 재고 자동 조정은 신규 등록 및 삭제시에만 지원됩니다.');
+
+        // Handle inventory sync for update
+        // If item changed, undo old and apply new. If same item, calculate diff.
+        if (oldItem === newItem) {
+          const invItem = inventory.find(i => i.name === newItem);
+          if (invItem) {
+            const invRef = doc(db, 'inventory', invItem.id);
+            // Old change was: oldType === '입고' ? oldWeight : -oldWeight
+            // New change is: newType === '입고' ? newWeight : -newWeight
+            // Diff = newChange - oldChange
+            const oldChange = oldType === '입고' ? oldWeight : -oldWeight;
+            const newChange = newType === '입고' ? newWeight : -newWeight;
+            const diff = newChange - oldChange;
+            
+            if (diff !== 0) {
+              await updateDoc(invRef, {
+                currentStock: increment(diff),
+                updatedAt: serverTimestamp()
+              });
+            }
+          }
+        } else {
+          // Item changed
+          // 1. Undo old item stock
+          const oldInvItem = inventory.find(i => i.name === oldItem);
+          if (oldInvItem) {
+            const oldInvRef = doc(db, 'inventory', oldInvItem.id);
+            const undoChange = oldType === '입고' ? -oldWeight : oldWeight;
+            await updateDoc(oldInvRef, {
+              currentStock: increment(undoChange),
+              updatedAt: serverTimestamp()
+            });
+          }
+          // 2. Apply new item stock
+          const newInvItem = inventory.find(i => i.name === newItem);
+          if (newInvItem) {
+            const newInvRef = doc(db, 'inventory', newInvItem.id);
+            const applyChange = newType === '입고' ? newWeight : -newWeight;
+            await updateDoc(newInvRef, {
+              currentStock: increment(applyChange),
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+
+        alert('물류 기록이 수정되었으며 재고가 자동으로 조정되었습니다.');
       } else {
         const ref = collection(db, 'logistics');
         await addDoc(ref, {
@@ -1263,6 +1377,7 @@ const LogisticsView = ({
 
   const resetForm = () => {
     setEditingId(null);
+    setOriginalRecord(null);
     setFormData({
       date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
@@ -1304,6 +1419,7 @@ const LogisticsView = ({
 
   const startEdit = (record: any) => {
     setEditingId(record.id);
+    setOriginalRecord(record);
     setFormData({
       date: record.date || record.createdAt?.toDate().toISOString().split('T')[0] || '',
       time: record.time || '',
@@ -1618,6 +1734,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
   const [searchName, setSearchName] = useState('');
   const [searchDate, setSearchDate] = useState('');
   const [originalProduction, setOriginalProduction] = useState<number | null>(null);
+  const [originalProductionItem, setOriginalProductionItem] = useState<string | null>(null);
 
   const filteredProduction = useMemo(() => {
     return production.filter(batch => {
@@ -1659,6 +1776,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
     setProductionLine(batch.productionLine);
     const prodVal = parseFloat((batch.production || batch.weight || '0').toString().replace(/[^0-9.]/g, '')) || 0;
     setOriginalProduction(prodVal);
+    setOriginalProductionItem(batch.title);
     setItems([{
       title: batch.title || '',
       rawMeat: batch.rawMeat || '',
@@ -1675,6 +1793,8 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
 
   const cancelEdit = () => {
     setEditingId(null);
+    setOriginalProduction(null);
+    setOriginalProductionItem(null);
     setItems([{ title: '', rawMeat: '', input: '', production: '', yield: '', loss: '', manufDate: '', expiryDate: '' }]);
     setShowForm(false);
   };
@@ -1724,7 +1844,8 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
         const ref = doc(db, 'production_batches', editingId);
         const item = items[0];
         const newProd = parseFloat(item.production.toString().replace(/[^0-9.]/g, '')) || 0;
-        const prodDiff = newProd - (originalProduction || 0);
+        const oldProd = originalProduction || 0;
+        const prodDiff = newProd - oldProd;
 
         // Map production to weight for inventory compatibility if needed, but best to save both
         await setDoc(ref, {
@@ -1734,13 +1855,36 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
           updatedAt: serverTimestamp(),
         }, { merge: true });
 
-        // Update inventory if production quantity changed
-        if (prodDiff !== 0) {
-          const existingInvItem = inventory.find(i => i.name === item.title);
-          if (existingInvItem) {
-            const invDocRef = doc(db, 'inventory', existingInvItem.id);
-            await updateDoc(invDocRef, {
-              currentStock: increment(prodDiff),
+        // Update inventory logic
+        const oldItem = originalProductionItem || item.title;
+        const newItem = item.title;
+
+        if (oldItem === newItem) {
+          if (prodDiff !== 0) {
+            const existingInvItem = inventory.find(i => i.name === newItem);
+            if (existingInvItem) {
+              const invDocRef = doc(db, 'inventory', existingInvItem.id);
+              await updateDoc(invDocRef, {
+                currentStock: increment(prodDiff),
+                updatedAt: serverTimestamp()
+              });
+            }
+          }
+        } else {
+          // Item name changed: Undo old item, apply new item
+          const oldInvItem = inventory.find(i => i.name === oldItem);
+          if (oldInvItem) {
+            const oldInvRef = doc(db, 'inventory', oldInvItem.id);
+            await updateDoc(oldInvRef, {
+              currentStock: increment(-oldProd),
+              updatedAt: serverTimestamp()
+            });
+          }
+          const newInvItem = inventory.find(i => i.name === newItem);
+          if (newInvItem) {
+            const newInvRef = doc(db, 'inventory', newInvItem.id);
+            await updateDoc(newInvRef, {
+              currentStock: increment(newProd),
               updatedAt: serverTimestamp()
             });
           }
@@ -2850,6 +2994,33 @@ export default function App() {
     }
   };
 
+  const handleQuickAdjust = async (item: any, amount: number) => {
+    try {
+      const docRef = doc(db, 'inventory', item.id);
+      await updateDoc(docRef, {
+        currentStock: increment(amount),
+        updatedAt: serverTimestamp()
+      });
+
+      // Record adjustment log
+      const logRef = collection(db, 'logistics');
+      await addDoc(logRef, {
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        type: amount > 0 ? '입고' : '출고',
+        item: item.name,
+        partner: '시스템 조정 (Quick)',
+        weight: Math.abs(amount),
+        freightType: '해당없음',
+        status: '완료',
+        createdAt: serverTimestamp(),
+        color: amount > 0 ? 'bg-emerald-500' : 'bg-error'
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'inventory');
+    }
+  };
+
   const navItems = [
     { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
     { id: 'inventory', label: '재고관리', icon: Package },
@@ -2982,8 +3153,8 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                {currentView === 'dashboard' && <DashboardView onNavigate={handleNavigate} inventory={inventory} production={production} logistics={logistics} partners={partners} />}
-                {currentView === 'inventory' && <InventoryView onNavigate={handleNavigate} inventory={inventory} logistics={logistics} isAuthorized={isAuthorized} />}
+                {currentView === 'dashboard' && <DashboardView onNavigate={handleNavigate} inventory={inventory} production={production} logistics={logistics} partners={partners} onQuickAdjust={handleQuickAdjust} />}
+                {currentView === 'inventory' && <InventoryView onNavigate={handleNavigate} inventory={inventory} logistics={logistics} isAuthorized={isAuthorized} onQuickAdjust={handleQuickAdjust} />}
                 {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} logistics={logistics} isAuthorized={isAuthorized} />}
                 {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} />}
                 {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} />}
