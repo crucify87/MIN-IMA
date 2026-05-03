@@ -222,12 +222,40 @@ const DashboardView = ({
       .filter(l => l.type === '출고')
       .reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
 
+    const totalInStock = inventory.reduce((acc, curr) => acc + (Number(curr.currentStock) || 0), 0);
+
     return [
-      { label: `${timeFilter} 입고`, value: inWeight.toLocaleString(), unit: 'kg', icon: ArrowDownToLine },
-      { label: `${timeFilter} 출고`, value: outWeight.toLocaleString(), unit: 'kg', icon: ArrowUpFromLine },
-      { label: '생산 관리', value: production.length.toString(), unit: '건', icon: Factory },
+      { label: `현재 총 재고`, value: totalInStock.toLocaleString(), unit: 'kg', icon: Package, color: 'text-primary' },
+      { label: `${timeFilter} 입고`, value: inWeight.toLocaleString(), unit: 'kg', icon: ArrowDownToLine, color: 'text-emerald-600' },
+      { label: `${timeFilter} 출고`, value: outWeight.toLocaleString(), unit: 'kg', icon: ArrowUpFromLine, color: 'text-error' },
     ];
-  }, [logistics, production, timeFilter, selectedDate]);
+  }, [logistics, production, inventory, timeFilter, selectedDate]);
+
+  const combinedActivity = useMemo(() => {
+    const logs = logistics.map(l => ({
+      ...l,
+      activityType: 'logistics',
+      timestamp: l.createdAt?.toDate().getTime() || new Date(`${l.date}T${l.time}`).getTime() || 0,
+      displayTitle: l.item || l.title,
+      amount: Number(l.weight) || 0,
+      changeType: l.type === '입고' ? 'plus' : 'minus',
+      label: l.type
+    }));
+
+    const prods = production.map(p => ({
+      ...p,
+      activityType: 'production',
+      timestamp: p.createdAt?.toDate().getTime() || new Date(p.manufDate).getTime() || 0,
+      displayTitle: p.title,
+      amount: parseFloat((p.production || p.weight || '0').toString().replace(/[^0-9.]/g, '')) || 0,
+      changeType: 'plus',
+      label: '생산'
+    }));
+
+    return [...logs, ...prods]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10);
+  }, [logistics, production]);
 
   const filteredInventory = inventory.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -241,7 +269,7 @@ const DashboardView = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1">
             <h2 className="text-4xl font-black text-primary tracking-tighter">대시보드</h2>
-            <p className="text-sm font-black text-outline uppercase tracking-widest">{selectedDate} 실시간 현황</p>
+            <p className="text-sm font-black text-outline uppercase tracking-widest">{selectedDate} 실시간 재고 통합 현황</p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -294,15 +322,25 @@ const DashboardView = ({
 
       {/* Stats Grid */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-        {stats.map((s, i) => <StatCard key={i} item={s} />)}
+        {stats.map((s, i) => (
+          <div key={i} className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
+            <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{s.label}</p>
+            <div className="flex items-baseline gap-1">
+              <p className={`text-3xl md:text-6xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
+                {s.value}
+              </p>
+              <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">{s.unit}</span>
+            </div>
+          </div>
+        ))}
       </section>
 
       {/* Horizontal Inventory List */}
       <section className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <div className="space-y-1">
-            
-            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">재고 현황 리스트</p>
+            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">마감 재고 현황 (Inventory)</p>
           </div>
           <button 
             onClick={() => onNavigate('inventory')}
@@ -336,7 +374,7 @@ const DashboardView = ({
                     </div>
                     <div className="flex justify-between items-end border-t border-outline-variant/10 pt-3">
                       <div>
-                        <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-1">실재고 수량</p>
+                        <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-1">실시간 재고</p>
                         <p className={`text-2xl md:text-3xl font-black tabular-nums ${isAlert ? 'text-error' : 'text-primary'}`}>
                           {item.currentStock}<span className="text-xs md:text-sm ml-0.5 font-bold uppercase">{item.unit}</span>
                         </p>
@@ -351,71 +389,88 @@ const DashboardView = ({
         </div>
       </section>
 
-      {/* Production Logs Section */}
+      {/* Integrated Activity Feed Section */}
       <section className="space-y-6">
         <div className="flex justify-between items-center group">
           <div className="space-y-1">
-         
-            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">최근 생산 활동</p>
+            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">최근 재고 변동 활동 (Logistics & Production)</p>
           </div>
-          <button 
-            onClick={() => onNavigate('production')}
-            className="text-primary font-black text-[10px] md:text-sm uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
-          >
-            기록 더보기
-          </button>
+          <div className="flex gap-4">
+            <button 
+              onClick={() => onNavigate('production')}
+              className="text-primary font-black text-[10px] md:text-xs uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
+            >
+              생산기록
+            </button>
+            <button 
+              onClick={() => onNavigate('logistics')}
+              className="text-primary font-black text-[10px] md:text-xs uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
+            >
+              물류기록
+            </button>
+          </div>
         </div>
         
         <div className="overflow-hidden border-2 border-outline-variant/20 rounded-3xl md:rounded-[40px] bg-white shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-surface-container/30 border-b border-outline-variant/30 text-[10px] md:text-[15px] uppercase font-black text-outline tracking-[0.2em]">
+              <thead className="bg-surface-container/30 border-b border-outline-variant/30 text-[10px] md:text-[14px] uppercase font-black text-outline tracking-[0.2em]">
                 <tr>
-                  <th className="px-4 md:px-8 py-4 md:py-6">BATCH/SKU</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6">시간 (TIME)</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6">구분</th>
                   <th className="px-4 md:px-8 py-4 md:py-6">품목 (ITEM)</th>
-                  <th className="px-4 md:px-8 py-4 md:py-6 text-center">생산량 (QTY)</th>
-                  <th className="px-4 md:px-8 py-4 md:py-6 text-center">수율 지표</th>
+                  <th className="px-4 md:px-8 py-4 md:py-6 text-center">재고 변동량</th>
                   <th className="px-4 md:px-8 py-4 md:py-6 text-right">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {production.slice(0, 5).map((row, i) => (
+                {combinedActivity.map((act, i) => (
                   <tr key={i} className="hover:bg-primary/[0.02] transition-colors group/row">
-                    <td className="px-4 md:px-8 py-5 md:py-7">
-                      <span className="text-sm md:text-[21px] font-mono text-outline font-black tracking-widest px-2 md:px-3 py-1 bg-surface-container rounded-lg">{row.batchId || row.sku}</span>
+                    <td className="px-4 md:px-8 py-5 md:py-6">
+                      <p className="text-xs md:text-sm font-black text-outline uppercase tracking-tighter">
+                        {act.date || new Date(act.timestamp).toISOString().split('T')[0]}
+                      </p>
+                      <p className="text-[10px] md:text-xs font-bold text-outline-variant">
+                        {act.time || new Date(act.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </td>
-                    <td className="px-4 md:px-8 py-5 md:py-7">
-                       <p className="text-xl md:text-4xl font-black text-on-surface leading-none tracking-tighter group-hover/row:text-primary transition-colors">{row.title}</p>
-                       <p className="text-[10px] md:text-[15px] font-bold text-outline-variant uppercase tracking-widest mt-2 px-1">LINE A1</p>
-                    </td>
-                    <td className="px-4 md:px-8 py-5 md:py-7 text-center">
-                      <div className="flex flex-col items-center">
-                        <span className="text-2xl md:text-5xl font-black text-primary tracking-tighter tabular-nums">
-                          {row.weight?.toString().toLowerCase().includes('kg') ? row.weight.replace('kg', '') : row.weight}
-                          <span className="text-sm md:text-xl ml-1 text-outline uppercase tracking-widest">kg</span>
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-8 py-5 md:py-7 text-center">
-                      <div className="flex flex-col items-center">
-                        <span className={`text-xl md:text-4xl font-black tabular-nums tracking-tight ${row.yield && parseFloat(row.yield) < 95 ? 'text-error' : 'text-emerald-600'}`}>
-                          {row.yield || (row.loss ? `${100 - parseFloat(row.loss)}%` : '-')}
-                        </span>
-                        {row.loss && <span className="text-[10px] md:text-[14px] font-black text-error/50 uppercase tracking-widest mt-1">Loss {row.loss}%</span>}
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-8 py-5 md:py-7 text-right">
-                      <span className={`inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 md:py-2.5 rounded-full text-[10px] md:text-[15px] font-black uppercase tracking-widest border-2 whitespace-nowrap ${
-                        row.status === '완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                        row.status === '진행중' ? 'bg-primary/5 text-primary border-primary/20 animate-pulse' : 
-                        'bg-surface-container text-outline border-outline-variant/30'
+                    <td className="px-4 md:px-8 py-5 md:py-6">
+                      <span className={`inline-flex items-center px-2 py-0.5 md:px-3 md:py-1 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest ${
+                        act.activityType === 'production' 
+                          ? 'bg-primary/10 text-primary' 
+                          : act.type === '입고' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-error/10 text-error'
                       }`}>
-                        <div className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${row.status === '완료' ? 'bg-emerald-500' : row.status === '진행중' ? 'bg-primary' : 'bg-outline'}`} />
-                        {row.status}
+                        {act.label}
+                      </span>
+                    </td>
+                    <td className="px-4 md:px-8 py-5 md:py-6">
+                       <p className="text-base md:text-xl font-black text-on-surface leading-tight tracking-tight group-hover/row:text-primary transition-colors">{act.displayTitle}</p>
+                       <p className="text-[9px] md:text-[11px] font-bold text-outline-variant uppercase tracking-widest mt-1 opacity-60">
+                         {act.batchId || act.partner || act.sku || 'N/A'}
+                       </p>
+                    </td>
+                    <td className="px-4 md:px-8 py-5 md:py-6 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className={`text-xl md:text-3xl font-black tracking-tighter tabular-nums ${act.changeType === 'plus' ? 'text-emerald-600' : 'text-error'}`}>
+                          {act.changeType === 'plus' ? '+' : '-'}{act.amount.toLocaleString()}
+                          <span className="text-xs md:text-sm ml-1 text-outline-variant uppercase tracking-widest">kg</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 md:px-8 py-5 md:py-6 text-right">
+                      <span className={`inline-flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-4 md:py-2 rounded-full text-[9px] md:text-[12px] font-black uppercase tracking-widest border ${
+                        act.status === '완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-surface-container text-outline border-outline-variant/30'
+                      }`}>
+                        {act.status}
                       </span>
                     </td>
                   </tr>
                 ))}
+                {combinedActivity.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-20 text-center text-outline font-black uppercase tracking-widest opacity-30">활동 내역이 없습니다</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -539,7 +594,7 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-surface-container/50 border-b-2 border-outline-variant/10">
-                <th className="px-4 py-4 text-center text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">SKU/위치</th>
+                <th className="px-4 py-4 text-center text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">SKU/위치/라인</th>
                 <th className="px-4 py-4 text-left text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">품목 정보</th>
                 <th className="px-4 py-4 text-left text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">카테고리</th>
                 <th className="px-4 py-4 text-right text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">현재 재고</th>
@@ -578,7 +633,7 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-baseline justify-end gap-1">
                       <p className={`font-black text-xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
-                        {item.currentStock.toLocaleString()}
+                        {item.currentStock?.toLocaleString()}
                       </p>
                       <span className="text-[10px] md:text-sm font-black text-outline uppercase">{item.unit}</span>
                     </div>
@@ -636,11 +691,20 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false 
   );
 };
 
-const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { onNavigate: (view: ViewType, item?: any) => void, userData: any, item: any, isAuthorized?: boolean }) => {
+const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = false }: { onNavigate: (view: ViewType, item?: any) => void, userData: any, item: any, logistics: any[], isAuthorized?: boolean }) => {
   const isAdmin = userData?.role === 'admin';
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isUpdatingStock, setIsUpdatingStock] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Filter logistics for this item
+  const itemActivities = logistics
+    .filter(l => l.item === item.name)
+    .sort((a, b) => {
+      const dateA = new Date(`${a.date}T${a.time}`).getTime();
+      const dateB = new Date(`${b.date}T${b.time}`).getTime();
+      return dateB - dateA;
+    });
 
   // Edit states
   const [editData, setEditData] = useState({
@@ -679,13 +743,39 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
   const handleUpdateStock = async () => {
     setLoading(true);
     try {
+      const oldStock = item.currentStock;
+      const updatedStock = Number(newStock);
+      const diff = updatedStock - oldStock;
+
+      if (diff === 0) {
+        setIsUpdatingStock(false);
+        setLoading(false);
+        return;
+      }
+
       const docRef = doc(db, 'inventory', item.id);
       await updateDoc(docRef, {
-        currentStock: Number(newStock),
+        currentStock: updatedStock,
         updatedAt: serverTimestamp()
       });
+
+      // Also record a logistics entry for traceability
+      const logRef = collection(db, 'logistics');
+      await addDoc(logRef, {
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        type: diff > 0 ? '입고' : '출고',
+        item: item.name,
+        partner: '시스템 조정 (Manual)',
+        weight: Math.abs(diff),
+        freightType: '해당없음',
+        status: '완료',
+        createdAt: serverTimestamp(),
+        color: diff > 0 ? 'bg-emerald-500' : 'bg-error'
+      });
+
       setIsUpdatingStock(false);
-      alert('재고가 업데이트되었습니다.');
+      alert(`재고가 ${updatedStock} ${item.unit}으로 업데이트되었으며, 활동 내역에 기록되었습니다.`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'inventory');
     } finally {
@@ -767,7 +857,7 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-primary uppercase px-1">보관 위치</label>
+                  <label className="text-[10px] font-black text-primary uppercase px-1">위치/라인 (Location/Line)</label>
                   <input 
                     type="text" 
                     value={editData.location} 
@@ -816,7 +906,15 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
           ) : (
             <>
               <h1 className="text-2xl md:text-5xl font-black text-primary tracking-tighter leading-tight md:leading-none">{item.name}</h1>
-              <p className="text-sm md:text-2xl font-mono text-outline font-black mt-1 md:mt-2 tracking-[0.1em] md:tracking-[0.2em]">{item.sku}</p>
+              <div className="flex flex-wrap items-center gap-3 md:gap-6 mt-2">
+                <p className="text-sm md:text-2xl font-mono text-outline font-black tracking-[0.1em] md:tracking-[0.2em] bg-surface-container px-3 md:px-4 py-1 rounded-lg">
+                  {item.sku}
+                </p>
+                <div className="flex items-center gap-2 text-on-surface-variant">
+                  <Package className="w-4 h-4 md:w-6 md:h-6 text-primary/60" />
+                  <span className="text-sm md:text-2xl font-black">{item.location || '위치 미지정'}</span>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -853,11 +951,11 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
             <div className="grid grid-cols-1 gap-3 md:gap-10 md:border-l-4 md:border-outline-variant/30 md:pl-12">
               <div className="space-y-1 md:space-y-3">
                 <p className="text-[10px] md:text-sm font-black text-outline uppercase tracking-widest">안전 재고</p>
-                <p className="text-2xl md:text-4xl font-black text-on-surface tracking-tight tabular-nums">{item.safetyStock.toLocaleString()}</p>
+                <p className="text-2xl md:text-4xl font-black text-on-surface tracking-tight tabular-nums">{item.safetyStock?.toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="bg-surface-container p-5 md:p-8 rounded-2xl md:rounded-[32px] border-2 border-outline-variant/30 flex flex-col justify-center items-center gap-1 md:gap-2">
+            <div className="flex flex-col items-center justify-center p-6 bg-white/50 backdrop-blur-sm rounded-3xl border border-white shadow-xl">
               <span className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest text-center">공급율</span>
               <div className="flex items-baseline gap-2 md:gap-3">
                 <span className={`text-3xl md:text-5xl font-black tabular-nums tracking-tighter ${displayStock < safeStock ? 'text-error' : 'text-primary'}`}>
@@ -1023,39 +1121,59 @@ const ItemDetailView = ({ onNavigate, userData, item, isAuthorized = false }: { 
         )}
 
         {/* 하단 2열 정보 섹션 */}
-        <div className="bg-white border-2 border-outline-variant rounded-[24px] md:rounded-[40px] p-6 md:p-10 shadow-lg md:shadow-xl group hover:border-primary/30 transition-colors">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border-2 border-outline-variant rounded-[24px] md:rounded-[40px] p-6 md:p-10 shadow-lg md:shadow-xl group hover:border-primary/40 transition-all"
+        >
           <div className="flex items-center justify-between mb-8 md:mb-10">
             <div className="space-y-1">
-              <h3 className="text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em] md:tracking-[0.3em]">RECENT ACTIVITY</h3>
-              <p className="text-xl md:text-3xl font-black text-on-surface tracking-tight">최근 활동 내역</p>
+              <h3 className="text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em] md:tracking-[0.3em]">AUDIT LOG</h3>
+              <p className="text-xl md:text-4xl font-black text-on-surface tracking-tighter">최근 활동 내역</p>
             </div>
-            <History className="w-6 h-6 md:w-10 md:h-10 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
+            <div className="p-3 md:p-5 bg-primary/5 rounded-2xl md:rounded-3xl border border-primary/10">
+              <History className="w-6 h-6 md:w-10 md:h-10 text-primary opacity-60 group-hover:opacity-100 transition-all group-hover:rotate-12" />
+            </div>
           </div>
           
-          <div className="relative pt-6 md:pt-8 w-full overflow-x-auto pb-4 custom-scrollbar">
+          <div className="relative pt-6 md:pt-8 w-full overflow-x-auto pb-6 custom-scrollbar">
             <div className="absolute top-[35px] md:top-[43px] left-0 right-0 h-1 bg-outline-variant/30 rounded-full min-w-[800px]" />
             
-            <div className="flex gap-6 md:gap-10 min-w-max px-2">
-            {[
-              { title: '신규 입고: #B-9021', time: '오전 10:45 · 2024.03.20', type: 'in', desc: '냉동창고 A-1 입고 완료', color: 'bg-emerald-500' },
-              { title: '재고 조사 완료', time: '오후 03:20 · 2024.03.18', type: 'check', desc: '실재고 합치 확인됨', color: 'bg-outline' },
-              { title: '가공 출하', time: '오후 01:15 · 2024.03.15', type: 'out', desc: '육정가공센터 박스 출하', color: 'bg-primary' },
-              { title: '품질 검수 완료', time: '오전 09:00 · 2024.03.12', type: 'check', desc: 'A등급 판정', color: 'bg-secondary' }
-            ].map((activity, idx) => (
-              <div key={idx} className="relative group/item w-[280px] shrink-0">
-                <div className={`absolute top-0 left-4 w-4 h-4 md:w-5 md:h-5 rounded-full ring-4 md:ring-8 ring-white shadow-md transition-transform group-hover/item:scale-150 ${activity.color} z-10`} />
-                <div className="pt-10 md:pt-14 space-y-1 md:space-y-2">
-                  <p className="text-base md:text-xl font-black text-on-surface tracking-tight">{activity.title}</p>
-                  <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest">{activity.time}</p>
-                  <div className="p-3 md:p-4 bg-surface-container/50 rounded-xl md:rounded-2xl border border-outline-variant/20 mt-3 italic text-on-surface-variant font-bold text-xs md:text-sm">
-                    "{activity.desc}"
+            <div className="flex gap-8 md:gap-14 min-w-max px-2">
+            {itemActivities.length > 0 ? itemActivities.map((activity, idx) => (
+              <motion.div 
+                key={idx} 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="relative group/item w-[300px] shrink-0"
+              >
+                <div className={`absolute top-0 left-4 w-5 h-5 md:w-7 md:h-7 rounded-full ring-4 md:ring-8 ring-white shadow-xl transition-all group-hover/item:scale-125 ${activity.type === '입고' ? 'bg-emerald-500 shadow-emerald-200' : 'bg-primary shadow-primary-200'} z-10 flex items-center justify-center`} >
+                  {activity.type === '입고' ? <ArrowDownToLine className="w-2.5 h-2.5 md:w-4 md:h-4 text-white" /> : <ArrowUpFromLine className="w-2.5 h-2.5 md:w-4 md:h-4 text-white" />}
+                </div>
+                <div className="pt-10 md:pt-16 space-y-2 md:space-y-3">
+                  <p className="text-lg md:text-2xl font-black text-on-surface tracking-tight group-hover/item:text-primary transition-colors">
+                    {activity.type === '입고' ? '물품 입고' : '물품 출고'}: <span className="text-outline/80">{activity.partner}</span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="px-2 py-0.5 bg-surface-container rounded-md text-[9px] md:text-xs font-black text-outline uppercase tracking-widest">{activity.time}</p>
+                    <p className="text-[9px] md:text-xs font-black text-outline/60 uppercase tracking-widest">{activity.date}</p>
+                  </div>
+                  <div className="p-4 md:p-6 bg-surface-container/30 rounded-2xl md:rounded-[32px] border border-outline-variant/10 mt-4 italic text-on-surface-variant font-medium text-sm md:text-base leading-relaxed group-hover/item:bg-white group-hover/item:shadow-lg transition-all">
+                    "{activity.partner}를 통해 <span className="text-primary font-black not-italic">{activity.weight}kg</span> {activity.type}가 완료되었습니다."
                   </div>
                 </div>
+              </motion.div>
+            )) : (
+              <div className="w-full text-center py-16 bg-surface-container/20 rounded-[32px] border-2 border-dashed border-outline-variant/30">
+                <History className="w-12 h-12 md:w-20 md:h-20 text-outline/20 mx-auto mb-4" />
+                <p className="text-outline font-black uppercase tracking-[0.2em] md:text-lg">활동 기록이 비어있습니다</p>
+                <p className="text-outline/60 text-xs md:text-base font-medium mt-1">입출고 내역이 발생하면 여기에 표시됩니다.</p>
               </div>
-            ))}
+            )}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
@@ -1099,16 +1217,21 @@ const LogisticsView = ({
     e.preventDefault();
     setLoading(true);
     try {
+      const weightNum = Number(formData.weight);
       const dataToSave = {
         ...formData,
-        weight: Number(formData.weight),
+        weight: weightNum,
         updatedAt: serverTimestamp(),
       };
 
       if (editingId) {
+        // To handle update correctly, we'd need the old record to calculate the diff.
+        // For simplicity and to avoid complex diff logic on direct field edits, 
+        // we'll assume the user might manually adjust inventory if they edit a historical record.
+        // Or we could fetch the old record first.
         const ref = doc(db, 'logistics', editingId);
         await setDoc(ref, dataToSave, { merge: true });
-        alert('물류 기록이 수정되었습니다.');
+        alert('물류 기록이 수정되었습니다. 재고 자동 조정은 신규 등록 및 삭제시에만 지원됩니다.');
       } else {
         const ref = collection(db, 'logistics');
         await addDoc(ref, {
@@ -1116,7 +1239,19 @@ const LogisticsView = ({
           createdAt: serverTimestamp(),
           color: formData.type === '입고' ? 'bg-emerald-500' : 'bg-error'
         });
-        alert('물류 기록이 등록되었습니다.');
+
+        // Auto inventory sync
+        const invItem = inventory.find(i => i.name === formData.item);
+        if (invItem) {
+          const invRef = doc(db, 'inventory', invItem.id);
+          const change = formData.type === '입고' ? weightNum : -weightNum;
+          await updateDoc(invRef, {
+            currentStock: increment(change),
+            updatedAt: serverTimestamp()
+          });
+        }
+        
+        alert(`물류 기록이 등록되었습니다. 재고가 ${formData.type === '입고' ? '증가' : '감소'}되었습니다.`);
       }
       resetForm();
     } catch (error) {
@@ -1141,13 +1276,25 @@ const LogisticsView = ({
     setShowForm(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('정말로 이 물류 기록을 삭제하시겠습니까?')) return;
+  const handleDelete = async (record: any) => {
+    if (!window.confirm('정말로 이 물류 기록을 삭제하시겠습니까? 관련 재고가 자동으로 조정됩니다.')) return;
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'logistics', id));
-      alert('물류 기록이 삭제되었습니다.');
-      if (editingId === id) resetForm();
+      await deleteDoc(doc(db, 'logistics', record.id));
+      
+      // Auto inventory sync undo
+      const invItem = inventory.find(i => i.name === record.item);
+      if (invItem) {
+        const invRef = doc(db, 'inventory', invItem.id);
+        const change = record.type === '입고' ? -Number(record.weight) : Number(record.weight);
+        await updateDoc(invRef, {
+          currentStock: increment(change),
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      alert('물류 기록이 삭제되고 재고가 조정되었습니다.');
+      if (editingId === record.id) resetForm();
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'logistics');
     } finally {
@@ -1406,9 +1553,14 @@ const LogisticsView = ({
                     <h3 className="text-lg md:text-xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight leading-none">{item.item || item.title}</h3>
                     <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-2">
                       <p className="flex items-center gap-1.5 text-xs md:text-sm text-on-surface-variant font-bold"><Truck className="w-3.5 h-3.5 text-outline" /> {item.partner}</p>
-                      <p className="text-base md:text-lg font-black text-primary uppercase tracking-widest">
-                        {item.weight ? (item.weight.toString().toLowerCase().includes('kg') ? item.weight.toUpperCase() : `${item.weight} KG`) : item.qty}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-base md:text-lg font-black text-primary uppercase tracking-widest">
+                          {item.weight ? (item.weight.toString().toLowerCase().includes('kg') ? item.weight.toUpperCase() : `${item.weight} KG`) : item.qty}
+                        </p>
+                        <span className={`text-[10px] md:text-xs font-black px-2 py-0.5 rounded-lg ${item.type === '입고' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-error/10 text-error'}`}>
+                          {item.type === '입고' ? '+' : '-'}{item.weight}
+                        </span>
+                      </div>
                       <p className="text-[9px] font-black text-outline uppercase bg-surface-container px-2 md:px-3 py-1 rounded-lg tracking-widest">{item.freightType || '운송사미출력'}</p>
                     </div>
                   </div>
@@ -1434,7 +1586,7 @@ const LogisticsView = ({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(item.id);
+                        handleDelete(item);
                       }}
                       className="h-9 md:h-10 px-3 md:px-4 border-2 border-error text-error rounded-xl text-xs md:text-sm font-black uppercase hover:bg-error hover:text-white transition-all shadow-sm active:scale-95 flex items-center justify-center"
                       title="삭제"
@@ -1917,7 +2069,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                   <th className="p-3 md:p-4 whitespace-nowrap">SKU/라인</th>
                   <th className="p-3 md:p-4 whitespace-nowrap">품목명</th>
                   <th className="p-3 md:p-4 text-center whitespace-nowrap">투입량</th>
-                  <th className="p-3 md:p-4 text-center whitespace-nowrap text-primary">생산량</th>
+                  <th className="p-3 md:p-4 text-center whitespace-nowrap text-primary">생산량 (재고가산)</th>
                   <th className="p-3 md:p-4 text-center whitespace-nowrap">수율</th>
                   <th className="p-3 md:p-4 text-center whitespace-nowrap">Loss율</th>
                   <th className="p-3 md:p-4 text-right whitespace-nowrap">관리</th>
@@ -1948,9 +2100,12 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                       </span>
                     </td>
                     <td className="p-3 md:p-4 text-center whitespace-nowrap">
-                      <p className="text-lg md:text-2xl font-black text-primary tabular-nums">
-                        {(batch.production || batch.weight || '0').toString().toLowerCase().includes('kg') ? (batch.production || batch.weight) : `${(batch.production || batch.weight)}kg`}
-                      </p>
+                      <div className="flex flex-col items-center">
+                        <p className="text-lg md:text-2xl font-black text-primary tabular-nums">
+                          {(batch.production || batch.weight || '0').toString().toLowerCase().includes('kg') ? (batch.production || batch.weight) : `${(batch.production || batch.weight)}kg`}
+                        </p>
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">+{batch.production || batch.weight}kg 가산</span>
+                      </div>
                     </td>
                     <td className="p-3 md:p-4 text-center whitespace-nowrap">
                       <p className="text-lg md:text-2xl font-black text-emerald-600">
@@ -2282,8 +2437,8 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
 
             <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8">
               <div className="space-y-1.5">
-                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">보관 위치</label>
-                <input value={product.location} onChange={e => setProduct({...product, location: e.target.value})} type="text" placeholder="예: A구역" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-all" />
+                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">보관 위치/라인</label>
+                <input value={product.location} onChange={e => setProduct({...product, location: e.target.value})} type="text" placeholder="예: A구역 / 1번라인" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">상세 위치</label>
@@ -2829,7 +2984,7 @@ export default function App() {
               >
                 {currentView === 'dashboard' && <DashboardView onNavigate={handleNavigate} inventory={inventory} production={production} logistics={logistics} partners={partners} />}
                 {currentView === 'inventory' && <InventoryView onNavigate={handleNavigate} inventory={inventory} logistics={logistics} isAuthorized={isAuthorized} />}
-                {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} isAuthorized={isAuthorized} />}
+                {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} logistics={logistics} isAuthorized={isAuthorized} />}
                 {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} />}
                 {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} />}
                 {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} partners={partners} logistics={logistics} production={production} adminEmails={adminEmails} user={user} />}
