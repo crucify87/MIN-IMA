@@ -2301,38 +2301,38 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
 
         {activeTab === 'partner' && (
           <div className="space-y-6 md:space-y-12">
-            <form onSubmit={handlePartnerSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 bg-surface-container/20 p-3 md:p-6 rounded-xl md:rounded-2xl border border-outline-variant/30 relative">
+            <form onSubmit={handlePartnerSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 bg-surface-container/20 p-4 md:p-6 rounded-2xl border border-outline-variant/30 relative">
               {editingPartner && (
-                <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-primary/10 text-primary px-2.5 md:px-4 py-1.5 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
-                  <Edit3 className="w-2.5 h-2.5 md:w-3 md:h-3" /> 수정 중
+                <div className="absolute top-3 right-3 md:top-4 md:right-4 bg-primary/10 text-primary px-3 md:px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
+                  <Edit3 className="w-3 h-3" /> 수정 중
                 </div>
               )}
               <div className="md:col-span-2">
-                <h3 className="text-xs md:text-base font-black text-primary uppercase tracking-widest mb-1 md:mb-4 text-center">
+                <h3 className="text-sm md:text-base font-black text-primary uppercase tracking-widest mb-2 md:mb-4 text-center">
                   {editingPartner ? '거래처 정보 수정' : '신규 거래처 등록'}
                 </h3>
               </div>
               <div className="space-y-1 md:space-y-2">
                 <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">거래처명</label>
-                <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-10 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg transition-colors font-bold bg-white" />
+                <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors font-bold bg-white" />
               </div>
               <div className="space-y-1 md:space-y-2">
                 <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">유형</label>
-                <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-10 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg transition-colors bg-white font-bold">
+                <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold">
                   <option value="공급사">공급사</option>
                   <option value="고객사">고객사</option>
                 </select>
               </div>
               <div className="space-y-1 md:space-y-2">
                 <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">연락처</label>
-                <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-10 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg transition-colors bg-white font-bold" />
+                <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold" />
               </div>
               <div className="space-y-1 md:space-y-2">
                 <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">주소</label>
-                <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-10 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg transition-colors bg-white font-bold" />
+                <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold" />
               </div>
-              <div className="md:col-span-2 flex flex-col md:flex-row gap-2 md:gap-4 pt-1 md:pt-4">
-                <button disabled={loading} type="submit" className="h-11 md:h-16 bg-secondary text-white rounded-xl md:rounded-2xl font-black text-sm md:text-lg uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
+              <div className="md:col-span-2 flex flex-col md:flex-row gap-3 md:gap-4 pt-2 md:pt-4">
+                <button disabled={loading} type="submit" className="h-14 md:h-20 bg-secondary text-white rounded-2xl font-black text-base md:text-xl uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
                   {loading ? '처리 중...' : editingPartner ? '수정 완료' : '등록 완료'}
                 </button>
                 {editingPartner && (
@@ -2342,7 +2342,7 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                       setEditingPartner(null);
                       setPartner({ name: '', contact: '', address: '', type: '공급사' });
                     }}
-                    className="h-12 md:h-16 px-8 bg-surface-container text-outline rounded-2xl font-black text-base md:text-lg uppercase tracking-widest hover:bg-surface-container-high transition-all"
+                    className="h-14 md:h-20 px-8 bg-surface-container text-outline rounded-2xl font-black text-base md:text-xl uppercase tracking-widest hover:bg-surface-container-high transition-all"
                   >
                     취소
                   </button>
@@ -2391,10 +2391,10 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                 className="overflow-hidden border border-outline-variant rounded-2xl bg-white shadow-sm"
               >
                 <div className={`overflow-x-auto ${isExpanded ? '' : 'max-h-[400px] overflow-y-auto custom-scrollbar'}`}>
-                  <table className="w-full text-left border-collapse min-w-[600px]">
-                    <thead className="bg-surface-container-low border-b border-outline-variant text-[10px] md:text-base uppercase font-black text-outline sticky top-0 z-10">
+                  <table className="w-full text-left border-collapse min-w-[500px]">
+                    <thead className="bg-surface-container-low border-b border-outline-variant text-[9px] md:text-base uppercase font-black text-outline sticky top-0 z-10">
                       <tr>
-                        <th className="p-3 md:p-4 bg-surface-container-low w-10 md:w-12 text-center">
+                        <th className="p-2 md:p-4 bg-surface-container-low w-8 md:w-12 text-center">
                           <input 
                             type="checkbox" 
                             checked={filteredPartners.length > 0 && selectedIds.length === filteredPartners.length}
@@ -2490,9 +2490,9 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                     <button 
                       disabled={loading}
                       type="submit"
-                      className="h-11 md:h-14 px-6 md:px-10 bg-primary text-white rounded-xl md:rounded-2xl font-black text-sm md:text-lg uppercase tracking-widest shadow-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="h-14 md:h-16 px-8 md:px-10 bg-primary text-white rounded-2xl font-black text-base md:text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      {loading ? '기록...' : <><Plus className="w-4 h-4 md:w-5 md:h-5" /> 등록</>}
+                      {loading ? '기록...' : <><Plus className="w-5 h-5" /> 등록</>}
                     </button>
                   </div>
                 </div>
