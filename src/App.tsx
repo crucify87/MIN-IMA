@@ -195,6 +195,7 @@ const DashboardView = ({
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [timeFilter, setTimeFilter] = useState('일간');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -368,9 +369,9 @@ const DashboardView = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-1">
           {filteredInventory.length === 0 ? (
-            <div className="w-full lg:col-span-2 bg-surface-container py-12 rounded-[32px] border-2 border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-3">
+            <div className="w-full md:col-span-2 lg:col-span-3 xl:col-span-4 bg-surface-container py-12 rounded-[32px] border-2 border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-3">
               <Package className="w-10 h-10 text-outline/30" />
               <p className="font-black text-outline uppercase tracking-widest">품목을 찾을 수 없습니다</p>
             </div>
@@ -381,45 +382,23 @@ const DashboardView = ({
                 <motion.div 
                   key={idx}
                   whileHover={{ y: -2 }}
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 md:p-6 bg-white border-2 rounded-2xl md:rounded-[24px] shadow-sm cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
+                  className={`flex flex-col justify-between gap-4 p-4 md:p-5 bg-white border-2 rounded-2xl md:rounded-[24px] shadow-sm cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
                   onClick={() => onNavigate('detail', item)}
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-black text-lg md:text-xl leading-tight group-hover:text-primary transition-colors">{item.name}</p>
-                      {isAlert && <AlertTriangle className="w-4 h-4 text-error animate-pulse" />}
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="font-black text-lg md:text-xl leading-tight group-hover:text-primary transition-colors pr-6">{item.name}</p>
+                      {isAlert && <AlertTriangle className="w-4 h-4 text-error animate-pulse flex-shrink-0 mt-1" />}
                     </div>
                     <p className="text-[10px] md:text-xs font-bold text-outline-variant uppercase tracking-widest">{item.category}</p>
                   </div>
                   
-                  <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-8 border-t sm:border-t-0 border-outline-variant/10 pt-3 sm:pt-0">
-                    <div className="text-left sm:text-right">
+                  <div className="flex items-end justify-between border-t border-outline-variant/10 pt-3">
+                    <div className="text-left">
                       <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-1">실시간 재고</p>
                       <p className={`text-2xl md:text-3xl font-black tabular-nums leading-none ${isAlert ? 'text-error' : 'text-primary'}`}>
                         {item.currentStock}<span className="text-xs md:text-sm ml-0.5 font-bold uppercase">{item.unit}</span>
                       </p>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onQuickAdjust?.(item, -10);
-                        }}
-                        className="w-10 h-10 rounded-xl bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all active:scale-95 z-20"
-                        title="-10kg 조정"
-                      >
-                        <Minus className="w-5 h-5" />
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onQuickAdjust?.(item, 10);
-                        }}
-                        className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-95 z-20"
-                        title="+10kg 조정"
-                      >
-                        <Plus className="w-5 h-5" />
-                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -464,7 +443,7 @@ const DashboardView = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {combinedActivity.map((act, i) => (
+                {(isExpanded ? combinedActivity : combinedActivity.slice(0, 5)).map((act, i) => (
                   <tr key={i} className="hover:bg-primary/[0.02] transition-colors group/row">
                     <td className="px-4 md:px-8 py-5 md:py-6">
                       <p className="text-xs md:text-sm font-black text-outline uppercase tracking-tighter">
@@ -514,6 +493,16 @@ const DashboardView = ({
               </tbody>
             </table>
           </div>
+          {combinedActivity.length > 5 && (
+            <div className="w-full border-t border-outline-variant/20">
+              <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full py-4 text-center text-primary font-black text-[12px] hover:bg-surface-container transition-colors uppercase tracking-widest"
+              >
+                {isExpanded ? '접기 (Show Less)' : `펼쳐보기 (Show ${combinedActivity.length - 5} More)`}
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </div>
@@ -1223,8 +1212,8 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
                     <p className="px-2 py-0.5 bg-surface-container rounded-md text-[9px] md:text-xs font-black text-outline uppercase tracking-widest">{activity.time}</p>
                     <p className="text-[9px] md:text-xs font-black text-outline/60 uppercase tracking-widest">{activity.date}</p>
                   </div>
-                  <div className="p-4 md:p-6 bg-surface-container/30 rounded-2xl md:rounded-[32px] border border-outline-variant/10 mt-4 italic text-on-surface-variant font-medium text-sm md:text-base leading-relaxed group-hover/item:bg-white group-hover/item:shadow-lg transition-all">
-                    "{activity.partner}를 통해 <span className="text-primary font-black not-italic">{activity.weight}kg</span> {activity.type}가 완료되었습니다."
+                  <div className="p-4 md:p-6 bg-surface-container/30 rounded-2xl md:rounded-[32px] border border-outline-variant/10 mt-4 text-on-surface-variant font-medium text-sm md:text-base leading-relaxed group-hover/item:bg-white group-hover/item:shadow-lg transition-all">
+                    "{activity.partner}를 통해 <span className="text-primary font-black">{activity.weight}kg</span> {activity.type}가 완료되었습니다."
                   </div>
                 </div>
               </motion.div>
