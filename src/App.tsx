@@ -2048,7 +2048,12 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                     >
                       <div className="w-full md:col-span-2">
                         <label className="md:hidden text-[10px] font-black text-outline uppercase tracking-widest mb-1 block px-1">품목명</label>
-                        <input required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명" className="w-full h-10 md:h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-sm md:text-base transition-all font-black shadow-inner" />
+                        <input list={`inventory-list-${idx}`} required value={item.title} onChange={e => updateItem(idx, 'title', e.target.value)} type="text" placeholder="품목명" className="w-full h-10 md:h-12 px-4 rounded-xl bg-white border-2 border-transparent focus:border-primary outline-none text-sm md:text-base transition-all font-black shadow-inner" />
+                        <datalist id={`inventory-list-${idx}`}>
+                          {inventory.map((invItem, i) => (
+                            <option key={i} value={invItem.name} />
+                          ))}
+                        </datalist>
                       </div>
                       <div className="w-full md:col-span-2">
                         <label className="md:hidden text-[10px] font-black text-outline uppercase tracking-widest mb-1 block px-1">원육정보</label>
