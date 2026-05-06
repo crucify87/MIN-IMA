@@ -194,7 +194,7 @@ const DashboardView = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [timeFilter, setTimeFilter] = useState('주간');
+  const [timeFilter, setTimeFilter] = useState('일간');
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -358,7 +358,7 @@ const DashboardView = ({
       <section className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <div className="space-y-1">
-            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">마감 재고 현황 (Inventory)</p>
+            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">현재 재고 현황</p>
           </div>
           <button 
             onClick={() => onNavigate('inventory')}
@@ -368,9 +368,9 @@ const DashboardView = ({
           </button>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x px-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-1">
           {filteredInventory.length === 0 ? (
-            <div className="w-full bg-surface-container py-12 rounded-[32px] border-2 border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-3">
+            <div className="w-full lg:col-span-2 bg-surface-container py-12 rounded-[32px] border-2 border-dashed border-outline-variant/50 flex flex-col items-center justify-center gap-3">
               <Package className="w-10 h-10 text-outline/30" />
               <p className="font-black text-outline uppercase tracking-widest">품목을 찾을 수 없습니다</p>
             </div>
@@ -381,45 +381,45 @@ const DashboardView = ({
                 <motion.div 
                   key={idx}
                   whileHover={{ y: -2 }}
-                  className={`min-w-[180px] md:min-w-[240px] p-4 md:p-5 bg-white border-2 rounded-3xl md:rounded-[24px] shadow-sm snap-start cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 md:p-6 bg-white border-2 rounded-2xl md:rounded-[24px] shadow-sm cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
                   onClick={() => onNavigate('detail', item)}
                 >
-                  <div className="space-y-3">
-                    <div className="overflow-hidden items-end flex justify-between gap-2">
-                       <div>
-                         <p className="font-black text-base md:text-lg truncate leading-tight group-hover:text-primary transition-colors">{item.name}</p>
-                       </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-black text-lg md:text-xl leading-tight group-hover:text-primary transition-colors">{item.name}</p>
+                      {isAlert && <AlertTriangle className="w-4 h-4 text-error animate-pulse" />}
                     </div>
-                    <div className="flex justify-between items-end border-t border-outline-variant/10 pt-3">
-                      <div>
-                        <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-1">실시간 재고</p>
-                        <p className={`text-2xl md:text-3xl font-black tabular-nums ${isAlert ? 'text-error' : 'text-primary'}`}>
-                          {item.currentStock}<span className="text-xs md:text-sm ml-0.5 font-bold uppercase">{item.unit}</span>
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onQuickAdjust?.(item, -10);
-                          }}
-                          className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all active:scale-95 z-20"
-                          title="-10kg 조정"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onQuickAdjust?.(item, 10);
-                          }}
-                          className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-95 z-20"
-                          title="+10kg 조정"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {isAlert && <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-error absolute top-4 right-4 animate-pulse" />}
+                    <p className="text-[10px] md:text-xs font-bold text-outline-variant uppercase tracking-widest">{item.category}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-8 border-t sm:border-t-0 border-outline-variant/10 pt-3 sm:pt-0">
+                    <div className="text-left sm:text-right">
+                      <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-1">실시간 재고</p>
+                      <p className={`text-2xl md:text-3xl font-black tabular-nums leading-none ${isAlert ? 'text-error' : 'text-primary'}`}>
+                        {item.currentStock}<span className="text-xs md:text-sm ml-0.5 font-bold uppercase">{item.unit}</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onQuickAdjust?.(item, -10);
+                        }}
+                        className="w-10 h-10 rounded-xl bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all active:scale-95 z-20"
+                        title="-10kg 조정"
+                      >
+                        <Minus className="w-5 h-5" />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onQuickAdjust?.(item, 10);
+                        }}
+                        className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-95 z-20"
+                        title="+10kg 조정"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -433,7 +433,7 @@ const DashboardView = ({
       <section className="space-y-6">
         <div className="flex justify-between items-center group">
           <div className="space-y-1">
-            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">최근 재고 변동 활동 (Logistics & Production)</p>
+            <p className="text-xl md:text-2xl font-black text-on-surface tracking-tight">재고 변동 현황</p>
           </div>
           <div className="flex gap-4">
             <button 
@@ -521,7 +521,7 @@ const DashboardView = ({
 };
 
 const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false, onQuickAdjust }: { onNavigate: (view: ViewType, item?: any) => void, inventory: any[], logistics: any[], isAuthorized?: boolean, onQuickAdjust?: (item: any, amount: number) => void }) => {
-  const [timeFilter, setTimeFilter] = useState('주간');
+  const [timeFilter, setTimeFilter] = useState('일간');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
 
