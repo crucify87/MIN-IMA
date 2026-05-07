@@ -918,24 +918,28 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
                     className="w-full h-10 md:h-12 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none font-bold text-lg md:text-xl"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-secondary uppercase px-1">매입 단가 (Cost)</label>
-                  <input 
-                    type="number" 
-                    value={editData.purchasePrice} 
-                    onChange={e => setEditData({...editData, purchasePrice: Number(e.target.value)})}
-                    className="w-full h-10 md:h-12 px-4 rounded-xl border border-outline-variant focus:border-secondary outline-none font-bold text-lg md:text-xl"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-secondary uppercase px-1">판매 단가 (Price)</label>
-                  <input 
-                    type="number" 
-                    value={editData.salesPrice} 
-                    onChange={e => setEditData({...editData, salesPrice: Number(e.target.value)})}
-                    className="w-full h-10 md:h-12 px-4 rounded-xl border border-outline-variant focus:border-secondary outline-none font-bold text-lg md:text-xl"
-                  />
-                </div>
+                {isAuthorized && (
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-secondary uppercase px-1">매입 단가 (Cost)</label>
+                      <input 
+                        type="number" 
+                        value={editData.purchasePrice} 
+                        onChange={e => setEditData({...editData, purchasePrice: Number(e.target.value)})}
+                        className="w-full h-10 md:h-12 px-4 rounded-xl border border-outline-variant focus:border-secondary outline-none font-bold text-lg md:text-xl"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-secondary uppercase px-1">판매 단가 (Price)</label>
+                      <input 
+                        type="number" 
+                        value={editData.salesPrice} 
+                        onChange={e => setEditData({...editData, salesPrice: Number(e.target.value)})}
+                        className="w-full h-10 md:h-12 px-4 rounded-xl border border-outline-variant focus:border-secondary outline-none font-bold text-lg md:text-xl"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex flex-col sm:flex-row gap-3 pt-2 md:pt-4">
                 <button 
@@ -2298,7 +2302,7 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
   );
 };
 
-const SettingsView = ({ onNavigate, partners, logistics = [], production = [], adminEmails = [], user }: { onNavigate?: (view: ViewType) => void, partners: any[], logistics: any[], production: any[], adminEmails?: any[], user: User | null }) => {
+const SettingsView = ({ onNavigate, partners, logistics = [], production = [], adminEmails = [], user, isAuthorized = false }: { onNavigate?: (view: ViewType) => void, partners: any[], logistics: any[], production: any[], adminEmails?: any[], user: User | null, isAuthorized?: boolean }) => {
   const [activeTab, setActiveTab] = useState<'product' | 'partner' | 'admin'>('product');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2549,14 +2553,18 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
               <label className="text-xs font-black text-primary uppercase tracking-widest px-1">안전 재고</label>
               <input required value={product.safetyStock} onChange={e => setProduct({...product, safetyStock: e.target.value})} type="number" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">매입 단가 (₩)</label>
-              <input required value={product.purchasePrice} onChange={e => setProduct({...product, purchasePrice: e.target.value})} type="number" placeholder="예: 25000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">판매 단가 (₩)</label>
-              <input required value={product.salesPrice} onChange={e => setProduct({...product, salesPrice: e.target.value})} type="number" placeholder="예: 38000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
-            </div>
+            {isAuthorized && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">매입 단가 (₩)</label>
+                  <input required value={product.purchasePrice} onChange={e => setProduct({...product, purchasePrice: e.target.value})} type="number" placeholder="예: 25000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">판매 단가 (₩)</label>
+                  <input required value={product.salesPrice} onChange={e => setProduct({...product, salesPrice: e.target.value})} type="number" placeholder="예: 38000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                </div>
+              </>
+            )}
 
             <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8 border-y border-outline-variant/30 py-4 md:py-6 my-2">
               <div className="space-y-1.5">
@@ -3152,7 +3160,7 @@ export default function App() {
                 {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} logistics={logistics} isAuthorized={isAuthorized} />}
                 {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} />}
                 {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} />}
-                {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} partners={partners} logistics={logistics} production={production} adminEmails={adminEmails} user={user} />}
+                {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} partners={partners} logistics={logistics} production={production} adminEmails={adminEmails} user={user} isAuthorized={isAuthorized} />}
               </motion.div>
             </AnimatePresence>
           </div>
