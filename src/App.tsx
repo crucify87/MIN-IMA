@@ -3057,9 +3057,9 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-xl w-full bg-white p-12 rounded-[48px] shadow-2xl border-4 border-outline-variant/30 text-center space-y-10"
         >
-          {/* App Icon (Optimized for 512x512 viewport) */}
-          <div className="bg-white p-4 rounded-xl flex items-center justify-center mx-auto shadow-2xl shadow-primary/20 scale-125 mb-6">
-            <AppLogo className="w-32 h-32" />
+          {/* App Icon (Optimized for viewport) */}
+          <div className="bg-white p-4 rounded-xl flex items-center justify-center mx-auto shadow-xl shadow-primary/10 mb-6">
+            <AppLogo className="w-20 h-20" />
           </div>
           <div className="space-y-4">
             <h1 className="text-6xl font-black text-primary tracking-tighter uppercase leading-none">MIN IMA</h1>

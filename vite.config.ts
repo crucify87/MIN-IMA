@@ -14,9 +14,9 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {
-          name: 'My Google AI Studio App',
-          short_name: 'AI App',
-          description: 'A web application built with Google AI Studio',
+          name: 'MIN IMA',
+          short_name: 'MINIMA',
+          description: 'Production and Logistics Management System',
           theme_color: '#ffffff',
           icons: [
             {
