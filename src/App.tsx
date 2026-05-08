@@ -341,18 +341,24 @@ const DashboardView = ({
 
       {/* Stats Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {stats.map((s, i) => (
-          <div key={i} className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
-            <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{s.label}</p>
-            <div className="flex items-baseline gap-1">
-              <p className={`text-3xl md:text-6xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
-                {s.value}
-              </p>
-              <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest">{s.unit}</span>
+        {stats.map((s, i) => {
+          const valStr = String(s.value);
+          // Scale down text if number is large to prevent overflowing
+          const textSizeClass = valStr.length > 7 ? 'text-2xl md:text-3xl lg:text-4xl' : valStr.length > 5 ? 'text-3xl md:text-4xl lg:text-5xl' : 'text-3xl md:text-5xl lg:text-6xl';
+          
+          return (
+            <div key={i} className="bg-white border-2 border-outline-variant/30 p-4 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden break-keep">
+              <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
+              <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{s.label}</p>
+              <div className="flex items-baseline gap-1 justify-center w-full whitespace-nowrap">
+                <p className={`${textSizeClass} font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
+                  {s.value}
+                </p>
+                <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest shrink-0">{s.unit}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </section>
 
       {/* Horizontal Inventory List */}
@@ -598,24 +604,29 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {stats.map((item, i) => (
-          <div key={i} className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
-            <div className={`absolute top-0 left-0 w-full h-1 group-hover:h-2 transition-all ${
-              item.label.includes('부족') ? 'bg-error/20' : 
-              item.label.includes('입고') ? 'bg-secondary/20' :
-              item.label.includes('출고') ? 'bg-emerald-600/20' : 'bg-primary/20'
-            }`} />
-            <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{item.label}</p>
-            <div className="flex items-baseline gap-1">
-              <p className={`text-3xl md:text-6xl font-black tabular-nums tracking-tighter leading-none ${item.color}`}>
-                {item.value}
-              </p>
-              {item.unit && <span className={`text-sm md:text-xl font-black uppercase tracking-widest ${item.color === 'text-on-surface' ? 'text-outline-variant' : item.color.replace('text-', 'text-/40')}`}>{item.unit}</span>}
-              {!item.unit && item.label.includes('SKU') && <span className="text-xs md:text-xl font-black text-outline-variant uppercase tracking-widest">종</span>}
-              {!item.unit && item.label.includes('부족') && <span className="text-xs md:text-xl font-black text-error/40 uppercase tracking-widest">건</span>}
+        {stats.map((item, i) => {
+          const valStr = String(item.value);
+          const textSizeClass = valStr.length > 7 ? 'text-2xl md:text-3xl lg:text-4xl' : valStr.length > 5 ? 'text-3xl md:text-4xl lg:text-5xl' : 'text-3xl md:text-5xl lg:text-6xl';
+          
+          return (
+            <div key={i} className="bg-white border-2 border-outline-variant/30 p-4 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden break-keep">
+              <div className={`absolute top-0 left-0 w-full h-1 group-hover:h-2 transition-all ${
+                item.label.includes('부족') ? 'bg-error/20' : 
+                item.label.includes('입고') ? 'bg-secondary/20' :
+                item.label.includes('출고') ? 'bg-emerald-600/20' : 'bg-primary/20'
+              }`} />
+              <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{item.label}</p>
+              <div className="flex items-baseline gap-1 justify-center w-full whitespace-nowrap">
+                <p className={`${textSizeClass} font-black tabular-nums tracking-tighter leading-none ${item.color}`}>
+                  {item.value}
+                </p>
+                {item.unit && <span className={`text-sm md:text-xl font-black uppercase tracking-widest shrink-0 ${item.color === 'text-on-surface' ? 'text-outline-variant' : item.color.replace('text-', 'text-/40')}`}>{item.unit}</span>}
+                {!item.unit && item.label.includes('SKU') && <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest shrink-0">종</span>}
+                {!item.unit && item.label.includes('부족') && <span className="text-sm md:text-xl font-black text-error/40 uppercase tracking-widest shrink-0">건</span>}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="bg-white border-2 border-outline-variant/30 rounded-3xl md:rounded-[40px] shadow-lg overflow-hidden">
@@ -667,28 +678,30 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
                         </p>
                         <span className="text-[10px] md:text-sm font-black text-outline uppercase">{item.unit}</span>
                       </div>
-                      <div className="flex gap-1">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onQuickAdjust?.(item, -10);
-                          }}
-                          className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all active:scale-95"
-                          title="-10kg"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onQuickAdjust?.(item, 10);
-                          }}
-                          className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-95"
-                          title="+10kg"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {isAuthorized && (
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onQuickAdjust?.(item, -10);
+                            }}
+                            className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all active:scale-95"
+                            title="-10kg"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onQuickAdjust?.(item, 10);
+                            }}
+                            className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-95"
+                            title="+10kg"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-4 text-center">
@@ -703,35 +716,39 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <div className="flex flex-col items-center gap-1 group/edit">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onNavigate('detail', item);
-                          }}
-                          className="w-10 h-10 md:w-12 md:h-12 bg-white border-2 border-outline-variant/30 rounded-xl text-outline hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center shadow-sm"
-                        >
-                          <Edit3 className="w-5 h-5" />
-                        </button>
-                      </div>
-                      <div className="flex flex-col items-center gap-1 group/delete">
-                        <button 
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
-                              try {
-                                await deleteDoc(doc(db, 'inventory', item.id));
-                              } catch (error) {
-                                handleFirestoreError(error, OperationType.DELETE, 'inventory');
-                              }
-                            }
-                          }}
-                          className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all border-2 border-transparent hover:border-error/20"
-                        >
-                          <Trash2 className="w-5 h-5" />
+                      {isAuthorized && (
+                        <>
+                          <div className="flex flex-col items-center gap-1 group/edit">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onNavigate('detail', item);
+                              }}
+                              className="w-10 h-10 md:w-12 md:h-12 bg-white border-2 border-outline-variant/30 rounded-xl text-outline hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center shadow-sm"
+                            >
+                              <Edit3 className="w-5 h-5" />
+                            </button>
+                          </div>
+                          <div className="flex flex-col items-center gap-1 group/delete">
+                            <button 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
+                                  try {
+                                    await deleteDoc(doc(db, 'inventory', item.id));
+                                  } catch (error) {
+                                    handleFirestoreError(error, OperationType.DELETE, 'inventory');
+                                  }
+                                }
+                              }}
+                              className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all border-2 border-transparent hover:border-error/20"
+                            >
+                              <Trash2 className="w-5 h-5" />
 
-                        </button>
-                      </div>
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -975,7 +992,7 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
             </>
           )}
         </div>
-        {!isEditingInfo && (
+        {!isEditingInfo && isAuthorized && (
           <div className="flex flex-col items-end gap-3 md:gap-4 w-full md:w-auto">
             <button 
               onClick={() => setIsEditingInfo(true)}
@@ -1025,76 +1042,78 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
         </div>
 
         {/* 재고 업데이트 영역 */}
-        <div className="flex flex-col gap-6">
-          {isUpdatingStock ? (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-primary/5 p-6 md:p-10 rounded-[24px] md:rounded-[40px] border-2 md:border-4 border-primary shadow-2xl space-y-6 md:space-y-8"
-            >
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl md:text-3xl font-black text-primary uppercase tracking-tight flex items-center gap-3 md:gap-4">
-                  <Package className="w-6 h-6 md:w-10 md:h-10" /> 실재고 수량 수정
-                </h3>
-                <p className="text-sm md:text-xl font-black text-outline">기본 실적: {item.currentStock}{item.unit}</p>
-              </div>
-              <div className="flex flex-col lg:flex-row items-center gap-6 md:gap-8">
-                <div className="flex-1 w-full relative">
-                  <input 
-                    type="number" 
-                    value={newStock}
-                    onChange={e => setNewStock(e.target.value)}
-                    className="w-full h-16 md:h-32 px-6 md:px-10 rounded-2xl md:rounded-[32px] border-2 md:border-4 border-primary text-3xl md:text-7xl font-black focus:outline-none shadow-inner tracking-tighter tabular-nums"
-                    autoFocus
-                  />
-                  <span className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 text-base md:text-4xl font-black text-primary/40 uppercase">{item.unit}</span>
+        {isAuthorized && (
+          <div className="flex flex-col gap-6">
+            {isUpdatingStock ? (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-primary/5 p-6 md:p-10 rounded-[24px] md:rounded-[40px] border-2 md:border-4 border-primary shadow-2xl space-y-6 md:space-y-8"
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl md:text-3xl font-black text-primary uppercase tracking-tight flex items-center gap-3 md:gap-4">
+                    <Package className="w-6 h-6 md:w-10 md:h-10" /> 실재고 수량 수정
+                  </h3>
+                  <p className="text-sm md:text-xl font-black text-outline">기본 실적: {item.currentStock}{item.unit}</p>
                 </div>
-                <div className="flex flex-row lg:flex-col gap-3 w-full lg:w-72">
-                  <button 
-                    onClick={handleUpdateStock}
-                    disabled={loading}
-                    className="h-16 md:h-20 flex-1 bg-primary text-white rounded-[16px] md:rounded-[24px] font-black text-lg md:text-2xl uppercase tracking-widest shadow-xl hover:translate-y-[-4px] active:translate-y-0 transition-all disabled:opacity-50"
-                  >
-                    {loading ? '저장 중...' : '변경 완료'}
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setIsUpdatingStock(false);
-                      setNewStock(item.currentStock);
-                    }}
-                    className="h-16 md:h-20 flex-1 bg-white text-outline border-2 md:border-4 border-outline-variant rounded-[16px] md:rounded-[24px] font-black text-base md:text-xl uppercase tracking-widest hover:bg-surface-container transition-all"
-                  >
-                    취소
-                  </button>
+                <div className="flex flex-col lg:flex-row items-center gap-6 md:gap-8">
+                  <div className="flex-1 w-full relative">
+                    <input 
+                      type="number" 
+                      value={newStock}
+                      onChange={e => setNewStock(e.target.value)}
+                      className="w-full h-16 md:h-32 px-6 md:px-10 rounded-2xl md:rounded-[32px] border-2 md:border-4 border-primary text-3xl md:text-7xl font-black focus:outline-none shadow-inner tracking-tighter tabular-nums"
+                      autoFocus
+                    />
+                    <span className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 text-base md:text-4xl font-black text-primary/40 uppercase">{item.unit}</span>
+                  </div>
+                  <div className="flex flex-row lg:flex-col gap-3 w-full lg:w-72">
+                    <button 
+                      onClick={handleUpdateStock}
+                      disabled={loading}
+                      className="h-16 md:h-20 flex-1 bg-primary text-white rounded-[16px] md:rounded-[24px] font-black text-lg md:text-2xl uppercase tracking-widest shadow-xl hover:translate-y-[-4px] active:translate-y-0 transition-all disabled:opacity-50"
+                    >
+                      {loading ? '저장 중...' : '변경 완료'}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIsUpdatingStock(false);
+                        setNewStock(item.currentStock);
+                      }}
+                      className="h-16 md:h-20 flex-1 bg-white text-outline border-2 md:border-4 border-outline-variant rounded-[16px] md:rounded-[24px] font-black text-base md:text-xl uppercase tracking-widest hover:bg-surface-container transition-all"
+                    >
+                      취소
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-5 gap-2 md:gap-4">
-                {[
-                  { label: '+1', val: 1, color: 'border-primary text-primary' },
-                  { label: '+10', val: 10, color: 'border-primary text-primary' },
-                  { label: '+50', val: 50, color: 'border-primary text-primary' },
-                  { label: '-1', val: -1, color: 'border-error text-error' },
-                  { label: '-10', val: -10, color: 'border-error text-error' },
-                ].map((btn, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => setNewStock(Math.max(0, Number(newStock) + btn.val))} 
-                    className={`h-12 md:h-16 bg-white border-2 rounded-xl md:rounded-2xl font-black text-sm md:text-2xl hover:bg-surface-container transition-all shadow-sm ${btn.color}`}
-                  >
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <button 
-              onClick={() => setIsUpdatingStock(true)}
-              className="w-full bg-primary text-white h-14 md:h-24 rounded-2xl md:rounded-[32px] flex items-center justify-center gap-4 md:gap-6 font-black text-lg md:text-3xl shadow-lg hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-[0.1em] md:tracking-[0.2em]"
-            >
-              <Package className="w-5 h-5 md:w-10 md:h-10" /> 재고 수량 업데이트
-            </button>
-          )}
-        </div>
+                <div className="grid grid-cols-5 gap-2 md:gap-4">
+                  {[
+                    { label: '+1', val: 1, color: 'border-primary text-primary' },
+                    { label: '+10', val: 10, color: 'border-primary text-primary' },
+                    { label: '+50', val: 50, color: 'border-primary text-primary' },
+                    { label: '-1', val: -1, color: 'border-error text-error' },
+                    { label: '-10', val: -10, color: 'border-error text-error' },
+                  ].map((btn, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => setNewStock(Math.max(0, Number(newStock) + btn.val))} 
+                      className={`h-12 md:h-16 bg-white border-2 rounded-xl md:rounded-2xl font-black text-sm md:text-2xl hover:bg-surface-container transition-all shadow-sm ${btn.color}`}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <button 
+                onClick={() => setIsUpdatingStock(true)}
+                className="w-full bg-primary text-white h-14 md:h-24 rounded-2xl md:rounded-[32px] flex items-center justify-center gap-4 md:gap-6 font-black text-lg md:text-3xl shadow-lg hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-[0.1em] md:tracking-[0.2em]"
+              >
+                <Package className="w-5 h-5 md:w-10 md:h-10" /> 재고 수량 업데이트
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Financial Info Section (New, only for authorized) */}
         {isAuthorized && (
@@ -1240,12 +1259,14 @@ const LogisticsView = ({
   logistics, 
   inventory, 
   partners, 
-  onNavigate 
+  onNavigate,
+  isAuthorized = false
 }: { 
   logistics: any[], 
   inventory: any[],
   partners: any[],
-  onNavigate?: (view: ViewType) => void 
+  onNavigate?: (view: ViewType) => void,
+  isAuthorized?: boolean
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1466,13 +1487,15 @@ const LogisticsView = ({
           </div>
         </div>
         <div className="flex gap-3">
-          <button 
-            onClick={() => setShowForm(!showForm)}
-            className={`${showForm ? 'bg-secondary' : 'bg-primary'} text-white h-14 px-8 rounded-2xl flex items-center gap-3 text-base font-black shadow-lg transition-all hover:opacity-90 active:scale-95 uppercase tracking-widest`}
-          >
-            {showForm ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-            {showForm ? (editingId ? '수정 취소' : '닫기') : '신규 입고/출고'}
-          </button>
+          {isAuthorized && (
+            <button 
+              onClick={() => setShowForm(!showForm)}
+              className={`${showForm ? 'bg-secondary' : 'bg-primary'} text-white h-14 px-8 rounded-2xl flex items-center gap-3 text-base font-black shadow-lg transition-all hover:opacity-90 active:scale-95 uppercase tracking-widest`}
+            >
+              {showForm ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+              {showForm ? (editingId ? '수정 취소' : '닫기') : '신규 입고/출고'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1683,25 +1706,29 @@ const LogisticsView = ({
                     </span>
                   </div>
                   <div className="flex gap-1.5 md:gap-2">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEdit(item);
-                      }}
-                      className="h-9 md:h-10 px-4 md:px-6 border-2 border-primary text-primary rounded-xl text-xs md:text-sm font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
-                    >
-                      수정
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(item);
-                      }}
-                      className="h-9 md:h-10 px-3 md:px-4 border-2 border-error text-error rounded-xl text-xs md:text-sm font-black uppercase hover:bg-error hover:text-white transition-all shadow-sm active:scale-95 flex items-center justify-center"
-                      title="삭제"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isAuthorized && (
+                      <>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEdit(item);
+                          }}
+                          className="h-9 md:h-10 px-4 md:px-6 border-2 border-primary text-primary rounded-xl text-xs md:text-sm font-black uppercase hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
+                        >
+                          수정
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(item);
+                          }}
+                          className="h-9 md:h-10 px-3 md:px-4 border-2 border-error text-error rounded-xl text-xs md:text-sm font-black uppercase hover:bg-error hover:text-white transition-all shadow-sm active:scale-95 flex items-center justify-center"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1718,7 +1745,7 @@ const LogisticsView = ({
   );
 };
 
-const ProductionView = ({ production, inventory, onNavigate }: { production: any[], inventory: any[], onNavigate?: (view: ViewType) => void }) => {
+const ProductionView = ({ production, inventory, onNavigate, isAuthorized = false }: { production: any[], inventory: any[], onNavigate?: (view: ViewType) => void, isAuthorized?: boolean }) => {
   const [showForm, setShowForm] = useState(false);
   const [productionLine, setProductionLine] = useState('삼산공장');
   const [items, setItems] = useState([{ title: '', rawMeat: '', input: '', production: '', yield: '', loss: '', manufDate: '', expiryDate: '' }]);
@@ -1973,19 +2000,21 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
           </div>
         </div>
         <div className="flex gap-3">
-          <button 
-            onClick={() => {
-              if (editingId) {
-                cancelEdit();
-              } else {
-                setShowForm(!showForm);
-              }
-            }}
-            className={`${editingId ? 'bg-secondary' : 'bg-primary'} text-white h-12 px-4 md:px-6 rounded-2xl text-sm md:text-base font-black flex items-center gap-3 shadow-lg hover:opacity-90 transition-all active:scale-95 uppercase tracking-widest shadow-primary/20`}
-          >
-            {showForm ? (editingId ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronRight className="w-5 h-5 md:w-6 md:h-6 rotate-90" />) : <Plus className="w-5 h-5 md:w-6 md:h-6" />}
-            {showForm ? (editingId ? '수정 닫기' : '닫기') : '생산일지 등록'}
-          </button>
+          {isAuthorized && (
+            <button 
+              onClick={() => {
+                if (editingId) {
+                  cancelEdit();
+                } else {
+                  setShowForm(!showForm);
+                }
+              }}
+              className={`${editingId ? 'bg-secondary' : 'bg-primary'} text-white h-12 px-4 md:px-6 rounded-2xl text-sm md:text-base font-black flex items-center gap-3 shadow-lg hover:opacity-90 transition-all active:scale-95 uppercase tracking-widest shadow-primary/20`}
+            >
+              {showForm ? (editingId ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronRight className="w-5 h-5 md:w-6 md:h-6 rotate-90" />) : <Plus className="w-5 h-5 md:w-6 md:h-6" />}
+              {showForm ? (editingId ? '수정 닫기' : '닫기') : '생산일지 등록'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -2273,20 +2302,24 @@ const ProductionView = ({ production, inventory, onNavigate }: { production: any
                           </p>
                         </div>
                         <div className="flex gap-1.5 md:gap-2">
-                          <button 
-                            onClick={() => startEdit(batch)}
-                            className="p-2 md:p-3 bg-secondary/10 text-secondary rounded-xl hover:bg-secondary hover:text-white transition-all shadow-sm active:scale-90"
-                            title="기록 수정"
-                          >
-                            <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteProduction(batch.id, batch.title, (batch.production || batch.weight))}
-                            className="p-2 md:p-3 bg-error/10 text-error rounded-xl hover:bg-error hover:text-white transition-all shadow-sm active:scale-90"
-                            title="기록 삭제"
-                          >
-                            <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
-                          </button>
+                          {isAuthorized && (
+                            <>
+                              <button 
+                                onClick={() => startEdit(batch)}
+                                className="p-2 md:p-3 bg-secondary/10 text-secondary rounded-xl hover:bg-secondary hover:text-white transition-all shadow-sm active:scale-90"
+                                title="기록 수정"
+                              >
+                                <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteProduction(batch.id, batch.title, (batch.production || batch.weight))}
+                                className="p-2 md:p-3 bg-error/10 text-error rounded-xl hover:bg-error hover:text-white transition-all shadow-sm active:scale-90"
+                                title="기록 삭제"
+                              >
+                                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -2524,132 +2557,140 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
         className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border border-outline-variant shadow-sm"
       >
         {activeTab === 'product' && (
-          <form onSubmit={handleRegisterProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-            <div className="md:col-span-2 text-center pb-2">
-              <h3 className="text-sm font-black text-primary uppercase tracking-widest">신규 상품(Master) 등록</h3>
-            </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">SKU 번호</label>
-              <input required value={product.sku} onChange={e => setProduct({...product, sku: e.target.value})} type="text" placeholder="예: SKU-BF-001" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">품목명</label>
-              <input required value={product.name} onChange={e => setProduct({...product, name: e.target.value})} type="text" placeholder="예: 프리미엄 티본" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">카테고리</label>
-              <input required value={product.category} onChange={e => setProduct({...product, category: e.target.value})} type="text" placeholder="예: 소고기" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">단위</label>
-              <input required value={product.unit} onChange={e => setProduct({...product, unit: e.target.value})} type="text" placeholder="예: kg" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">현재 재고</label>
-              <input required value={product.currentStock} onChange={e => setProduct({...product, currentStock: e.target.value})} type="number" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-primary uppercase tracking-widest px-1">안전 재고</label>
-              <input required value={product.safetyStock} onChange={e => setProduct({...product, safetyStock: e.target.value})} type="number" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
-            </div>
-            {isAuthorized && (
-              <>
+          <div className="space-y-6 md:space-y-12">
+            {isAuthorized ? (
+              <form onSubmit={handleRegisterProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <div className="md:col-span-2 text-center pb-2">
+                  <h3 className="text-sm font-black text-primary uppercase tracking-widest">신규 상품(Master) 등록</h3>
+                </div>
+                
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">매입 단가 (₩)</label>
-                  <input required value={product.purchasePrice} onChange={e => setProduct({...product, purchasePrice: e.target.value})} type="number" placeholder="예: 25000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">SKU 번호</label>
+                  <input required value={product.sku} onChange={e => setProduct({...product, sku: e.target.value})} type="text" placeholder="예: SKU-BF-001" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">판매 단가 (₩)</label>
-                  <input required value={product.salesPrice} onChange={e => setProduct({...product, salesPrice: e.target.value})} type="number" placeholder="예: 38000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">품목명</label>
+                  <input required value={product.name} onChange={e => setProduct({...product, name: e.target.value})} type="text" placeholder="예: 프리미엄 티본" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
                 </div>
-              </>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">카테고리</label>
+                  <input required value={product.category} onChange={e => setProduct({...product, category: e.target.value})} type="text" placeholder="예: 소고기" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">단위</label>
+                  <input required value={product.unit} onChange={e => setProduct({...product, unit: e.target.value})} type="text" placeholder="예: kg" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">현재 재고</label>
+                  <input required value={product.currentStock} onChange={e => setProduct({...product, currentStock: e.target.value})} type="number" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-primary uppercase tracking-widest px-1">안전 재고</label>
+                  <input required value={product.safetyStock} onChange={e => setProduct({...product, safetyStock: e.target.value})} type="number" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                </div>
+                {isAuthorized && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-primary uppercase tracking-widest px-1">매입 단가 (₩)</label>
+                      <input required value={product.purchasePrice} onChange={e => setProduct({...product, purchasePrice: e.target.value})} type="number" placeholder="예: 25000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-primary uppercase tracking-widest px-1">판매 단가 (₩)</label>
+                      <input required value={product.salesPrice} onChange={e => setProduct({...product, salesPrice: e.target.value})} type="number" placeholder="예: 38000" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                    </div>
+                  </>
+                )}
+
+                <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8 border-y border-outline-variant/30 py-4 md:py-6 my-2">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
+                      <CalendarDays className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" /> 생산 일자
+                    </label>
+                    <input value={product.manufactureDate} onChange={e => setProduct({...product, manufactureDate: e.target.value})} type="date" className="w-full h-11 md:h-14 px-3 md:px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-colors bg-surface-container/30" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-error" /> 소비기한
+                    </label>
+                    <input value={product.expiryDate} onChange={e => setProduct({...product, expiryDate: e.target.value})} type="date" className="w-full h-11 md:h-14 px-3 md:px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-colors bg-surface-container/30" />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">보관 위치/라인</label>
+                    <input value={product.location} onChange={e => setProduct({...product, location: e.target.value})} type="text" placeholder="예: A구역 / 1번라인" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-all" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">상세 위치</label>
+                    <input type="text" placeholder="예: 3단 4번" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-all" />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 pt-4 md:pt-8">
+                  <button disabled={loading} type="submit" className="w-full h-14 md:h-16 bg-primary text-white rounded-2xl font-black text-base md:text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
+                    {loading ? '처리 중...' : '상품 시스템 등록'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-8 text-center text-outline font-bold">권한이 부족하여 상품 등록 메뉴에 접근할 수 없습니다.</div>
             )}
-
-            <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8 border-y border-outline-variant/30 py-4 md:py-6 my-2">
-              <div className="space-y-1.5">
-                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
-                  <CalendarDays className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" /> 생산 일자
-                </label>
-                <input value={product.manufactureDate} onChange={e => setProduct({...product, manufactureDate: e.target.value})} type="date" className="w-full h-11 md:h-14 px-3 md:px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-colors bg-surface-container/30" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-error" /> 소비기한
-                </label>
-                <input value={product.expiryDate} onChange={e => setProduct({...product, expiryDate: e.target.value})} type="date" className="w-full h-11 md:h-14 px-3 md:px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-colors bg-surface-container/30" />
-              </div>
-            </div>
-
-            <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8">
-              <div className="space-y-1.5">
-                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">보관 위치/라인</label>
-                <input value={product.location} onChange={e => setProduct({...product, location: e.target.value})} type="text" placeholder="예: A구역 / 1번라인" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-all" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1">상세 위치</label>
-                <input type="text" placeholder="예: 3단 4번" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-all" />
-              </div>
-            </div>
-
-            <div className="md:col-span-2 pt-4 md:pt-8">
-              <button disabled={loading} type="submit" className="w-full h-14 md:h-16 bg-primary text-white rounded-2xl font-black text-base md:text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
-                {loading ? '처리 중...' : '상품 시스템 등록'}
-              </button>
-            </div>
-          </form>
+          </div>
         )}
 
         {activeTab === 'partner' && (
           <div className="space-y-6 md:space-y-12">
-            <form onSubmit={handlePartnerSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 bg-surface-container/20 p-4 md:p-6 rounded-2xl border border-outline-variant/30 relative">
-              {editingPartner && (
-                <div className="absolute top-3 right-3 md:top-4 md:right-4 bg-primary/10 text-primary px-3 md:px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
-                  <Edit3 className="w-3 h-3" /> 수정 중
-                </div>
-              )}
-              <div className="md:col-span-2">
-                <h3 className="text-sm md:text-base font-black text-primary uppercase tracking-widest mb-2 md:mb-4 text-center">
-                  {editingPartner ? '거래처 정보 수정' : '신규 거래처 등록'}
-                </h3>
-              </div>
-              <div className="space-y-1 md:space-y-2">
-                <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">거래처명</label>
-                <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors font-bold bg-white" />
-              </div>
-              <div className="space-y-1 md:space-y-2">
-                <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">유형</label>
-                <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold">
-                  <option value="공급사">공급사</option>
-                  <option value="고객사">고객사</option>
-                </select>
-              </div>
-              <div className="space-y-1 md:space-y-2">
-                <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">연락처</label>
-                <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold" />
-              </div>
-              <div className="space-y-1 md:space-y-2">
-                <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">주소</label>
-                <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold" />
-              </div>
-              <div className="md:col-span-2 flex flex-col md:flex-row gap-3 md:gap-4 pt-2 md:pt-4">
-                <button disabled={loading} type="submit" className="h-14 md:h-20 bg-secondary text-white rounded-2xl font-black text-base md:text-xl uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
-                  {loading ? '처리 중...' : editingPartner ? '수정 완료' : '등록 완료'}
-                </button>
+            {isAuthorized && (
+              <form onSubmit={handlePartnerSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 bg-surface-container/20 p-4 md:p-6 rounded-2xl border border-outline-variant/30 relative">
                 {editingPartner && (
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setEditingPartner(null);
-                      setPartner({ name: '', contact: '', address: '', type: '공급사' });
-                    }}
-                    className="h-14 md:h-20 px-8 bg-surface-container text-outline rounded-2xl font-black text-base md:text-xl uppercase tracking-widest hover:bg-surface-container-high transition-all"
-                  >
-                    취소
-                  </button>
+                  <div className="absolute top-3 right-3 md:top-4 md:right-4 bg-primary/10 text-primary px-3 md:px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <Edit3 className="w-3 h-3" /> 수정 중
+                  </div>
                 )}
-              </div>
-            </form>
+                <div className="md:col-span-2">
+                  <h3 className="text-sm md:text-base font-black text-primary uppercase tracking-widest mb-2 md:mb-4 text-center">
+                    {editingPartner ? '거래처 정보 수정' : '신규 거래처 등록'}
+                  </h3>
+                </div>
+                <div className="space-y-1 md:space-y-2">
+                  <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">거래처명</label>
+                  <input required value={partner.name} onChange={e => setPartner({...partner, name: e.target.value})} type="text" placeholder="예: (주)한울미트" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors font-bold bg-white" />
+                </div>
+                <div className="space-y-1 md:space-y-2">
+                  <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">유형</label>
+                  <select value={partner.type} onChange={e => setPartner({...partner, type: e.target.value})} className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold">
+                    <option value="공급사">공급사</option>
+                    <option value="고객사">고객사</option>
+                  </select>
+                </div>
+                <div className="space-y-1 md:space-y-2">
+                  <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">연락처</label>
+                  <input value={partner.contact} onChange={e => setPartner({...partner, contact: e.target.value})} type="text" placeholder="예: 010-1234-5678" className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold" />
+                </div>
+                <div className="space-y-1 md:space-y-2">
+                  <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">주소</label>
+                  <input value={partner.address} onChange={e => setPartner({...partner, address: e.target.value})} type="text" placeholder="예: 경기도 안양시..." className="w-full h-11 md:h-14 px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-base md:text-lg transition-colors bg-white font-bold" />
+                </div>
+                <div className="md:col-span-2 flex flex-col md:flex-row gap-3 md:gap-4 pt-2 md:pt-4">
+                  <button disabled={loading} type="submit" className="h-14 md:h-20 bg-secondary text-white rounded-2xl font-black text-base md:text-xl uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
+                    {loading ? '처리 중...' : editingPartner ? '수정 완료' : '등록 완료'}
+                  </button>
+                  {editingPartner && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setEditingPartner(null);
+                        setPartner({ name: '', contact: '', address: '', type: '공급사' });
+                      }}
+                      className="h-14 md:h-20 px-8 bg-surface-container text-outline rounded-2xl font-black text-base md:text-xl uppercase tracking-widest hover:bg-surface-container-high transition-all"
+                    >
+                      취소
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
 
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -2657,7 +2698,7 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                   <Users className="w-5 h-5 md:w-6 md:h-6" /> 거래처 목록
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                  {selectedIds.length > 0 && (
+                  {isAuthorized && selectedIds.length > 0 && (
                     <button 
                       onClick={() => handleDeletePartners(selectedIds)}
                       className="h-10 px-4 bg-error text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-sm"
@@ -2735,20 +2776,24 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                             <td className="p-3 md:p-4 text-xs md:text-base text-on-surface-variant font-medium text-center">{p.contact || '-'}</td>
                             <td className="p-3 md:p-4 text-right pr-6">
                               <div className="flex items-center justify-end gap-1.5 md:gap-2">
-                                <button 
-                                  onClick={() => startEditPartner(p)}
-                                  className="p-2 text-outline hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                                  title="수정"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeletePartners([p.id])}
-                                  className="p-2 text-outline hover:text-error hover:bg-error/10 rounded-lg transition-all"
-                                  title="삭제"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                {isAuthorized && (
+                                  <>
+                                    <button 
+                                      onClick={() => startEditPartner(p)}
+                                      className="p-2 text-outline hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                                      title="수정"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeletePartners([p.id])}
+                                      className="p-2 text-outline hover:text-error hover:bg-error/10 rounded-lg transition-all"
+                                      title="삭제"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -2769,36 +2814,38 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
         {/* --- Admin Tab Interface --- */}
         {activeTab === 'admin' && (
           <div className="space-y-6 md:space-y-12">
-            <form onSubmit={handleAdminRegister} className="bg-surface-container/20 p-4 md:p-8 rounded-2xl md:rounded-3xl border border-outline-variant/30 space-y-4 md:space-y-6">
-              <div className="text-center space-y-1 md:space-y-2">
-                <Lock className="w-6 h-6 md:w-10 md:h-10 text-primary mx-auto mb-1 md:mb-2" />
-                <h3 className="text-lg md:text-2xl font-black text-primary uppercase tracking-tight">관리자 등록</h3>
-                <p className="text-[9px] md:text-sm text-outline font-bold uppercase tracking-widest">구글 이메일을 등록하여 관리 권한을 부여합니다.</p>
-              </div>
+            {isAuthorized && (
+              <form onSubmit={handleAdminRegister} className="bg-surface-container/20 p-4 md:p-8 rounded-2xl md:rounded-3xl border border-outline-variant/30 space-y-4 md:space-y-6">
+                <div className="text-center space-y-1 md:space-y-2">
+                  <Lock className="w-6 h-6 md:w-10 md:h-10 text-primary mx-auto mb-1 md:mb-2" />
+                  <h3 className="text-lg md:text-2xl font-black text-primary uppercase tracking-tight">관리자 등록</h3>
+                  <p className="text-[9px] md:text-sm text-outline font-bold uppercase tracking-widest">구글 이메일을 등록하여 관리 권한을 부여합니다.</p>
+                </div>
 
-              <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
-                <div className="space-y-1 md:space-y-2">
-                  <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">등록할 구글 이메일</label>
-                  <div className="flex flex-col md:flex-row gap-2 md:gap-4">
-                    <input 
-                      required 
-                      type="email" 
-                      value={adminEmailInput}
-                      onChange={(e) => setAdminEmailInput(e.target.value)}
-                      placeholder="example@gmail.com"
-                      className="flex-1 h-11 md:h-14 px-4 md:px-6 rounded-xl md:rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg font-bold shadow-inner"
-                    />
-                    <button 
-                      disabled={loading}
-                      type="submit"
-                      className="h-14 md:h-16 px-8 md:px-10 bg-primary text-white rounded-2xl font-black text-base md:text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {loading ? '기록...' : <><Plus className="w-5 h-5" /> 등록</>}
-                    </button>
+                <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
+                  <div className="space-y-1 md:space-y-2">
+                    <label className="text-[10px] md:text-sm font-black text-primary uppercase tracking-widest px-1">등록할 구글 이메일</label>
+                    <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+                      <input 
+                        required 
+                        type="email" 
+                        value={adminEmailInput}
+                        onChange={(e) => setAdminEmailInput(e.target.value)}
+                        placeholder="example@gmail.com"
+                        className="flex-1 h-11 md:h-14 px-4 md:px-6 rounded-xl md:rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-lg font-bold shadow-inner"
+                      />
+                      <button 
+                        disabled={loading}
+                        type="submit"
+                        className="h-14 md:h-16 px-8 md:px-10 bg-primary text-white rounded-2xl font-black text-base md:text-lg uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {loading ? '기록...' : <><Plus className="w-5 h-5" /> 등록</>}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </form>
+              </form>
+            )}
 
             <div className="space-y-6">
               <h3 className="text-lg md:text-xl font-black text-primary uppercase tracking-tight flex items-center gap-2">
@@ -2832,13 +2879,15 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                         <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest">Registered Admin</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => handleAdminDelete(admin.email)}
-                      disabled={loading}
-                      className="shrink-0 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all border border-transparent hover:border-error/20 ml-2"
-                    >
-                      <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
-                    </button>
+                    {isAuthorized && (
+                      <button 
+                        onClick={() => handleAdminDelete(admin.email)}
+                        disabled={loading}
+                        className="shrink-0 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all border border-transparent hover:border-error/20 ml-2"
+                      >
+                        <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -3158,8 +3207,8 @@ export default function App() {
                 {currentView === 'dashboard' && <DashboardView onNavigate={handleNavigate} inventory={inventory} production={production} logistics={logistics} partners={partners} onQuickAdjust={handleQuickAdjust} />}
                 {currentView === 'inventory' && <InventoryView onNavigate={handleNavigate} inventory={inventory} logistics={logistics} isAuthorized={isAuthorized} onQuickAdjust={handleQuickAdjust} />}
                 {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} logistics={logistics} isAuthorized={isAuthorized} />}
-                {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} />}
-                {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} />}
+                {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} isAuthorized={isAuthorized} />}
+                {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} isAuthorized={isAuthorized} />}
                 {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} partners={partners} logistics={logistics} production={production} adminEmails={adminEmails} user={user} isAuthorized={isAuthorized} />}
               </motion.div>
             </AnimatePresence>
