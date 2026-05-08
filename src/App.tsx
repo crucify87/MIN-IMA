@@ -651,12 +651,12 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-surface-container/50 border-b-2 border-outline-variant/10">
-                <th className="px-4 py-4 text-center text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">SKU/위치/라인</th>
-                <th className="px-4 py-4 text-left text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">품목 정보</th>
-                <th className="px-4 py-4 text-left text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">카테고리</th>
-                <th className="px-4 py-4 text-right text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">현재 재고</th>
-                <th className="px-4 py-4 text-center text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">상태</th>
-                <th className="px-4 py-4 text-right text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">관리</th>
+                <th className="hidden md:table-cell px-2 md:px-4 py-4 text-center text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">SKU/위치/라인</th>
+                <th className="px-2 md:px-4 py-4 text-left text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">품목 정보</th>
+                <th className="hidden lg:table-cell px-2 md:px-4 py-4 text-left text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">카테고리</th>
+                <th className="px-2 md:px-4 py-4 text-right text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">현재 재고</th>
+                <th className="px-2 md:px-4 py-4 text-center text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">상태</th>
+                <th className="px-2 md:px-4 py-4 text-right text-[10px] md:text-sm font-black text-outline uppercase tracking-[0.2em]">관리</th>
               </tr>
             </thead>
             <tbody>
@@ -666,88 +666,89 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
                   onClick={() => onNavigate('detail', item)}
                   className={`border-b border-outline-variant/5 hover:bg-surface-container/30 transition-colors cursor-pointer group ${item.currentStock < item.safetyStock ? 'bg-error/[0.02]' : ''}`}
                 >
-                  <td className="px-4 py-4 text-center">
+                  <td className="hidden md:table-cell px-2 md:px-4 py-4 text-center">
                     <div className="flex flex-col items-center">
                       <span className="text-xs md:text-base text-outline font-mono font-black tracking-widest">{item.sku}</span>
                       <span className="text-[10px] text-outline/60 font-black uppercase tracking-widest mt-1">{item.location}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
-                        {item.currentStock < item.safetyStock ? <AlertTriangle className="w-5 h-5 md:w-6 md:h-6" /> : <Package className="w-5 h-5 md:w-6 md:h-6" />}
+                  <td className="px-2 md:px-4 py-4">
+                    <div className="flex items-center gap-2 md:gap-4">
+                      <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110 ${item.currentStock < item.safetyStock ? 'bg-error text-white' : 'bg-primary/10 text-primary'}`}>
+                        {item.currentStock < item.safetyStock ? <AlertTriangle className="w-4 h-4 md:w-6 md:h-6" /> : <Package className="w-4 h-4 md:w-6 md:h-6" />}
                       </div>
-                      <p className="font-black text-lg md:text-2xl text-on-surface group-hover:text-primary transition-colors tracking-tighter truncate max-w-[150px] md:max-w-[300px]">
-                        {item.name}
-                      </p>
+                      <div className="overflow-hidden">
+                        <p className="font-black text-sm md:text-2xl text-on-surface group-hover:text-primary transition-colors tracking-tighter truncate max-w-[100px] md:max-w-[300px]">
+                          {item.name}
+                        </p>
+                        <div className="flex md:hidden items-center gap-1 mt-0.5">
+                          <span className="text-[8px] font-mono font-bold text-outline uppercase">{item.sku}</span>
+                          <span className="text-[8px] font-bold text-primary opacity-60 uppercase">{item.category}</span>
+                        </div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="hidden lg:table-cell px-2 md:px-4 py-4">
                     <span className="px-3 md:px-5 py-1 md:py-2 bg-surface-container text-on-surface-variant rounded-full text-[10px] md:text-sm font-black uppercase tracking-widest border border-outline-variant/30 whitespace-nowrap">
                       {item.category}
                     </span>
                   </td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="flex flex-col items-end gap-2">
-                       <div className="flex items-baseline justify-end gap-1">
-                        <p className={`font-black text-xl md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
+                  <td className="px-2 md:px-4 py-4 text-right">
+                    <div className="flex flex-col items-end gap-1 md:gap-2">
+                       <div className="flex items-baseline justify-end gap-0.5 md:gap-1">
+                        <p className={`font-black text-lg md:text-3xl tabular-nums tracking-tighter ${item.currentStock < item.safetyStock ? 'text-error' : 'text-primary'}`}>
                           {item.currentStock?.toLocaleString()}
                         </p>
-                        <span className="text-[10px] md:text-sm font-black text-outline uppercase">{item.unit}</span>
+                        <span className="text-[8px] md:text-sm font-black text-outline uppercase">{item.unit}</span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-center">
-                    <div className={`inline-flex items-center gap-2 px-3 md:px-5 py-1 md:py-2 rounded-full border-2 ${
+                  <td className="px-2 md:px-4 py-4 text-center">
+                    <div className={`inline-flex items-center gap-1 md:gap-2 px-2 md:px-5 py-0.5 md:py-2 rounded-full border-2 ${
                       item.currentStock < (item.safetyStock * 0.5)
                         ? 'bg-red-50 border-red-100 text-red-700'
                         : item.currentStock < item.safetyStock
                         ? 'bg-amber-50 border-amber-100 text-amber-700'
                         : 'bg-emerald-50 border-emerald-100 text-emerald-700'
                     }`}>
-                      <div className={`w-2 h-2 rounded-full ${
+                      <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${
                         item.currentStock < (item.safetyStock * 0.5) ? 'bg-red-600 animate-pulse' : 
                         item.currentStock < item.safetyStock ? 'bg-amber-500 animate-pulse' : 
                         'bg-emerald-500'}`} />
-                      <span className="text-[10px] md:text-sm font-black uppercase tracking-widest whitespace-nowrap">
+                      <span className="hidden md:inline text-[10px] md:text-sm font-black uppercase tracking-widest whitespace-nowrap">
                         {item.currentStock < (item.safetyStock * 0.5) ? '재고 위험' : 
-                         item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}
+                         item.currentStock < item.safetyStock ? '재고 부족' : '재고 정상'}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-2 md:px-4 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1 md:gap-2">
                       {isAuthorized && (
                         <>
-                          <div className="flex flex-col items-center gap-1 group/edit">
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onNavigate('detail', item);
-                              }}
-                              className="w-10 h-10 md:w-12 md:h-12 bg-white border-2 border-outline-variant/30 rounded-xl text-outline hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center shadow-sm"
-                            >
-                              <Edit3 className="w-5 h-5" />
-                            </button>
-                          </div>
-                          <div className="flex flex-col items-center gap-1 group/delete">
-                            <button 
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
-                                  try {
-                                    await deleteDoc(doc(db, 'inventory', item.id));
-                                  } catch (error) {
-                                    handleFirestoreError(error, OperationType.DELETE, 'inventory');
-                                  }
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate('detail', item);
+                            }}
+                            className="w-8 h-8 md:w-12 md:h-12 bg-white border-2 border-outline-variant/30 rounded-lg md:rounded-xl text-outline hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center shadow-sm"
+                          >
+                            <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
+                          </button>
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (confirm('정말로 이 재고 항목을 삭제하시겠습니까?')) {
+                                try {
+                                  await deleteDoc(doc(db, 'inventory', item.id));
+                                } catch (error) {
+                                  handleFirestoreError(error, OperationType.DELETE, 'inventory');
                                 }
-                              }}
-                              className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-xl transition-all border-2 border-transparent hover:border-error/20"
-                            >
-                              <Trash2 className="w-5 h-5" />
-
-                            </button>
-                          </div>
+                              }
+                            }}
+                            className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center text-outline hover:text-error hover:bg-error/5 rounded-lg md:rounded-xl transition-all border-2 border-transparent hover:border-error/20"
+                          >
+                            <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                          </button>
                         </>
                       )}
                     </div>
@@ -1063,8 +1064,8 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
                 displayStock < (safeStock * 0.5) ? 'text-red-700' :
                 displayStock < safeStock ? 'text-amber-700' : 'text-primary/70'
               }`}>
-                {displayStock < (safeStock * 0.5) ? '위험 수준' :
-                 displayStock < safeStock ? '부족 상태' : '안정적 수량'}
+                {displayStock < (safeStock * 0.5) ? '재고 위험' :
+                 displayStock < safeStock ? '재고 부족' : '재고 정상'}
               </p>
             </div>
           </div>
@@ -2276,13 +2277,13 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
             <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container border-b border-outline-variant text-[10px] md:text-base uppercase font-black text-outline">
                 <tr>
-                  <th className="p-3 md:p-4 whitespace-nowrap">SKU/라인</th>
-                  <th className="p-3 md:p-4 whitespace-nowrap">품목명</th>
-                  <th className="p-3 md:p-4 text-center whitespace-nowrap">투입량</th>
-                  <th className="p-3 md:p-4 text-center whitespace-nowrap text-primary">생산량 (재고가산)</th>
-                  <th className="p-3 md:p-4 text-center whitespace-nowrap">수율</th>
-                  <th className="p-3 md:p-4 text-center whitespace-nowrap">Loss율</th>
-                  <th className="p-3 md:p-4 text-right whitespace-nowrap">관리</th>
+                  <th className="p-2 md:p-4 whitespace-nowrap">SKU/라인</th>
+                  <th className="p-2 md:p-4 whitespace-nowrap">품목명</th>
+                  <th className="hidden sm:table-cell p-2 md:p-4 text-center whitespace-nowrap">투입량</th>
+                  <th className="p-2 md:p-4 text-center whitespace-nowrap text-primary">생산량</th>
+                  <th className="hidden md:table-cell p-2 md:p-4 text-center whitespace-nowrap">수율</th>
+                  <th className="hidden lg:table-cell p-2 md:p-4 text-center whitespace-nowrap">Loss율</th>
+                  <th className="p-2 md:p-4 text-right whitespace-nowrap">관리</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
@@ -2292,67 +2293,67 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
                   
                   return (
                     <tr key={i} className="hover:bg-surface-container transition-colors group">
-                      <td className="p-3 md:p-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs md:text-base font-mono text-outline font-black tracking-widest">{displaySku}</span>
-                          <span className="w-fit px-2 md:px-3 py-0.5 md:py-1 bg-primary/10 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
+                      <td className="p-2 md:p-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-0.5 md:gap-1">
+                          <span className="text-[10px] md:text-base font-mono text-outline font-black tracking-widest">{displaySku}</span>
+                          <span className="w-fit px-1.5 md:px-3 py-0.5 md:py-1 bg-primary/10 rounded-lg text-[8px] md:text-[10px] font-black text-primary uppercase tracking-widest">{batch.productionLine}</span>
                         </div>
                       </td>
-                      <td className="p-3 md:p-4 whitespace-nowrap">
-                        <div className="space-y-1">
-                          <p className="text-base md:text-2xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight">{batch.title}</p>
-                          <p className="text-[9px] md:text-xs font-bold text-outline-variant uppercase tracking-widest">{batch.rawMeat}</p>
+                      <td className="p-2 md:p-4 whitespace-nowrap">
+                        <div className="space-y-0.5 md:space-y-1 overflow-hidden">
+                          <p className="text-sm md:text-2xl font-black text-on-surface group-hover:text-primary transition-colors tracking-tight truncate max-w-[80px] md:max-w-none">{batch.title}</p>
+                          <p className="text-[8px] md:text-xs font-bold text-outline-variant uppercase tracking-widest truncate max-w-[80px] md:max-w-none">{batch.rawMeat}</p>
                         </div>
                       </td>
-                    <td className="p-3 md:p-4 text-center whitespace-nowrap">
-                      <span className="text-sm md:text-xl font-black text-outline-variant tabular-nums">
+                    <td className="hidden sm:table-cell p-2 md:p-4 text-center whitespace-nowrap">
+                      <span className="text-xs md:text-xl font-black text-outline-variant tabular-nums">
                         {batch.input ? `${Number(batch.input).toLocaleString()}kg` : '-'}
                       </span>
                     </td>
-                    <td className="p-3 md:p-4 text-center whitespace-nowrap">
+                    <td className="p-2 md:p-4 text-center whitespace-nowrap">
                       <div className="flex flex-col items-center">
-                        <p className="text-lg md:text-2xl font-black text-primary tabular-nums">
+                        <p className="text-base md:text-2xl font-black text-primary tabular-nums">
                           {(batch.production || batch.weight || '0').toString().toLowerCase().includes('kg') ? (batch.production || batch.weight) : `${Number(batch.production || batch.weight).toLocaleString()}kg`}
                         </p>
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">+{Number(batch.production || batch.weight).toLocaleString()}kg 가산</span>
+                        <span className="hidden md:inline-block text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">+{Number(batch.production || batch.weight).toLocaleString()}kg 가산</span>
                       </div>
                     </td>
-                    <td className="p-3 md:p-4 text-center whitespace-nowrap">
-                      <p className="text-lg md:text-2xl font-black text-emerald-600">
+                    <td className="hidden md:table-cell p-2 md:p-4 text-center whitespace-nowrap">
+                      <p className="text-base md:text-2xl font-black text-emerald-600">
                         {batch.yield || (100 - parseFloat(batch.loss || '0'))}%
                       </p>
                     </td>
-                    <td className="p-3 md:p-4 text-center whitespace-nowrap">
+                    <td className="hidden lg:table-cell p-2 md:p-4 text-center whitespace-nowrap">
                       <div className="flex flex-col items-center gap-1">
-                        <span className="text-lg md:text-2xl font-black text-error">{batch.loss || '0'}%</span>
+                        <span className="text-base md:text-2xl font-black text-error">{batch.loss || '0'}%</span>
                         <div className="w-12 md:w-24 h-1 md:h-2 bg-error/10 rounded-full overflow-hidden">
                           <div className="h-full bg-error" style={{ width: `${Math.min(parseFloat(batch.loss || '0') * 5, 100)}%` }} />
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 md:p-4 whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-3 md:gap-6">
-                        <div className="text-right space-y-0.5">
-                          <p className="text-[9px] md:text-xs font-black text-outline uppercase tracking-widest">
+                    <td className="p-2 md:p-4 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2 md:gap-6">
+                        <div className="hidden sm:block text-right space-y-0.5">
+                          <p className="text-[8px] md:text-xs font-black text-outline uppercase tracking-widest">
                             {batch.manufDate && `제조: ${batch.manufDate}`}
                           </p>
-                          <p className="text-[9px] md:text-xs font-black text-primary uppercase tracking-widest">
+                          <p className="text-[8px] md:text-xs font-black text-primary uppercase tracking-widest">
                             {batch.expiryDate && `소비: ${batch.expiryDate}`}
                           </p>
                         </div>
-                        <div className="flex gap-1.5 md:gap-2">
+                        <div className="flex gap-1 md:gap-2">
                           {isAuthorized && (
                             <>
                               <button 
                                 onClick={() => startEdit(batch)}
-                                className="p-2 md:p-3 bg-secondary/10 text-secondary rounded-xl hover:bg-secondary hover:text-white transition-all shadow-sm active:scale-90"
+                                className="p-1.5 md:p-3 bg-secondary/10 text-secondary rounded-lg md:rounded-xl hover:bg-secondary hover:text-white transition-all shadow-sm active:scale-90"
                                 title="기록 수정"
                               >
                                 <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
                               </button>
                               <button 
                                 onClick={() => handleDeleteProduction(batch.id, batch.title, (batch.production || batch.weight))}
-                                className="p-2 md:p-3 bg-error/10 text-error rounded-xl hover:bg-error hover:text-white transition-all shadow-sm active:scale-90"
+                                className="p-1.5 md:p-3 bg-error/10 text-error rounded-lg md:rounded-xl hover:bg-error hover:text-white transition-all shadow-sm active:scale-90"
                                 title="기록 삭제"
                               >
                                 <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
