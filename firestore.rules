@@ -39,8 +39,8 @@ service cloud.firestore {
 
     // Helper for inventory validation
     function isValidInventoryItem(data) {
-      return data.keys().hasAll(['sku', 'name', 'category', 'currentStock', 'unit']) &&
-             data.sku is string && data.sku.size() <= 50 &&
+      return data.keys().hasAll(['name', 'category', 'currentStock', 'unit']) &&
+             (!data.keys().hasAny(['sku']) || (data.sku is string && data.sku.size() <= 100)) &&
              data.name is string && data.name.size() <= 200 &&
              data.category is string && data.category.size() <= 100 &&
              data.currentStock is number &&

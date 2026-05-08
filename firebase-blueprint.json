@@ -33,7 +33,7 @@
         "safetyStock": { "type": "number" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["sku", "name", "category", "currentStock", "unit"]
+      "required": ["name", "category", "currentStock", "unit"]
     },
     "productionBatch": {
       "title": "Production Batch",
@@ -68,7 +68,7 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["date", "type", "item", "partner", "weight", "status"]
+      "required": ["date", "type", "item", "partner", "weight"]
     },
     "partner": {
       "title": "Business Partner",

@@ -164,7 +164,7 @@ const StatCard = ({ item }: { item: StatItem, key?: React.Key }) => {
       <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all rounded-t-[40px]" />
       <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{item.label}</p>
       <div className="flex items-baseline gap-1 justify-center">
-        <p className="text-3xl md:text-6xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
+        <p className="text-2xl md:text-4xl lg:text-5xl font-black text-on-surface tabular-nums tracking-tighter leading-none">
           {item.value}
         </p>
         <span className="text-xs md:text-sm font-black text-outline-variant uppercase tracking-widest leading-none">{item.unit}</span>
@@ -251,34 +251,52 @@ const DashboardView = ({
   }, [logistics, production, inventory, timeFilter, selectedDate]);
 
   const combinedActivity = useMemo(() => {
-    const logs = logistics.map(l => ({
-      ...l,
-      activityType: 'logistics',
-      timestamp: l.createdAt?.toDate().getTime() || new Date(`${l.date}T${l.time}`).getTime() || 0,
-      displayTitle: l.item || l.title,
-      amount: Number(l.weight) || 0,
-      changeType: l.type === '입고' ? 'plus' : 'minus',
-      label: l.type
-    }));
+    const logs = logistics.map(l => {
+      const invItem = inventory.find(i => i.name === (l.item || l.title));
+      let inventoryStatus = '정상';
+      if (invItem) {
+        if (invItem.currentStock < (invItem.safetyStock * 0.5)) inventoryStatus = '위험';
+        else if (invItem.currentStock < invItem.safetyStock) inventoryStatus = '부족';
+      }
+      return {
+        ...l,
+        activityType: 'logistics',
+        timestamp: l.createdAt?.toDate().getTime() || new Date(`${l.date}T${l.time}`).getTime() || 0,
+        displayTitle: l.item || l.title,
+        amount: Number(l.weight) || 0,
+        changeType: l.type === '입고' ? 'plus' : 'minus',
+        label: l.type,
+        inventoryStatus
+      };
+    });
 
-    const prods = production.map(p => ({
-      ...p,
-      activityType: 'production',
-      timestamp: p.createdAt?.toDate().getTime() || new Date(p.manufDate).getTime() || 0,
-      displayTitle: p.title,
-      amount: parseFloat((p.production || p.weight || '0').toString().replace(/[^0-9.]/g, '')) || 0,
-      changeType: 'plus',
-      label: '생산'
-    }));
+    const prods = production.map(p => {
+      const invItem = inventory.find(i => i.name === p.title);
+      let inventoryStatus = '정상';
+      if (invItem) {
+        if (invItem.currentStock < (invItem.safetyStock * 0.5)) inventoryStatus = '위험';
+        else if (invItem.currentStock < invItem.safetyStock) inventoryStatus = '부족';
+      }
+      return {
+        ...p,
+        activityType: 'production',
+        timestamp: p.createdAt?.toDate().getTime() || new Date(p.manufDate).getTime() || 0,
+        displayTitle: p.title,
+        amount: parseFloat((p.production || p.weight || '0').toString().replace(/[^0-9.]/g, '')) || 0,
+        changeType: 'plus',
+        label: '생산',
+        inventoryStatus
+      };
+    });
 
     return [...logs, ...prods]
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 10);
-  }, [logistics, production]);
+  }, [logistics, production, inventory]);
 
   const filteredInventory = inventory.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.sku || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -347,7 +365,7 @@ const DashboardView = ({
               <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all rounded-t-[40px]" />
               <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{s.label}</p>
               <div className="flex items-baseline gap-1 justify-center w-full">
-                <p className={`text-3xl md:text-4xl lg:text-5xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
+                <p className={`text-2xl md:text-3xl lg:text-4xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
                   {s.value.toLocaleString()}
                 </p>
                 <span className="text-xs md:text-sm font-black text-outline-variant uppercase tracking-widest shrink-0 leading-none">{s.unit}</span>
@@ -480,9 +498,11 @@ const DashboardView = ({
                     </td>
                     <td className="px-4 md:px-8 py-5 md:py-6 text-right">
                       <span className={`inline-flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-4 md:py-2 rounded-full text-[9px] md:text-[12px] font-black uppercase tracking-widest border ${
-                        act.status === '완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-surface-container text-outline border-outline-variant/30'
+                        act.inventoryStatus === '위험' ? 'bg-error/10 text-error border-error/20' : 
+                        act.inventoryStatus === '부족' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                        'bg-emerald-50 text-emerald-700 border-emerald-100'
                       }`}>
-                        {act.status}
+                        {act.inventoryStatus}
                       </span>
                     </td>
                   </tr>
@@ -532,7 +552,7 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
   const filteredInventory = useMemo(() => {
     return inventory.filter(item => 
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [inventory, searchTerm]);
@@ -1610,7 +1630,7 @@ const LogisticsView = ({
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-3 md:mb-4">금일 총 물동량</p>
           <div className="flex items-baseline gap-1 break-keep">
-            <p className="text-3xl md:text-5xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.weight.toLocaleString()}</p>
+            <p className="text-2xl md:text-3xl lg:text-4xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.weight.toLocaleString()}</p>
             <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest shrink-0 leading-none translate-y-[-2px]">kg</span>
           </div>
         </div>
@@ -1619,7 +1639,7 @@ const LogisticsView = ({
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-3 md:mb-4">금일 입고</p>
           <div className="flex items-baseline gap-1 break-keep">
-            <p className="text-3xl md:text-5xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.inCount.toLocaleString()}</p>
+            <p className="text-2xl md:text-3xl lg:text-4xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.inCount.toLocaleString()}</p>
             <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest shrink-0 leading-none translate-y-[-2px]">건</span>
           </div>
         </div>
@@ -1628,7 +1648,7 @@ const LogisticsView = ({
           <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-3 md:mb-4">금일 출고</p>
           <div className="flex items-baseline gap-1 break-keep">
-            <p className="text-3xl md:text-5xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.outCount.toLocaleString()}</p>
+            <p className="text-2xl md:text-3xl lg:text-4xl font-black text-on-surface tabular-nums tracking-tighter leading-none">{stats.outCount.toLocaleString()}</p>
             <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest shrink-0 leading-none translate-y-[-2px]">건</span>
           </div>
         </div>
@@ -2179,7 +2199,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">생산 건수</p>
           <div className="flex items-baseline gap-1 max-w-full overflow-hidden truncate">
-            <p className="text-3xl md:text-5xl font-black text-on-surface tabular-nums tracking-tighter leading-none truncate">
+            <p className="text-2xl md:text-3xl lg:text-4xl font-black text-on-surface tabular-nums tracking-tighter leading-none truncate">
               {production.length.toLocaleString()}
             </p>
             <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest shrink-0 leading-none translate-y-[-2px]">건</span>
@@ -2190,7 +2210,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 투입량</p>
           <div className="flex items-baseline gap-1 max-w-full overflow-hidden truncate">
-            <p className="text-3xl md:text-5xl font-black text-on-surface tabular-nums tracking-tighter leading-none truncate">
+            <p className="text-2xl md:text-3xl lg:text-4xl font-black text-on-surface tabular-nums tracking-tighter leading-none truncate">
               {(production.reduce((acc, curr) => acc + (parseFloat(curr.input) || 0), 0)).toLocaleString()}
             </p>
             <span className="text-sm md:text-xl font-black text-outline-variant uppercase tracking-widest shrink-0 leading-none translate-y-[-2px]">kg</span>
@@ -2201,7 +2221,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 생산량</p>
           <div className="flex items-baseline gap-1 max-w-full overflow-hidden truncate">
-            <p className="text-3xl md:text-5xl font-black text-on-surface tabular-nums tracking-tighter leading-none truncate">
+            <p className="text-2xl md:text-3xl lg:text-4xl font-black text-on-surface tabular-nums tracking-tighter leading-none truncate">
               {(production.reduce((acc, curr) => {
                 const val = parseFloat((curr.production || curr.weight || '0').toString().toLowerCase().replace('kg', '').trim());
                 return acc + (isNaN(val) ? 0 : val);
@@ -2215,7 +2235,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-600/20 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 수율</p>
           <div className="flex items-baseline gap-1 max-w-full overflow-hidden truncate">
-            <p className="text-3xl md:text-5xl font-black text-emerald-600 tabular-nums tracking-tighter leading-none truncate">
+            <p className="text-2xl md:text-3xl lg:text-4xl font-black text-emerald-600 tabular-nums tracking-tighter leading-none truncate">
               {(() => {
                 const totalInput = production.reduce((acc, curr) => acc + (parseFloat(curr.input) || 0), 0);
                 const totalProd = production.reduce((acc, curr) => {
@@ -2598,7 +2618,7 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
                 
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-primary uppercase tracking-widest px-1">SKU 번호</label>
-                  <input required value={product.sku} onChange={e => setProduct({...product, sku: e.target.value})} type="text" placeholder="예: SKU-BF-001" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
+                  <input value={product.sku} onChange={e => setProduct({...product, sku: e.target.value})} type="text" placeholder="예: SKU-BF-001" className="w-full h-11 md:h-14 px-4 md:px-5 rounded-2xl border border-outline-variant focus:border-primary outline-none text-sm md:text-base transition-colors font-bold bg-white" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-primary uppercase tracking-widest px-1">품목명</label>
