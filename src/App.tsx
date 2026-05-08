@@ -361,11 +361,11 @@ const DashboardView = ({
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((s, i) => {
           return (
-            <div key={i} className="bg-white border-2 border-outline-variant/30 p-4 md:p-6 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative break-keep">
+            <div key={i} className="bg-white border-2 border-outline-variant/30 p-4 md:p-6 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center hover:border-primary transition-all group relative break-keep">
               <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all rounded-t-[40px]" />
               <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{s.label}</p>
               <div className="flex items-baseline gap-1 justify-center w-full">
-                <div className="bg-surface-container/30 px-4 py-2 rounded-2xl border border-outline-variant/50 shadow-inner group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
+                <div className="px-4 py-2 rounded-2xl border border-outline-variant/50 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
                   <p className={`text-2xl md:text-3xl lg:text-4xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
                     {s.value.toLocaleString()}
                   </p>
@@ -404,7 +404,7 @@ const DashboardView = ({
                 <motion.div 
                   key={idx}
                   whileHover={{ y: -2 }}
-                  className={`flex flex-col justify-between gap-4 p-4 md:p-5 bg-white border-2 rounded-2xl md:rounded-[24px] shadow-sm cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
+                  className={`flex flex-col justify-between gap-4 p-4 md:p-5 bg-white border-2 rounded-2xl md:rounded-[24px] cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
                   onClick={() => onNavigate('detail', item)}
                 >
                   <div className="flex-1">
@@ -417,7 +417,7 @@ const DashboardView = ({
                   
                   <div className="flex items-end justify-between border-t border-outline-variant/10 pt-3">
                     <div className="text-left">
-                      <div className={`inline-block px-3 py-1.5 rounded-xl border ${isAlert ? 'bg-error/5 border-error/20 text-error' : 'bg-primary/5 border-primary/20 text-primary shadow-inner'}`}>
+                      <div className={`inline-block px-3 py-1.5 rounded-xl border ${isAlert ? 'border-error/20 text-error' : 'border-primary/20 text-primary'}`}>
                         <p className="text-xl md:text-2xl font-black tabular-nums leading-none">
                           {item.currentStock?.toLocaleString()}<span className="text-[10px] md:text-xs ml-0.5 font-bold uppercase">{item.unit}</span>
                         </p>
@@ -1017,7 +1017,7 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
 
       <div className="space-y-6 md:space-y-8">
         {/* 재고 현황 지표 (LARGE HEADER) */}
-        <div className="bg-white border-2 border-primary/20 rounded-3xl md:rounded-[40px] p-6 md:p-10 shadow-xl md:shadow-2xl relative overflow-hidden">
+        <div className="bg-white border-2 border-primary/20 rounded-3xl md:rounded-[40px] p-6 md:p-10 relative overflow-hidden">
           <div className="absolute right-0 top-0 opacity-5 md:opacity-10 translate-x-1/4 -translate-y-1/4">
             <TrendingUp className="w-32 h-32 md:w-64 md:h-64 text-primary" />
           </div>
@@ -1026,7 +1026,7 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
             <div className="space-y-2 md:space-y-4">
               <h3 className="text-xs md:text-sm font-black text-primary uppercase tracking-widest">현재 재고 현황</h3>
               <div className="flex items-baseline gap-2 max-w-full overflow-hidden">
-              <div className="bg-white/50 px-6 py-3 rounded-2xl border-2 border-primary/20 shadow-inner group-hover:bg-primary/5 transition-all">
+              <div className="px-6 py-3 rounded-2xl border-2 border-primary/20 group-hover:bg-primary/5 transition-all">
                 <p className={`text-3xl md:text-5xl font-black tracking-tighter tabular-nums transition-colors truncate ${isUpdatingStock && displayStock !== item.currentStock ? 'text-secondary' : 'text-primary'}`}>
                   {displayStock.toLocaleString()}
                 </p>
@@ -1045,7 +1045,7 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
               </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center p-4 md:p-6 bg-white/50 backdrop-blur-sm rounded-3xl border border-white shadow-xl relative group">
+            <div className="flex flex-col items-center justify-center p-4 md:p-6 bg-white/50 backdrop-blur-sm rounded-3xl border border-white relative group">
               <span className="text-xs md:text-sm font-black text-outline uppercase tracking-widest text-center">공급율 & 상태</span>
               <div className="flex items-baseline gap-2 md:gap-3 max-w-full">
                 <span className={`text-3xl md:text-5xl font-black tabular-nums tracking-tighter truncate ${
@@ -2131,13 +2131,13 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
                       <div className="grid grid-cols-2 gap-3 w-full md:col-span-3">
                         <div>
                           <label className="md:hidden text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 block px-1">수율(%)</label>
-                          <div className="w-full h-10 md:h-12 flex items-center justify-center rounded-xl bg-emerald-50 border-2 border-emerald-100 text-base md:text-lg font-mono font-black text-emerald-600 shadow-inner">
+                          <div className="w-full h-10 md:h-12 flex items-center justify-center rounded-xl bg-emerald-50 border-2 border-emerald-100 text-base md:text-lg font-mono font-black text-emerald-600">
                             {item.yield || '0'}%
                           </div>
                         </div>
                         <div>
                           <label className="md:hidden text-[10px] font-black text-error uppercase tracking-widest mb-1 block px-1">로스(%)</label>
-                          <div className="w-full h-10 md:h-12 flex items-center justify-center rounded-xl bg-error/5 border-2 border-error/10 text-base md:text-lg font-mono font-black text-error shadow-inner">
+                          <div className="w-full h-10 md:h-12 flex items-center justify-center rounded-xl bg-error/5 border-2 border-error/10 text-base md:text-lg font-mono font-black text-error">
                             {item.loss || '0'}%
                           </div>
                         </div>
@@ -2152,6 +2152,28 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}
+                      </div>
+
+                      {/* 날짜 정보 컬럼 (날짜는 기본적으로 오늘로 세팅되지만 수정 가능하도록) */}
+                      <div className="w-full grid grid-cols-2 gap-3 pt-2 border-t border-outline-variant/30 md:border-t-0 md:pt-0 md:col-span-12 md:mt-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-[10px] font-black text-outline uppercase tracking-widest min-w-fit">제조일자</label>
+                          <input 
+                            type="date" 
+                            value={item.manufDate || new Date().toISOString().split('T')[0]} 
+                            onChange={e => updateItem(idx, 'manufDate', e.target.value)}
+                            className="flex-1 h-9 px-2 rounded-lg bg-white border border-outline-variant focus:border-primary outline-none text-[11px] font-bold"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-[10px] font-black text-outline uppercase tracking-widest min-w-fit">소비기한</label>
+                          <input 
+                            type="date" 
+                            value={item.expiryDate} 
+                            onChange={e => updateItem(idx, 'expiryDate', e.target.value)}
+                            className="flex-1 h-9 px-2 rounded-lg bg-white border border-outline-variant focus:border-primary outline-none text-[11px] font-bold"
+                          />
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -2182,7 +2204,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
       </AnimatePresence>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center hover:border-primary transition-all group relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">생산 건수</p>
           <div className="flex items-baseline gap-1 max-w-full overflow-hidden truncate">
@@ -2193,7 +2215,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
           </div>
         </div>
 
-        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden break-keep">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center hover:border-primary transition-all group relative overflow-hidden break-keep">
           <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 투입량</p>
           <div className="flex items-baseline gap-1 max-w-full overflow-hidden truncate">
@@ -2204,7 +2226,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
           </div>
         </div>
 
-        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden break-keep">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center hover:border-primary transition-all group relative overflow-hidden break-keep">
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/10 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 생산량</p>
           <div className="flex items-baseline gap-1 max-w-full overflow-hidden truncate">
@@ -2218,7 +2240,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
           </div>
         </div>
 
-        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative overflow-hidden break-keep">
+        <div className="bg-white border-2 border-outline-variant/30 p-6 md:p-8 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center hover:border-primary transition-all group relative overflow-hidden break-keep">
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-600/20 group-hover:h-2 transition-all" />
           <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">총 수율</p>
           <div className="flex items-baseline gap-1 max-w-full overflow-hidden truncate">
@@ -2334,7 +2356,7 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
                       <div className="flex items-center justify-end gap-2 md:gap-6">
                         <div className="hidden sm:block text-right space-y-0.5">
                           <p className="text-[8px] md:text-xs font-black text-outline uppercase tracking-widest">
-                            {batch.manufDate && `제조: ${batch.manufDate}`}
+                            {batch.manufDate && `제조일자: ${batch.manufDate}`}
                           </p>
                           <p className="text-[8px] md:text-xs font-black text-primary uppercase tracking-widest">
                             {batch.expiryDate && `소비: ${batch.expiryDate}`}
@@ -2578,7 +2600,7 @@ const SettingsView = ({ onNavigate, partners, inventory = [], logistics = [], pr
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 md:gap-3 p-1.5 md:p-2 bg-surface-container rounded-2xl md:rounded-[24px] w-full md:w-fit shadow-inner">
+      <div className="flex flex-wrap gap-2 md:gap-3 p-1.5 md:p-2 bg-surface-container rounded-2xl md:rounded-[24px] w-full md:w-fit">
         <button 
           onClick={() => setActiveTab('product')}
           className={`flex-1 md:flex-none px-4 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl text-sm md:text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'product' ? 'bg-white shadow-lg text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
@@ -2653,7 +2675,7 @@ const SettingsView = ({ onNavigate, partners, inventory = [], logistics = [], pr
                 <div className="md:col-span-2 grid grid-cols-2 gap-4 md:gap-8 border-y border-outline-variant/30 py-4 md:py-6 my-2">
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-xs font-black text-primary uppercase tracking-widest px-1 flex items-center gap-2">
-                      <CalendarDays className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" /> 생산 일자
+                      <CalendarDays className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" /> 제조일자
                     </label>
                     <input value={product.manufactureDate} onChange={e => setProduct({...product, manufactureDate: e.target.value})} type="date" className="w-full h-11 md:h-14 px-3 md:px-4 rounded-xl border border-outline-variant focus:border-primary outline-none text-xs md:text-base transition-colors bg-surface-container/30" />
                   </div>

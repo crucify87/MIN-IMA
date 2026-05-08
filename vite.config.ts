@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.png', 'robots.txt', 'apple-touch-icon.png'],
+        includeAssets: ['favicon.svg', 'placeholder.txt'],
         manifest: {
           name: 'MIN IMA',
           short_name: 'MINIMA',
@@ -20,14 +20,14 @@ export default defineConfig(({mode}) => {
           theme_color: '#ffffff',
           icons: [
             {
-              src: 'favicon.png',
+              src: 'favicon.svg',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/svg+xml'
             },
             {
-              src: 'favicon.png',
+              src: 'favicon.svg',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/svg+xml'
             }
           ]
         }
@@ -35,6 +35,12 @@ export default defineConfig(({mode}) => {
     ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+    },
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      emptyOutDir: true,
+      sourcemap: false
     },
     resolve: {
       alias: {
