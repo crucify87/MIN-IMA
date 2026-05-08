@@ -417,7 +417,6 @@ const DashboardView = ({
                   
                   <div className="flex items-end justify-between border-t border-outline-variant/10 pt-3">
                     <div className="text-left">
-                      <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-1">실시간 재고</p>
                       <div className={`inline-block px-3 py-1.5 rounded-xl border ${isAlert ? 'bg-error/5 border-error/20 text-error' : 'bg-primary/5 border-primary/20 text-primary shadow-inner'}`}>
                         <p className="text-xl md:text-2xl font-black tabular-nums leading-none">
                           {item.currentStock?.toLocaleString()}<span className="text-[10px] md:text-xs ml-0.5 font-bold uppercase">{item.unit}</span>
