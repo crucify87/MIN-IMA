@@ -365,9 +365,11 @@ const DashboardView = ({
               <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all rounded-t-[40px]" />
               <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{s.label}</p>
               <div className="flex items-baseline gap-1 justify-center w-full">
-                <p className={`text-2xl md:text-3xl lg:text-4xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
-                  {s.value.toLocaleString()}
-                </p>
+                <div className="bg-surface-container/30 px-4 py-2 rounded-2xl border border-outline-variant/50 shadow-inner group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
+                  <p className={`text-2xl md:text-3xl lg:text-4xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
+                    {s.value.toLocaleString()}
+                  </p>
+                </div>
                 <span className="text-xs md:text-sm font-black text-outline-variant uppercase tracking-widest shrink-0 leading-none">{s.unit}</span>
               </div>
             </div>
@@ -416,9 +418,11 @@ const DashboardView = ({
                   <div className="flex items-end justify-between border-t border-outline-variant/10 pt-3">
                     <div className="text-left">
                       <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-1">실시간 재고</p>
-                      <p className={`text-2xl md:text-3xl font-black tabular-nums leading-none ${isAlert ? 'text-error' : 'text-primary'}`}>
-                        {item.currentStock?.toLocaleString()}<span className="text-xs md:text-sm ml-0.5 font-bold uppercase">{item.unit}</span>
-                      </p>
+                      <div className={`inline-block px-3 py-1.5 rounded-xl border ${isAlert ? 'bg-error/5 border-error/20 text-error' : 'bg-primary/5 border-primary/20 text-primary shadow-inner'}`}>
+                        <p className="text-xl md:text-2xl font-black tabular-nums leading-none">
+                          {item.currentStock?.toLocaleString()}<span className="text-[10px] md:text-xs ml-0.5 font-bold uppercase">{item.unit}</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -691,40 +695,24 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
                         </p>
                         <span className="text-[10px] md:text-sm font-black text-outline uppercase">{item.unit}</span>
                       </div>
-                      {isAuthorized && (
-                        <div className="flex gap-1">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onQuickAdjust?.(item, -10);
-                            }}
-                            className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all active:scale-95"
-                            title="-10kg"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onQuickAdjust?.(item, 10);
-                            }}
-                            className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-95"
-                            title="+10kg"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </td>
                   <td className="px-4 py-4 text-center">
                     <div className={`inline-flex items-center gap-2 px-3 md:px-5 py-1 md:py-2 rounded-full border-2 ${
-                      item.currentStock < item.safetyStock 
-                        ? 'bg-error/5 border-error/20 text-error' 
+                      item.currentStock < (item.safetyStock * 0.5)
+                        ? 'bg-red-50 border-red-100 text-red-700'
+                        : item.currentStock < item.safetyStock
+                        ? 'bg-amber-50 border-amber-100 text-amber-700'
                         : 'bg-emerald-50 border-emerald-100 text-emerald-700'
                     }`}>
-                      <div className={`w-2 h-2 rounded-full ${item.currentStock < item.safetyStock ? 'bg-error animate-pulse' : 'bg-emerald-500'}`} />
-                      <span className="text-[10px] md:text-sm font-black uppercase tracking-widest whitespace-nowrap">{item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}</span>
+                      <div className={`w-2 h-2 rounded-full ${
+                        item.currentStock < (item.safetyStock * 0.5) ? 'bg-red-600 animate-pulse' : 
+                        item.currentStock < item.safetyStock ? 'bg-amber-500 animate-pulse' : 
+                        'bg-emerald-500'}`} />
+                      <span className="text-[10px] md:text-sm font-black uppercase tracking-widest whitespace-nowrap">
+                        {item.currentStock < (item.safetyStock * 0.5) ? '재고 위험' : 
+                         item.currentStock < item.safetyStock ? '재고 부족' : '정상 운영'}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-right">
@@ -1038,9 +1026,11 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
             <div className="space-y-2 md:space-y-4">
               <h3 className="text-xs md:text-sm font-black text-primary uppercase tracking-widest">현재 재고 현황</h3>
               <div className="flex items-baseline gap-2 max-w-full overflow-hidden">
+              <div className="bg-white/50 px-6 py-3 rounded-2xl border-2 border-primary/20 shadow-inner group-hover:bg-primary/5 transition-all">
                 <p className={`text-3xl md:text-5xl font-black tracking-tighter tabular-nums transition-colors truncate ${isUpdatingStock && displayStock !== item.currentStock ? 'text-secondary' : 'text-primary'}`}>
                   {displayStock.toLocaleString()}
                 </p>
+              </div>
                 <span className="text-sm md:text-xl font-black text-outline uppercase shrink-0">{item.unit}</span>
               </div>
             </div>
@@ -1055,14 +1045,27 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
               </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center p-4 md:p-6 bg-white/50 backdrop-blur-sm rounded-3xl border border-white shadow-xl">
-              <span className="text-xs md:text-sm font-black text-outline uppercase tracking-widest text-center">공급율</span>
+            <div className="flex flex-col items-center justify-center p-4 md:p-6 bg-white/50 backdrop-blur-sm rounded-3xl border border-white shadow-xl relative group">
+              <span className="text-xs md:text-sm font-black text-outline uppercase tracking-widest text-center">공급율 & 상태</span>
               <div className="flex items-baseline gap-2 md:gap-3 max-w-full">
-                <span className={`text-3xl md:text-5xl font-black tabular-nums tracking-tighter truncate ${displayStock < safeStock ? 'text-error' : 'text-primary'}`}>
+                <span className={`text-3xl md:text-5xl font-black tabular-nums tracking-tighter truncate ${
+                  displayStock < (safeStock * 0.5) ? 'text-red-600' :
+                  displayStock < safeStock ? 'text-amber-600' : 'text-primary'
+                }`}>
                   {supplyRate}%
                 </span>
-                <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 ${displayStock < safeStock ? 'bg-error animate-pulse' : 'bg-primary'}`} />
+                <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 ${
+                  displayStock < (safeStock * 0.5) ? 'bg-red-600 animate-pulse' :
+                  displayStock < safeStock ? 'bg-amber-600 animate-pulse' : 'bg-primary'
+                }`} />
               </div>
+              <p className={`mt-2 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] ${
+                displayStock < (safeStock * 0.5) ? 'text-red-700' :
+                displayStock < safeStock ? 'text-amber-700' : 'text-primary/70'
+              }`}>
+                {displayStock < (safeStock * 0.5) ? '위험 수준' :
+                 displayStock < safeStock ? '부족 상태' : '안정적 수량'}
+              </p>
             </div>
           </div>
         </div>
@@ -1117,23 +1120,7 @@ const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = 
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-5 gap-2 md:gap-4">
-                  {[
-                    { label: '+1', val: 1, color: 'border-primary text-primary' },
-                    { label: '+10', val: 10, color: 'border-primary text-primary' },
-                    { label: '+50', val: 50, color: 'border-primary text-primary' },
-                    { label: '-1', val: -1, color: 'border-error text-error' },
-                    { label: '-10', val: -10, color: 'border-error text-error' },
-                  ].map((btn, i) => (
-                    <button 
-                      key={i}
-                      onClick={() => setNewStock(Math.max(0, Number(newStock) + btn.val))} 
-                      className={`h-12 md:h-16 bg-white border-2 rounded-xl md:rounded-2xl font-black text-sm md:text-2xl hover:bg-surface-container transition-all shadow-sm ${btn.color}`}
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
+                {/* Quick adjustments removed as per request */}
               </motion.div>
             ) : (
               <button 
@@ -2387,14 +2374,24 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
   );
 };
 
-const SettingsView = ({ onNavigate, partners, logistics = [], production = [], adminEmails = [], user, isAuthorized = false }: { onNavigate?: (view: ViewType) => void, partners: any[], logistics: any[], production: any[], adminEmails?: any[], user: User | null, isAuthorized?: boolean }) => {
+const SettingsView = ({ onNavigate, partners, inventory = [], logistics = [], production = [], adminEmails = [], user, isAuthorized = false }: { onNavigate?: (view: ViewType, item?: any) => void, partners: any[], inventory: any[], logistics: any[], production: any[], adminEmails?: any[], user: User | null, isAuthorized?: boolean }) => {
   const [activeTab, setActiveTab] = useState<'product' | 'partner' | 'admin'>('product');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [productSearch, setProductSearch] = useState('');
   const [editingPartner, setEditingPartner] = useState<any | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isProductExpanded, setIsProductExpanded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [adminEmailInput, setAdminEmailInput] = useState('');
+
+  const filteredItems = useMemo(() => {
+    return inventory.filter(item => 
+      item.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      (item.sku || '').toLowerCase().includes(productSearch.toLowerCase()) ||
+      item.category.toLowerCase().includes(productSearch.toLowerCase())
+    ).sort((a, b) => b.updatedAt?.toDate().getTime() - a.updatedAt?.toDate().getTime());
+  }, [inventory, productSearch]);
 
   const filteredPartners = useMemo(() => {
     return partners.filter(p => 
@@ -2688,6 +2685,124 @@ const SettingsView = ({ onNavigate, partners, logistics = [], production = [], a
             ) : (
               <div className="p-8 text-center text-outline font-bold">권한이 부족하여 상품 등록 메뉴에 접근할 수 없습니다.</div>
             )}
+
+            {/* Product List Section */}
+            <div className="pt-8 md:pt-12 border-t border-outline-variant/30 space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h3 className="text-lg md:text-xl font-black text-primary uppercase tracking-tight flex items-center gap-2">
+                    <Package className="w-5 h-5 md:w-6 md:h-6" /> 등록된 상품 목록
+                  </h3>
+                  <p className="text-[10px] md:text-xs text-outline font-bold uppercase tracking-widest">Master Inventory Items</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1 md:w-64 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-outline w-4 h-4" />
+                    <input 
+                      type="text" 
+                      placeholder="상품명, SKU, 카테고리 검색..." 
+                      value={productSearch}
+                      onChange={e => setProductSearch(e.target.value)}
+                      className="w-full h-10 md:h-12 pl-10 pr-4 bg-surface-container/50 border border-outline-variant rounded-xl focus:border-primary outline-none text-sm font-medium"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => setIsProductExpanded(!isProductExpanded)}
+                    className="h-10 md:h-12 px-4 bg-primary/10 text-primary border border-primary/20 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center gap-2"
+                  >
+                    {isProductExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <span>{isProductExpanded ? '접기' : '펼치기'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <motion.div 
+                initial={false}
+                animate={{ height: isProductExpanded ? 'auto' : '360px' }}
+                className="relative overflow-hidden border border-outline-variant rounded-2xl bg-surface-container/10 shadow-inner p-1"
+              >
+                <div className="flex flex-col gap-2">
+                  {filteredItems.length > 0 ? (
+                    filteredItems.map((item, i) => (
+                      <div key={i} className="px-4 py-3 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-outline-variant/20 rounded-xl hover:border-primary/50 transition-all group shadow-sm">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/5 text-primary rounded-xl flex items-center justify-center shrink-0 border border-primary/10">
+                            <Tag className="w-5 h-5 md:w-6 md:h-6" />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 flex-1 gap-2 md:gap-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[9px] md:text-[10px] font-black text-primary px-1.5 py-0.5 bg-primary/5 rounded border border-primary/10 uppercase tracking-widest">
+                                  {item.category}
+                                </span>
+                                <span className="text-[9px] md:text-[10px] font-mono font-bold text-outline opacity-60 uppercase">
+                                  {item.sku || 'NO-SKU'}
+                                </span>
+                              </div>
+                              <h4 className="text-sm md:text-lg font-black text-on-surface truncate tracking-tight">{item.name}</h4>
+                            </div>
+                            <div className="flex items-center gap-6 md:justify-end">
+                              <div className="text-left md:text-right">
+                                <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-0.5">현재 재고</p>
+                                <div className="bg-surface-container/50 px-2 py-1 rounded shadow-inner">
+                                  <div className="flex items-baseline justify-end gap-1">
+                                    <span className="text-base md:text-xl font-black text-primary tabular-nums tracking-tighter">
+                                      {item.currentStock?.toLocaleString()}
+                                    </span>
+                                    <span className="text-[8px] md:text-[10px] font-black text-outline uppercase">{item.unit}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="hidden lg:block text-right border-l border-outline-variant/10 pl-6">
+                                <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest mb-0.5">보관 위치</p>
+                                <p className="text-xs md:text-sm text-outline-variant font-bold truncate break-all max-w-[120px]">{item.location || '-'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-end gap-2 border-t md:border-none pt-2 md:pt-0">
+                          {isAuthorized && (
+                            <>
+                              <button 
+                                onClick={() => onNavigate?.('detail', item)}
+                                className="w-9 h-9 md:w-11 md:h-11 bg-white border border-outline-variant/30 rounded-lg flex items-center justify-center text-outline hover:text-primary hover:border-primary transition-all active:scale-95 group-hover:shadow-md"
+                                title="수정"
+                              >
+                                <Edit2 className="w-4 h-4 md:w-5 md:h-5" />
+                              </button>
+                              <button 
+                                onClick={async () => {
+                                  if (confirm(`${item.name} 상품을 삭제하시겠습니까?`)) {
+                                    try {
+                                      await deleteDoc(doc(db, 'inventory', item.id));
+                                      alert('상품이 삭제되었습니다.');
+                                    } catch (error) {
+                                      handleFirestoreError(error, OperationType.DELETE, 'inventory');
+                                    }
+                                  }
+                                }}
+                                className="w-9 h-9 md:w-11 md:h-11 flex items-center justify-center text-outline/40 hover:text-error hover:bg-error/5 rounded-lg transition-all"
+                                title="삭제"
+                              >
+                                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-12 text-center text-outline font-bold">등록된 상품이 없거나 검색 결과가 없습니다.</div>
+                  )}
+                </div>
+                {!isProductExpanded && filteredItems.length > 3 && (
+                  <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-4">
+                    <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest">더 보려면 펼치기를 클릭하세요</p>
+                  </div>
+                )}
+              </motion.div>
+            </div>
           </div>
         )}
 
@@ -3261,7 +3376,7 @@ export default function App() {
                 {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} logistics={logistics} isAuthorized={isAuthorized} />}
                 {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} isAuthorized={isAuthorized} />}
                 {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} isAuthorized={isAuthorized} />}
-                {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} partners={partners} logistics={logistics} production={production} adminEmails={adminEmails} user={user} isAuthorized={isAuthorized} />}
+                {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} inventory={inventory} partners={partners} logistics={logistics} production={production} adminEmails={adminEmails} user={user} isAuthorized={isAuthorized} />}
               </motion.div>
             </AnimatePresence>
           </div>
