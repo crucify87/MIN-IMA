@@ -365,11 +365,11 @@ const DashboardView = ({
               <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 group-hover:h-2 transition-all rounded-t-[40px]" />
               <p className="text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.3em] mb-4">{s.label}</p>
               <div className="flex items-baseline gap-1 justify-center w-full">
-                <div className="px-4 py-2 rounded-2xl border border-outline-variant/50 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
-                  <p className={`text-2xl md:text-3xl lg:text-4xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
-                    {s.value.toLocaleString()}
-                  </p>
-                </div>
+                <div className="px-4 py-2 rounded-2xl group-hover:bg-primary/5 transition-all">
+                   <p className={`text-2xl md:text-3xl lg:text-4xl font-black tabular-nums tracking-tighter leading-none ${s.color || 'text-on-surface'}`}>
+                     {s.value.toLocaleString()}
+                   </p>
+                 </div>
                 <span className="text-xs md:text-sm font-black text-outline-variant uppercase tracking-widest shrink-0 leading-none">{s.unit}</span>
               </div>
             </div>
@@ -417,7 +417,7 @@ const DashboardView = ({
                   
                   <div className="flex items-end justify-between border-t border-outline-variant/10 pt-3">
                     <div className="text-left">
-                      <div className={`inline-block px-3 py-1.5 rounded-xl border ${isAlert ? 'border-error/20 text-error' : 'border-primary/20 text-primary'}`}>
+                      <div className={`inline-block px-3 py-1.5 rounded-xl ${isAlert ? 'text-error' : 'text-primary'}`}>
                         <p className="text-xl md:text-2xl font-black tabular-nums leading-none">
                           {item.currentStock?.toLocaleString()}<span className="text-[10px] md:text-xs ml-0.5 font-bold uppercase">{item.unit}</span>
                         </p>
@@ -3202,19 +3202,23 @@ export default function App() {
   }, [user]);
 
   // One-time cleanup for specific production batches
+  const hasCleanedUp = React.useRef(false);
   useEffect(() => {
-    if (production.length > 0) {
+    if (production.length > 0 && !hasCleanedUp.current) {
       const targets = ['와규 차돌박이 정육', '목초 사육 다짐육', '프리미엄 앵거스 등심'];
       const batchesToDelete = production.filter(p => targets.includes(p.title));
       
-      batchesToDelete.forEach(async (batch) => {
-        try {
-          await deleteDoc(doc(db, 'production_batches', batch.id));
-          console.log(`Deleted production batch: ${batch.title}`);
-        } catch (error) {
-          console.error("Error deleting old production batch:", error);
-        }
-      });
+      if (batchesToDelete.length > 0) {
+        hasCleanedUp.current = true;
+        batchesToDelete.forEach(async (batch) => {
+          try {
+            await deleteDoc(doc(db, 'production_batches', batch.id));
+            console.log(`Deleted production batch: ${batch.title}`);
+          } catch (error) {
+            console.error("Error deleting old production batch:", error);
+          }
+        });
+      }
     }
   }, [production]);
 
