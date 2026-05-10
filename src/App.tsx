@@ -404,7 +404,7 @@ const DashboardView = ({
                 <motion.div 
                   key={idx}
                   whileHover={{ y: -2 }}
-                  className={`flex flex-col justify-between gap-4 p-4 md:p-5 bg-white border-2 rounded-2xl md:rounded-[24px] cursor-pointer hover:border-primary transition-all relative overflow-hidden group ${isAlert ? 'border-error/20' : 'border-outline-variant/20'}`}
+                  className={`flex flex-col justify-between gap-4 p-4 md:p-5 bg-white rounded-2xl md:rounded-[24px] cursor-pointer transition-all relative overflow-hidden group shadow-sm hover:shadow-md ${isAlert ? 'bg-error/5' : ''}`}
                   onClick={() => onNavigate('detail', item)}
                 >
                   <div className="flex-1">
@@ -453,7 +453,7 @@ const DashboardView = ({
           </div>
         </div>
         
-        <div className="overflow-hidden border-2 border-outline-variant/20 rounded-3xl md:rounded-[40px] bg-white shadow-xl">
+        <div className="overflow-hidden rounded-3xl md:rounded-[40px] bg-white shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-surface-container/30 border-b border-outline-variant/30 text-[10px] md:text-[14px] uppercase font-black text-outline tracking-[0.2em]">
@@ -625,7 +625,7 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((item, i) => {
           return (
-            <div key={i} className="bg-white border-2 border-outline-variant/30 p-4 md:p-6 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg hover:border-primary transition-all group relative break-keep">
+            <div key={i} className="bg-white p-4 md:p-6 rounded-3xl md:rounded-[40px] flex flex-col items-center text-center shadow-lg transition-all group relative break-keep">
               <div className={`absolute top-0 left-0 w-full h-1 group-hover:h-2 transition-all rounded-t-[40px] ${
                 item.label.includes('부족') ? 'bg-error/20' : 
                 item.label.includes('입고') ? 'bg-secondary/20' :
@@ -645,7 +645,7 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
         })}
       </div>
 
-      <div className="bg-white border-2 border-outline-variant/30 rounded-3xl md:rounded-[40px] shadow-lg overflow-hidden">
+      <div className="bg-white rounded-3xl md:rounded-[40px] shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -703,12 +703,12 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
                     </div>
                   </td>
                   <td className="px-2 md:px-4 py-4 text-center">
-                    <div className={`inline-flex items-center gap-1 md:gap-2 px-2 md:px-5 py-0.5 md:py-2 rounded-full border-2 ${
+                    <div className={`inline-flex items-center gap-1 md:gap-2 px-2 md:px-5 py-0.5 md:py-2 rounded-full ${
                       item.currentStock < (item.safetyStock * 0.5)
-                        ? 'bg-red-50 border-red-100 text-red-700'
+                        ? 'bg-red-50 text-red-700'
                         : item.currentStock < item.safetyStock
-                        ? 'bg-amber-50 border-amber-100 text-amber-700'
-                        : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'bg-emerald-50 text-emerald-700'
                     }`}>
                       <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${
                         item.currentStock < (item.safetyStock * 0.5) ? 'bg-red-600 animate-pulse' : 
