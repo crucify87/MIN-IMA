@@ -36,6 +36,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
   const [showAllLogs, setShowAllLogs] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const stats = useMemo(() => {
     const count = production.length;
@@ -74,6 +75,8 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
   const handleAdd = async (e: any) => {
     e.preventDefault();
+    if (loading) return;
+    setLoading(true);
     try {
       if (editingId) {
         const row = rows[0];
@@ -85,14 +88,17 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
         const oldRecord = production.find((p: any) => p.id === editingId);
         if (oldRecord) {
           const oldPItem = inventory.find((i: any) => i.name === oldRecord.title);
-          if (oldPItem) await updateDoc(doc(db, 'inventory', oldPItem.id), { currentStock: increment(-oldRecord.production), updatedAt: serverTimestamp() });
+          if (oldPItem) await updateDoc(doc(db, 'inventory', String(oldPItem.id)), { currentStock: increment(-oldRecord.production), updatedAt: serverTimestamp() });
           
           const oldRItem = inventory.find((i: any) => i.name === oldRecord.rawMaterial);
-          if (oldRItem) await updateDoc(doc(db, 'inventory', oldRItem.id), { currentStock: increment(oldRecord.rawQty), updatedAt: serverTimestamp() });
+          if (oldRItem) await updateDoc(doc(db, 'inventory', String(oldRItem.id)), { currentStock: increment(oldRecord.rawQty), updatedAt: serverTimestamp() });
         }
 
-        await updateDoc(doc(db, 'production_batches', editingId), {
-          ...row,
+        // Clean up row data for Firestore
+        const { id: _, ...cleanRow } = row;
+
+        await updateDoc(doc(db, 'production_batches', String(editingId)), {
+          ...cleanRow,
           line,
           production: prodNum,
           rawQty: rawNum,
@@ -102,10 +108,10 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
         });
 
         const newPItem = inventory.find((i: any) => i.name === row.title);
-        if (newPItem) await updateDoc(doc(db, 'inventory', newPItem.id), { currentStock: increment(prodNum), updatedAt: serverTimestamp() });
+        if (newPItem) await updateDoc(doc(db, 'inventory', String(newPItem.id)), { currentStock: increment(prodNum), updatedAt: serverTimestamp() });
 
         const newRItem = inventory.find((i: any) => i.name === row.rawMaterial);
-        if (newRItem) await updateDoc(doc(db, 'inventory', newRItem.id), { currentStock: increment(-rawNum), updatedAt: serverTimestamp() });
+        if (newRItem) await updateDoc(doc(db, 'inventory', String(newRItem.id)), { currentStock: increment(-rawNum), updatedAt: serverTimestamp() });
 
         alert('생산 실적 수정 완료');
         setEditingId(null);
@@ -122,8 +128,11 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
         const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
         const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
 
+        // Clean up row data for Firestore
+        const { id: _, ...cleanRow } = row;
+
         await addDoc(collection(db, 'production_batches'), { 
-          ...row, 
+          ...cleanRow, 
           line,
           production: prodNum, 
           rawQty: rawNum, 
@@ -133,15 +142,19 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
         });
 
         const pItem = inventory.find((i: any) => i.name === row.title);
-        if (pItem) await updateDoc(doc(db, 'inventory', pItem.id), { currentStock: increment(prodNum), updatedAt: serverTimestamp() });
+        if (pItem) await updateDoc(doc(db, 'inventory', String(pItem.id)), { currentStock: increment(prodNum), updatedAt: serverTimestamp() });
         
         const rItem = inventory.find((i: any) => i.name === row.rawMaterial);
-        if (rItem) await updateDoc(doc(db, 'inventory', rItem.id), { currentStock: increment(-rawNum), updatedAt: serverTimestamp() });
+        if (rItem) await updateDoc(doc(db, 'inventory', String(rItem.id)), { currentStock: increment(-rawNum), updatedAt: serverTimestamp() });
       }
       alert('생산 실적 등록 완료'); 
       setShowForm(false);
       setRows([{ id: Date.now(), title: '', rawMaterial: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
-    } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'production_batches'); }
+    } catch (error) { 
+      handleFirestoreError(error, OperationType.WRITE, 'production_batches'); 
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (item: any) => {
@@ -161,18 +174,24 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!canEditItems) return;
-    if (!window.confirm(`[${title}] 생산 실적을 삭제하시겠습니까? (재고가 같이 조정됩니다)`)) return;
+    if (!canEditItems || loading) return;
+    
+    // We'll skip window.confirm as it can be blocked in iframe
+    // Instead we process it directly or we could add a local state confirm
+    setLoading(true);
     try {
       const record = production.find((p: any) => p.id === id);
-      await deleteDoc(doc(db, 'production_batches', id));
       
+      // Perform deletion
+      await deleteDoc(doc(db, 'production_batches', String(id)));
+      
+      // Revert inventory changes if record existed
       if (record) {
         const pItem = inventory.find((i: any) => i.name === record.title);
-        if (pItem) await updateDoc(doc(db, 'inventory', pItem.id), { currentStock: increment(-record.production), updatedAt: serverTimestamp() });
+        if (pItem) await updateDoc(doc(db, 'inventory', String(pItem.id)), { currentStock: increment(-record.production), updatedAt: serverTimestamp() });
         
         const rItem = inventory.find((i: any) => i.name === record.rawMaterial);
-        if (rItem) await updateDoc(doc(db, 'inventory', rItem.id), { currentStock: increment(record.rawQty), updatedAt: serverTimestamp() });
+        if (rItem) await updateDoc(doc(db, 'inventory', String(rItem.id)), { currentStock: increment(record.rawQty), updatedAt: serverTimestamp() });
       }
       
       if (editingId === id) {
@@ -180,9 +199,10 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
         setShowForm(false);
       }
       
-      alert('생산 실적이 삭제되었습니다.');
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'production_batches');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -373,8 +393,8 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                       <td className="px-6 py-6">
                         {canEditItems && (
                           <div className="flex items-center justify-center gap-2">
-                             <button onClick={() => handleEdit(item)} className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all" title="수정"><Edit className="w-5 h-5" /></button>
-                             <button onClick={() => handleDelete(item.id, item.title)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="삭제"><Trash2 className="w-5 h-5" /></button>
+                             <button onClick={() => handleEdit(item)} disabled={loading} className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all disabled:opacity-30" title="수정"><Edit className="w-5 h-5" /></button>
+                             <button onClick={() => handleDelete(item.id, item.title)} disabled={loading} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all disabled:opacity-30" title="삭제"><Trash2 className="w-5 h-5" /></button>
                           </div>
                         )}
                       </td>

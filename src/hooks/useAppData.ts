@@ -22,27 +22,27 @@ export function useAppData(user: any, isSuperAdmin: boolean) {
 
     const qInv = query(collection(db, 'inventory'), orderBy('name'));
     const unsubInv = onSnapshot(qInv, (snap) => {
-      setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setInventory(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, error => handleFirestoreError(error, OperationType.LIST, 'inventory'));
 
     const qProd = query(collection(db, 'production_batches'), orderBy('manufDate', 'desc'), limit(50));
     const unsubProd = onSnapshot(qProd, (snap) => {
-      setProduction(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setProduction(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, error => handleFirestoreError(error, OperationType.LIST, 'production_batches'));
 
     const qLog = query(collection(db, 'logistics'), orderBy('createdAt', 'desc'), limit(100));
     const unsubLog = onSnapshot(qLog, (snap) => {
-      setLogistics(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLogistics(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, error => handleFirestoreError(error, OperationType.LIST, 'logistics'));
 
     const unsubPartners = onSnapshot(collection(db, 'partners'), (snap) => {
-      setPartners(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setPartners(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, error => handleFirestoreError(error, OperationType.LIST, 'partners'));
 
     let unsubAllUsers: () => void = () => {};
     if (isSuperAdmin) {
       unsubAllUsers = onSnapshot(collection(db, 'users'), (snap) => {
-        setAllUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setAllUsers(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
       }, error => handleFirestoreError(error, OperationType.LIST, 'users'));
     }
 
