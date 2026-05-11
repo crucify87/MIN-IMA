@@ -175,6 +175,11 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
         if (rItem) await updateDoc(doc(db, 'inventory', rItem.id), { currentStock: increment(record.rawQty), updatedAt: serverTimestamp() });
       }
       
+      if (editingId === id) {
+        setEditingId(null);
+        setShowForm(false);
+      }
+      
       alert('생산 실적이 삭제되었습니다.');
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'production_batches');
@@ -273,7 +278,18 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                 {editingId ? '수정 사항 저장' : `${rows.length}건 생산 등록`}
              </button>
              {editingId && (
-                <button onClick={() => { setEditingId(null); setShowForm(false); }} className="flex-1 h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-lg hover:bg-rose-100 transition-all">취소</button>
+                <>
+                  <button 
+                    onClick={() => {
+                        const rec = production.find((p: any) => p.id === editingId);
+                        if (rec) handleDelete(editingId, rec.title);
+                    }} 
+                    className="flex-1 h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-lg hover:bg-rose-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-5 h-5" /> 삭제
+                  </button>
+                  <button onClick={() => { setEditingId(null); setShowForm(false); }} className="flex-1 h-16 bg-slate-100 text-slate-600 rounded-2xl font-black text-lg hover:bg-slate-200 transition-all">취소</button>
+                </>
              )}
           </div>
           <datalist id="p-items">{inventory.map((i: any) => <option key={i.id} value={i.name} />)}</datalist>
