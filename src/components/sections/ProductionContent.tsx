@@ -190,7 +190,6 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           </button>
           <div>
             <h1 className="text-4xl font-black text-[#0f172a] tracking-tighter">생산관리</h1>
-            <p className="text-[11px] font-black text-outline uppercase tracking-tight">생산공정 작업일지</p>
           </div>
         </div>
         

@@ -191,7 +191,6 @@ function SettingsContent({
         </button>
         <div>
           <h1 className="text-4xl font-black text-[#0f172a] tracking-tighter">시스템 설정</h1>
-          <p className="text-[11px] font-black text-outline uppercase tracking-tight">환경 설정</p>
         </div>
       </header>
 

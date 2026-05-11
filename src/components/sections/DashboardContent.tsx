@@ -39,7 +39,6 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-black text-on-surface tracking-tighter">대시보드</h1>
-          <p className="text-sm font-bold text-outline uppercase tracking-tight">{today} 실시간 재고 통합 현황</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
