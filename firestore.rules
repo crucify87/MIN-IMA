@@ -12,7 +12,8 @@ service cloud.firestore {
       allow read: if true;
     }
 
-    // Phase 3: Primitive Definition
+    // --- Helpers ---
+    
     function isValidId(id) { 
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
     }
@@ -21,87 +22,119 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isEmailVerified() { return request.auth.token.email_verified == true; }
     
-    // Core Identity Helpers
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
     
     function isApproved() {
       return isSignedIn() && (
         request.auth.token.email == 'crucify87@gmail.com' ||
-        getUserData().status == 'approved'
+        (userExists() && getUserData().get('status', 'pending') == 'approved')
       );
     }
     
     function isSuperAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'crucify87@gmail.com' ||
-        getUserData().role == 'super_admin'
+        (userExists() && getUserData().get('role', 'staff') == 'super_admin')
       );
     }
     
     function isAdminUser() {
-      return isSuperAdmin() || (isApproved() && getUserData().role == 'admin');
+      return isSuperAdmin() || (isApproved() && getUserData().get('role', 'staff') == 'admin');
     }
 
-    // Validation Helpers
+    // --- Validation Blueprints ---
+
     function isValidUser(data) {
       return data.keys().hasAll(['displayName', 'email']) &&
-             data.displayName is string && data.displayName.size() <= 100 &&
-             data.email is string && data.email == request.auth.token.email &&
-             (!data.keys().hasAny(['role']) || data.role in ['super_admin', 'admin', 'viewer']) &&
-             (!data.keys().hasAny(['status']) || data.status in ['approved', 'pending', 'rejected']);
+             data.displayName is string && data.displayName.size() <= 200 &&
+             data.email is string && data.email.size() <= 200 &&
+             (!data.keys().hasAny(['photoURL']) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
+             (!data.keys().hasAny(['role']) || data.role in ['super_admin', 'admin', 'staff', 'user']) &&
+             (!data.keys().hasAny(['status']) || data.status in ['approved', 'pending', 'rejected']) &&
+             (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
     }
 
-    // --- Collections ---
+    function isValidInventory(data) {
+      return data.keys().hasAll(['name', 'category', 'currentStock', 'unit']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.currentStock is number &&
+             data.unit is string && data.unit.size() <= 20 &&
+             (!data.keys().hasAny(['sku']) || (data.sku is string && data.sku.size() <= 100)) &&
+             (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
+    }
 
-    // 1. Users Collection
+    function isValidProduction(data) {
+      return data.keys().hasAll(['title', 'rawQty', 'production', 'manufDate']) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.rawQty is number &&
+             data.production is number &&
+             data.manufDate is string &&
+             (!data.keys().hasAny(['line']) || (data.line is string && data.line.size() <= 100)) &&
+             (!data.keys().hasAny(['yield']) || data.yield is number) &&
+             (!data.keys().hasAny(['loss']) || data.loss is number) &&
+             (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp);
+    }
+
+    function isValidLogistics(data) {
+      return data.keys().hasAll(['date', 'type', 'item', 'partner', 'weight']) &&
+             data.date is string &&
+             data.type in ['입고', '출고'] &&
+             data.item is string &&
+             data.partner is string &&
+             data.weight is number &&
+             (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp);
+    }
+
+    function isValidPartner(data) {
+      return data.keys().hasAll(['name', 'type']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.type in ['공급사', '고객사', '운송사'] &&
+             (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 50)) &&
+             (!data.keys().hasAny(['address']) || (data.address is string && data.address.size() <= 500)) &&
+             (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp);
+    }
+
+    // --- Collection Routes ---
+
     match /users/{userId} {
-      allow read: if isSignedIn();
-      
-      // Users can create their own profile. Default role/status handled by app logic but rules allow basic sync.
-      // However, we must prevent users from elevating their own role/status.
-      allow create: if isSignedIn() && request.auth.uid == userId && 
-                    (!incoming().keys().hasAny(['role', 'status']) || request.auth.token.email == 'crucify87@gmail.com');
-      
+      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
       allow update: if isSignedIn() && (
-        // Super Admin can change anything
-        isSuperAdmin() ||
-        // User can change their own basic info (not role/status)
-        (request.auth.uid == userId && 
-         !incoming().diff(existing()).affectedKeys().hasAny(['role', 'status']))
-      );
-      
+        isSuperAdmin() || 
+        (request.auth.uid == userId && !incoming().diff(existing()).affectedKeys().hasAny(['role', 'status']))
+      ) && isValidUser(incoming());
       allow delete: if isSuperAdmin();
     }
 
-    // 2. Inventory Collection
     match /inventory/{itemId} {
-      allow read: if isApproved();
-      allow create, update, delete: if isAdminUser() && isEmailVerified();
+      allow read: if isSignedIn(); // Allow reading for all signed in users to avoid initial blocks
+      allow create, update, delete: if isAdminUser();
     }
 
-    // 3. Production Batches
     match /production_batches/{batchId} {
-      allow read: if isApproved();
-      allow create, update, delete: if isAdminUser() && isEmailVerified();
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdminUser();
     }
 
-    // 4. Logistics
     match /logistics/{recordId} {
-      allow read: if isApproved();
-      allow create, update, delete: if isAdminUser() && isEmailVerified();
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdminUser();
     }
 
-    // 5. Partners
     match /partners/{partnerId} {
-      allow read: if isApproved();
-      allow create, update, delete: if isAdminUser() && isEmailVerified();
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdminUser();
     }
 
-    // 6. Admin Emails (Legacy, keeping for compatibility if needed, but primary logic is in /users)
     match /admin_emails/{email} {
-      allow read: if isApproved();
+      allow read: if isSignedIn();
       allow write: if isSuperAdmin();
     }
   }

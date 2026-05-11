@@ -77,8 +77,8 @@
       "type": "object",
       "properties": {
         "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["공급사", "고객사"] },
-        "contact": { "type": "string" },
+        "type": { "type": "string", "enum": ["공급사", "고객사", "운송사"] },
+        "phone": { "type": "string" },
         "address": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }

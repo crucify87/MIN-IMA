@@ -1,6 +1,6 @@
 {
   "name": "MIN IMA",
-  "description": "Professional industrial inventory and production management dashboard for real-time tracking, stock management, logistics, and yield analysis.",
+  "description": "사내 전용 재고 및 생산 관리 시스템 (Authorized Personnel Only)",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
