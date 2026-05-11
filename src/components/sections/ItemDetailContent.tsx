@@ -39,7 +39,7 @@ function ItemDetailContent({ item, logistics, onNavigate, canEditItems, canViewP
         updateData.salesPrice = Number(priceForm.salesPrice);
       }
 
-      await updateDoc(doc(db, 'inventory', item.id), updateData);
+      await updateDoc(doc(db, 'inventory', String(item.id)), updateData);
       
       if (diff !== 0) {
         await addDoc(collection(db, 'logistics'), {

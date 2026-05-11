@@ -147,40 +147,71 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         </div>
       </section>
 
-      {/* Variation Status */}
+      {/* Stock Movement Activity */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-black text-on-surface tracking-tight">재고 변동 현황</h3>
+          <h3 className="text-2xl font-black text-on-surface tracking-tight">최근 재고 변동 내역 (통합)</h3>
           <div className="flex gap-4">
             <button 
               onClick={() => onNavigate('production')}
               className="text-sm font-black text-on-surface-variant hover:text-primary transition-colors"
             >
-              생산기록
+              생산 상세
             </button>
             <button 
               onClick={() => onNavigate('logistics')}
               className="text-sm font-black text-on-surface-variant hover:text-primary transition-colors"
             >
-              물류기록
+              물류 상세
             </button>
           </div>
         </div>
 
         <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
-          <table className="w-full text-center border-collapse">
-            <thead className="bg-surface-container/50 text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
-              <tr>
-                <th className="px-4 py-8">시간 (TIME)</th>
-                <th className="px-4 py-8">구분</th>
-                <th className="px-4 py-8">품목 (ITEM)</th>
-                <th className="px-4 py-8">재고 변동량</th>
-                <th className="px-4 py-8">상태</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/10">
-              {logistics.length > 0 ? (
-                logistics.slice(0, 5).map((l: any, i: number) => (
+          <div className="overflow-x-auto">
+            <table className="w-full text-center border-collapse">
+              <thead className="bg-surface-container/50 text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+                <tr>
+                  <th className="px-4 py-8">시간 (TIME)</th>
+                  <th className="px-4 py-8">구분</th>
+                  <th className="px-4 py-8">품목 (ITEM)</th>
+                  <th className="px-4 py-8">재고 변동량</th>
+                  <th className="px-4 py-8">출처</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {useMemo(() => {
+                  const combined = [
+                    ...logistics.map((l: any) => ({
+                      time: `${l.date} ${l.time}`,
+                      type: l.type,
+                      item: l.item,
+                      weight: l.weight,
+                      source: '물류',
+                      rawTime: l.createdAt?.seconds || 0
+                    })),
+                    ...production.flatMap((p: any) => [
+                      {
+                        time: p.manufDate,
+                        type: '입고',
+                        item: p.title,
+                        weight: p.production,
+                        source: '생산(완성)',
+                        rawTime: p.createdAt?.seconds || 0
+                      },
+                      {
+                        time: p.manufDate,
+                        type: '출고',
+                        item: p.rawMaterial,
+                        weight: p.rawQty,
+                        source: '생산(투입)',
+                        rawTime: p.createdAt?.seconds || 0
+                      }
+                    ]).filter(i => i.item)
+                  ].sort((a, b) => b.rawTime - a.rawTime);
+
+                  return combined.slice(0, 10);
+                }, [logistics, production]).map((l, i) => (
                   <tr key={i} className="hover:bg-surface-container/10 transition-colors">
                     <td className="px-4 py-6 text-sm font-bold text-outline">{l.time}</td>
                     <td className="px-4 py-6">
@@ -190,22 +221,27 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     </td>
                     <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
                     <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {l.type === '입고' ? '+' : '-'}{l.weight?.toLocaleString()} KG
+                      {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
                     </td>
                     <td className="px-4 py-6">
-                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{l.status || '완료'}</span>
+                      <span className={`text-[10px] font-black px-2 py-1 rounded ${
+                        l.source.includes('생산') ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-600'
+                      }`}>
+                        {l.source}
+                      </span>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="py-24 text-center">
-                    <p className="text-xl font-black text-outline/40 tracking-tight">활동 내역이 없습니다</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                ))}
+                {logistics.length === 0 && production.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-24 text-center">
+                      <p className="text-xl font-black text-outline/40 tracking-tight">활동 내역이 없습니다</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </div>
