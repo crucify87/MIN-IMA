@@ -8,10 +8,11 @@
         "displayName": { "type": "string" },
         "photoURL": { "type": "string" },
         "email": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "manager", "staff"] },
+        "role": { "type": "string", "enum": ["super_admin", "admin", "viewer"] },
+        "status": { "type": "string", "enum": ["approved", "pending", "rejected"] },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["displayName", "email", "role"]
+      "required": ["displayName", "email"]
     },
     "inventoryItem": {
       "title": "Inventory Item",

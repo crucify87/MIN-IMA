@@ -763,7 +763,7 @@ const InventoryView = ({ onNavigate, inventory, logistics, isAuthorized = false,
 };
 
 const ItemDetailView = ({ onNavigate, userData, item, logistics, isAuthorized = false }: { onNavigate: (view: ViewType, item?: any) => void, userData: any, item: any, logistics: any[], isAuthorized?: boolean }) => {
-  const isAdmin = userData?.role === 'admin';
+  const isAdmin = userData?.role === 'admin' || userData?.role === 'super_admin';
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isUpdatingStock, setIsUpdatingStock] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -2396,8 +2396,30 @@ const ProductionView = ({ production, inventory, onNavigate, isAuthorized = fals
   );
 };
 
-const SettingsView = ({ onNavigate, partners, inventory = [], logistics = [], production = [], adminEmails = [], user, isAuthorized = false }: { onNavigate?: (view: ViewType, item?: any) => void, partners: any[], inventory: any[], logistics: any[], production: any[], adminEmails?: any[], user: User | null, isAuthorized?: boolean }) => {
-  const [activeTab, setActiveTab] = useState<'product' | 'partner' | 'admin'>('product');
+const SettingsView = ({ 
+  onNavigate, 
+  partners, 
+  inventory = [], 
+  logistics = [], 
+  production = [], 
+  adminEmails = [], 
+  user, 
+  isAuthorized = false,
+  isSuperAdmin = false,
+  allUsers = []
+}: { 
+  onNavigate?: (view: ViewType, item?: any) => void, 
+  partners: any[], 
+  inventory: any[], 
+  logistics: any[], 
+  production: any[], 
+  adminEmails?: any[], 
+  user: User | null, 
+  isAuthorized?: boolean,
+  isSuperAdmin?: boolean,
+  allUsers?: any[]
+}) => {
+  const [activeTab, setActiveTab] = useState<'product' | 'partner' | 'admin' | 'users'>('product');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [productSearch, setProductSearch] = useState('');
@@ -2619,6 +2641,14 @@ const SettingsView = ({ onNavigate, partners, inventory = [], logistics = [], pr
         >
           관리자
         </button>
+        {isSuperAdmin && (
+          <button 
+            onClick={() => setActiveTab('users')}
+            className={`flex-1 md:flex-none px-4 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl text-sm md:text-xl font-black transition-all uppercase tracking-widest ${activeTab === 'users' ? 'bg-white shadow-lg text-primary scale-105' : 'text-outline hover:text-on-surface'}`}
+          >
+            계정관리
+          </button>
+        )}
       </div>
 
       <motion.div 
@@ -3083,6 +3113,107 @@ const SettingsView = ({ onNavigate, partners, inventory = [], logistics = [], pr
             </div>
           </div>
         )}
+        {activeTab === 'users' && isSuperAdmin && (
+          <div className="space-y-8">
+            <div className="space-y-2 text-center md:text-left">
+              <h3 className="text-xl md:text-2xl font-black text-primary tracking-tight uppercase">계정 관리 시스템</h3>
+              <p className="text-xs md:text-sm text-outline font-bold uppercase tracking-[0.2em] opacity-60">User Access Control & Role Management</p>
+            </div>
+
+            <div className="bg-surface-container/20 rounded-[32px] overflow-hidden border border-outline-variant/30 font-bold">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-white border-b border-outline-variant/30 text-[10px] md:text-xs font-black text-outline uppercase tracking-[0.2em]">
+                    <tr>
+                      <th className="px-6 py-5">사용자 정보</th>
+                      <th className="px-6 py-5">이메일</th>
+                      <th className="px-6 py-5">권한 등급</th>
+                      <th className="px-6 py-5">승인 상태</th>
+                      <th className="px-6 py-5 text-right">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10">
+                    {allUsers.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)).map((u, i) => (
+                      <tr key={i} className="bg-white/50 hover:bg-white transition-colors group">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            {u.photoURL ? (
+                              <img src={u.photoURL} className="w-10 h-10 rounded-full border-2 border-primary/20" alt="" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                <UserIcon className="w-5 h-5" />
+                              </div>
+                            )}
+                            <p className="font-black text-on-surface text-base tracking-tight">{u.displayName || '이름 없음'}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <p className="text-sm font-bold text-outline-variant">{u.email}</p>
+                        </td>
+                        <td className="px-6 py-5">
+                          <select 
+                            value={u.role || 'viewer'} 
+                            onChange={async (e) => {
+                              try {
+                                await updateDoc(doc(db, 'users', u.id), { role: e.target.value, updatedAt: serverTimestamp() });
+                              } catch (error) {
+                                handleFirestoreError(error, OperationType.UPDATE, 'users');
+                              }
+                            }}
+                            className="bg-surface-container px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-outline-variant/30 focus:border-primary outline-none transition-all"
+                          >
+                            <option value="super_admin">최고관리자</option>
+                            <option value="admin">관리자</option>
+                            <option value="viewer">사용자</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${u.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                              {u.status === 'approved' ? '승인됨' : '대기중'}
+                            </span>
+                            <button 
+                              onClick={async () => {
+                                try {
+                                  await updateDoc(doc(db, 'users', u.id), { 
+                                    status: u.status === 'approved' ? 'pending' : 'approved',
+                                    updatedAt: serverTimestamp()
+                                  });
+                                } catch (error) {
+                                  handleFirestoreError(error, OperationType.UPDATE, 'users');
+                                }
+                              }}
+                              className={`p-2 rounded-lg transition-all ${u.status === 'approved' ? 'text-error hover:bg-error/10' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                              title={u.status === 'approved' ? '승인 취소' : '승인'}
+                            >
+                              {u.status === 'approved' ? <X className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <button 
+                            onClick={async () => {
+                              if (confirm(`${u.displayName || u.email} 사용자를 계정 목록에서 삭제하시겠습니까?`)) {
+                                try {
+                                  await deleteDoc(doc(db, 'users', u.id));
+                                } catch (error) {
+                                  handleFirestoreError(error, OperationType.DELETE, 'users');
+                                }
+                              }
+                            }}
+                            className="p-2 text-outline/40 hover:text-error transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
@@ -3105,11 +3236,23 @@ export default function App() {
   const [partners, setPartners] = useState<any[]>([]);
   const [adminEmails, setAdminEmails] = useState<any[]>([]);
 
-  const isAuthorized = useMemo(() => {
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+
+  const isSuperAdmin = useMemo(() => {
     if (!user?.email) return false;
     if (user.email === 'crucify87@gmail.com') return true;
-    return adminEmails.some(a => a.email === user.email);
-  }, [user, adminEmails]);
+    return userData?.role === 'super_admin';
+  }, [user, userData]);
+
+  const isAdmin = useMemo(() => {
+    if (isSuperAdmin) return true;
+    return userData?.role === 'admin';
+  }, [isSuperAdmin, userData]);
+
+  const isAuthorized = useMemo(() => {
+    if (isSuperAdmin) return true;
+    return isAdmin && userData?.status === 'approved';
+  }, [isSuperAdmin, isAdmin, userData]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
@@ -3144,22 +3287,19 @@ export default function App() {
       const syncProfile = async () => {
         try {
           const userRef = doc(db, 'users', user.uid);
+          
+          // Initial role/status for crucify87@gmail.com
+          const isInitialSuper = user.email === 'crucify87@gmail.com';
+          
           await setDoc(userRef, {
             displayName: user.displayName,
             email: user.email,
             photoURL: user.photoURL,
-            // role is usually set manually or via some logic, defaulting to staff if new
             updatedAt: serverTimestamp(),
+            ...(isInitialSuper ? { role: 'super_admin', status: 'approved' } : {})
           }, { merge: true });
-
-          // Automatic seeding removed per user request to start with 0 data
-          // const empty = await isDatabaseEmpty();
-          // if (empty) {
-          //   console.log("Database is empty, seeding...");
-          //   await seedDatabase();
-          // }
         } catch (error) {
-          console.error("Error syncing profile or seeding:", error);
+          console.error("Error syncing profile:", error);
         }
       };
       
@@ -3192,12 +3332,17 @@ export default function App() {
       setAdminEmails(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, error => handleFirestoreError(error, OperationType.LIST, 'admin_emails'));
 
+    const unsubAllUsers = onSnapshot(collection(db, 'users'), (snap) => {
+      setAllUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, error => handleFirestoreError(error, OperationType.LIST, 'users'));
+
     return () => {
       unsubInv();
       unsubProd();
       unsubLog();
       unsubPartners();
       unsubAdmins();
+      unsubAllUsers();
     };
   }, [user]);
 
@@ -3343,7 +3488,9 @@ export default function App() {
             <div className="flex items-center gap-3 border-l border-outline-variant/30 pl-4 ml-2">
               <div className="text-right hidden sm:block">
                 <p className="text-base font-black text-on-surface">{user.displayName || '사용자'}</p>
-                <p className="text-[9px] text-outline uppercase font-black tracking-widest">현장 관리자</p>
+                <p className="text-[9px] text-outline uppercase font-black tracking-widest">
+                  {isSuperAdmin ? '최고관리자' : isAdmin ? '관리자' : '사용자'}
+                </p>
               </div>
               <div className="group relative">
                 <div className="w-12 h-12 rounded-full border-2 border-outline-variant overflow-hidden ring-4 ring-primary/5 shadow-md">
@@ -3402,7 +3549,20 @@ export default function App() {
                 {currentView === 'detail' && <ItemDetailView onNavigate={handleNavigate} userData={userData} item={selectedItem} logistics={logistics} isAuthorized={isAuthorized} />}
                 {currentView === 'logistics' && <LogisticsView logistics={logistics} inventory={inventory} partners={partners} onNavigate={handleNavigate} isAuthorized={isAuthorized} />}
                 {currentView === 'production' && <ProductionView production={production} inventory={inventory} onNavigate={handleNavigate} isAuthorized={isAuthorized} />}
-                {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} inventory={inventory} partners={partners} logistics={logistics} production={production} adminEmails={adminEmails} user={user} isAuthorized={isAuthorized} />}
+                {currentView === 'settings' && (
+                  <SettingsView 
+                    onNavigate={handleNavigate} 
+                    inventory={inventory} 
+                    partners={partners} 
+                    logistics={logistics} 
+                    production={production} 
+                    adminEmails={adminEmails} 
+                    user={user} 
+                    isAuthorized={isAuthorized} 
+                    isSuperAdmin={isSuperAdmin}
+                    allUsers={allUsers}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
