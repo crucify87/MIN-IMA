@@ -136,43 +136,43 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
         <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
           <div className="overflow-x-auto">
             <table className="w-full text-center border-collapse">
-              <thead className="bg-[#f1f4f9] text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+              <thead className="bg-[#f1f4f9] text-[10px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                 <tr>
-                  <th className="px-4 py-8">SKU / 위치 / 라인</th>
-                  <th className="px-4 py-8">품목 정보</th>
-                  <th className="px-4 py-8">카테고리</th>
-                  <th className="px-4 py-8">현재 재고</th>
-                  <th className="px-4 py-8">상태</th>
-                  <th className="px-4 py-8">관리</th>
+                  <th className="px-4 py-5">SKU / 위치 / 라인</th>
+                  <th className="px-4 py-5 font-medium">품목 정보</th>
+                  <th className="px-4 py-5 font-medium">카테고리</th>
+                  <th className="px-4 py-5 font-medium">현재 재고</th>
+                  <th className="px-4 py-5 font-medium">상태</th>
+                  <th className="px-4 py-5 font-medium">관리</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {filtered.length > 0 ? (
                   filtered.slice(0, showAll ? undefined : 15).map((item: any, i: number) => (
                     <tr key={i} className="hover:bg-surface-container/5 transition-colors">
-                      <td className="px-4 py-6">
+                      <td className="px-4 py-4">
                       <div className="flex flex-col items-center gap-1">
-                        <span className="text-xs font-bold text-primary font-mono">{item.sku}</span>
-                        <span className="text-[10px] font-black text-outline uppercase">{item.location || '미지정'}</span>
+                        <span className="text-[10px] font-bold text-primary font-mono">{item.sku}</span>
+                        <span className="text-[9px] font-black text-outline uppercase">{item.location || '미지정'}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-6 font-black text-on-surface text-lg">
+                    <td className="px-4 py-4 font-black text-on-surface text-base">
                       {item.name}
                     </td>
-                    <td className="px-4 py-6">
-                      <span className="px-2 py-1 bg-surface-container rounded-lg text-[10px] font-black text-outline uppercase">
+                    <td className="px-4 py-4">
+                      <span className="px-2 py-1 bg-surface-container rounded-lg text-[9px] font-black text-outline uppercase">
                         {item.category}
                       </span>
                     </td>
-                    <td className="px-4 py-6 font-black text-xl">
-                      {item.currentStock?.toLocaleString()} <span className="text-xs text-outline">{item.unit}</span>
+                    <td className="px-4 py-4 font-black text-lg">
+                      {item.currentStock?.toLocaleString()} <span className="text-[10px] text-outline font-medium">{item.unit}</span>
                     </td>
-                    <td className="px-4 py-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <td className="px-4 py-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
                         {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'}
                       </span>
                     </td>
-                    <td className="px-4 py-6">
+                    <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
                         {canEditItems ? (
                           <>
