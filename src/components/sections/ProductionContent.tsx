@@ -160,6 +160,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   };
 
   const handleDelete = async (id: string, title: string) => {
+    if (!canEditItems) return;
     if (!window.confirm(`[${title}] 생산 실적을 삭제하시겠습니까? (재고가 같이 조정됩니다)`)) return;
     try {
       const record = production.find((p: any) => p.id === id);
@@ -345,10 +346,12 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                       <td className="px-6 py-6 text-sm font-bold text-outline">{item.manufDate}</td>
                       <td className="px-6 py-6 text-sm font-bold text-outline">{item.expiryDate || '-'}</td>
                       <td className="px-6 py-6">
-                        <div className="flex items-center justify-center gap-2">
-                           <button onClick={() => handleEdit(item)} className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all" title="수정"><Edit className="w-5 h-5" /></button>
-                           <button onClick={() => handleDelete(item.id, item.title)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="삭제"><Trash2 className="w-5 h-5" /></button>
-                        </div>
+                        {canEditItems && (
+                          <div className="flex items-center justify-center gap-2">
+                             <button onClick={() => handleEdit(item)} className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all" title="수정"><Edit className="w-5 h-5" /></button>
+                             <button onClick={() => handleDelete(item.id, item.title)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="삭제"><Trash2 className="w-5 h-5" /></button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
