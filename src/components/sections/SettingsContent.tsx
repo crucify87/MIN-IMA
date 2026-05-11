@@ -42,6 +42,7 @@ function SettingsContent({
   const [partnerSearch, setPartnerSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [showAllPartners, setShowAllPartners] = useState(false);
+  const [showAllItems, setShowAllItems] = useState(false);
   const [showAllUsers, setShowAllUsers] = useState(false);
 
   // Item Form
@@ -49,6 +50,7 @@ function SettingsContent({
     sku: '', name: '', category: '', unit: '', currentStock: '', safetyStock: '',
     purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: ''
   });
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   // Partner Form
   const [partnerForm, setPartnerForm] = useState({ name: '', type: '공급사', phone: '', address: '' });
@@ -61,17 +63,56 @@ function SettingsContent({
     e.preventDefault();
     if (!canEditItems) return;
     try {
-      await addDoc(collection(db, 'inventory'), {
+      const data = {
         ...itemForm,
         currentStock: Number(itemForm.currentStock),
         safetyStock: Number(itemForm.safetyStock),
         purchasePrice: Number(itemForm.purchasePrice),
         salesPrice: Number(itemForm.salesPrice),
-        createdAt: serverTimestamp()
-      });
-      alert('상품 마스터 등록이 완료되었습니다.');
+        updatedAt: serverTimestamp()
+      };
+
+      if (editingItemId) {
+        await updateDoc(doc(db, 'inventory', editingItemId), data);
+        alert('상품 정보가 수정되었습니다.');
+        setEditingItemId(null);
+      } else {
+        await addDoc(collection(db, 'inventory'), {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+        alert('상품 마스터 등록이 완료되었습니다.');
+      }
       setItemForm({ sku: '', name: '', category: '', unit: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
+  };
+
+  const handleEditItem = (item: any) => {
+    setEditingItemId(item.id);
+    setItemForm({
+      sku: item.sku || '',
+      name: item.name || '',
+      category: item.category || '',
+      unit: item.unit || '',
+      currentStock: String(item.currentStock || 0),
+      safetyStock: String(item.safetyStock || 0),
+      purchasePrice: String(item.purchasePrice || 0),
+      salesPrice: String(item.salesPrice || 0),
+      manufDate: item.manufDate || '',
+      expiryDate: item.expiryDate || '',
+      location: item.location || '',
+      detailLocation: item.detailLocation || ''
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteItem = async (id: string, name: string) => {
+    if (!canEditItems) return;
+    if (!window.confirm(`[${name}] 상품을 마스터에서 영구 삭제하시겠습니까? 관련 재고 데이터가 사라집니다.`)) return;
+    try {
+      await deleteDoc(doc(db, 'inventory', id));
+      alert('삭제 되었습니다.');
+    } catch (error) { handleFirestoreError(error, OperationType.DELETE, 'inventory'); }
   };
 
   const handleRegisterPartner = async (e: any) => {
@@ -163,9 +204,12 @@ function SettingsContent({
       <div className="bg-white rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
         {tab === 'p' && (
           <div className="p-10 space-y-12">
+            {/* 1. Registration Form (TOP) */}
             {canEditItems ? (
-              <div className="max-w-4xl mx-auto space-y-10">
-                <h3 className="text-center text-[13px] font-black text-[#0f172a] uppercase tracking-widest border-b border-outline-variant pb-6">신규 상품(MASTER) 등록</h3>
+              <div id="item-form" className="max-w-4xl mx-auto space-y-10">
+                <h3 className="text-center text-[13px] font-black text-[#0f172a] uppercase tracking-widest border-b border-outline-variant pb-6">
+                  {editingItemId ? '상품(MASTER) 정보 수정' : '신규 상품(MASTER) 등록'}
+                </h3>
                 <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">SKU 번호</label><input placeholder="예: SKU-BF-001" value={itemForm.sku} onChange={e => setItemForm({...itemForm, sku: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">품목명</label><input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
@@ -179,7 +223,23 @@ function SettingsContent({
                   <div className="space-y-2 flex flex-col"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1 flex items-center gap-1"><Clock className="w-3 h-3 text-rose-500" /> 소비기한</label><input type="date" value={itemForm.expiryDate} onChange={e => setItemForm({...itemForm, expiryDate: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">보관 위치/라인</label><input placeholder="예: A구역 / 1번라인" value={itemForm.location} onChange={e => setItemForm({...itemForm, location: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">상세 위치</label><input placeholder="예: 3단 4번" value={itemForm.detailLocation} onChange={e => setItemForm({...itemForm, detailLocation: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
-                  <div className="md:col-span-2 pt-4"><button type="submit" className="w-full h-16 bg-[#0f172a] text-white rounded-2xl font-black text-lg tracking-tight shadow-xl shadow-indigo-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]">상품 시스템 등록</button></div>
+                  <div className="md:col-span-2 pt-4 flex gap-4">
+                    <button type="submit" className="flex-1 h-16 bg-[#0f172a] text-white rounded-2xl font-black text-lg tracking-tight shadow-xl shadow-indigo-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                      {editingItemId ? '정보 수정 완료' : '상품 시스템 등록'}
+                    </button>
+                    {editingItemId && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setEditingItemId(null);
+                          setItemForm({ sku: '', name: '', category: '', unit: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+                        }}
+                        className="w-40 h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-lg shadow-sm hover:bg-rose-100 transition-all"
+                      >
+                        취소
+                      </button>
+                    )}
+                  </div>
                 </form>
               </div>
             ) : (
@@ -188,7 +248,10 @@ function SettingsContent({
                  <p className="font-black">상품 등록/수정 권한이 없습니다.</p>
               </div>
             )}
+
             <hr className="border-outline-variant/30" />
+
+            {/* 2. Registered Product List (BOTTOM) */}
             <div className="space-y-12">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
@@ -200,27 +263,67 @@ function SettingsContent({
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                     <input type="text" placeholder="상품명, SKU, 카테고리 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all" />
                   </div>
-                  <button className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all"><ChevronDown className="w-4 h-4" /> 펼치기</button>
+                  <button onClick={() => setShowAllItems(!showAllItems)} className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">{showAllItems ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {showAllItems ? '접기' : '펼치기'}</button>
                 </div>
               </div>
-              <div className="bg-[#f8fafc] border-2 border-dashed border-[#d1d5db] rounded-[32px] min-h-[400px] flex flex-col items-center justify-center p-12 text-center">
-                {filteredItems.length > 0 ? (
-                  <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredItems.map((item: any) => (
-                      <div key={item.id} className="bg-white p-6 rounded-3xl border border-outline-variant shadow-sm flex items-center justify-between hover:border-primary transition-all">
-                        <div className="flex items-center gap-4 text-left">
-                          <div className="w-12 h-12 bg-surface-container rounded-2xl flex items-center justify-center text-primary"><Package className="w-6 h-6" /></div>
-                          <div><h4 className="font-black text-[#0f172a] leading-tight">{item.name}</h4><p className="text-[10px] font-black text-outline uppercase mt-1">{item.sku} • {item.category}</p></div>
-                        </div>
-                        {canEditItems && (
-                          <button onClick={() => onNavigate('detail', item)} className="p-3 hover:bg-primary/5 text-primary rounded-xl transition-colors"><Edit className="w-5 h-5" /></button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-4 opacity-40"><Package className="w-16 h-16 mx-auto" /><p className="text-xl font-black text-[#0f172a] tracking-tight">등록된 상품이 없거나 검색 결과가 없습니다.</p></div>
-                )}
+
+              <div className="bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead className="bg-[#f0f4f8] text-[11px] font-black text-[#0f172a]/60 uppercase tracking-widest border-b border-outline-variant/50">
+                      <tr>
+                        <th className="px-6 py-5 text-left">코드/품목명</th>
+                        <th className="px-4 py-5 text-center">카테고리</th>
+                        <th className="px-4 py-5 text-center">단위</th>
+                        <th className="px-4 py-5 text-center">현재고</th>
+                        <th className="px-4 py-5 text-center">안전재고</th>
+                        <th className="px-4 py-5 text-center">위치</th>
+                        <th className="px-6 py-5 text-right">관리</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/10">
+                      {filteredItems.length > 0 ? (
+                        filteredItems.slice(0, showAllItems ? undefined : 15).map((item: any) => (
+                          <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-[#f1f4f9] rounded-xl flex items-center justify-center text-primary"><Package className="w-5 h-5" /></div>
+                                <div>
+                                  <div className="font-black text-[#0f172a]">{item.name}</div>
+                                  <div className="text-[10px] font-bold text-outline uppercase">{item.sku || '-'}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-5 text-center"><span className="px-3 py-1 bg-surface-container rounded-lg text-[10px] font-black text-outline uppercase">{item.category || '-'}</span></td>
+                            <td className="px-4 py-5 text-center text-sm font-bold">{item.unit || '-'}</td>
+                            <td className="px-4 py-5 text-center">
+                              <span className={`font-black ${item.currentStock <= item.safetyStock ? 'text-rose-500' : 'text-[#0f172a]'}`}>
+                                {item.currentStock?.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="px-4 py-5 text-center text-xs font-bold text-outline">{item.safetyStock?.toLocaleString() || '0'}</td>
+                            <td className="px-4 py-5 text-center">
+                              <div className="text-xs font-bold text-on-surface/70">{item.location || '-'}</div>
+                              <div className="text-[10px] text-outline">{item.detailLocation}</div>
+                            </td>
+                            <td className="px-6 py-5 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {canEditItems && (
+                                  <>
+                                    <button onClick={() => handleEditItem(item)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition-all" title="수정"><Edit className="w-4 h-4" /></button>
+                                    <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="삭제"><Trash2 className="w-4 h-4" /></button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan={7} className="py-20 text-center opacity-40"><Package className="w-12 h-12 mx-auto mb-3" /><p className="font-black">등록된 상품이 없습니다.</p></td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
