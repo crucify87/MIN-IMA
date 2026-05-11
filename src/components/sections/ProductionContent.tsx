@@ -34,6 +34,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
     { id: Date.now(), title: '', rawMaterial: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }
   ]);
 
+  const [showAllLogs, setShowAllLogs] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
@@ -294,9 +295,18 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
       {/* Recent Production Log */}
       <section className="space-y-6">
-        <div className="flex items-center gap-2">
-          <History className="w-6 h-6 text-[#0f172a]" />
-          <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">최근 생산 일지</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="w-6 h-6 text-[#0f172a]" />
+            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">생산 일지</h3>
+          </div>
+          <button 
+            onClick={() => setShowAllLogs(!showAllLogs)} 
+            className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant/50 rounded-xl text-sm font-black text-[#0f172a] hover:bg-slate-50 transition-all shadow-sm"
+          >
+            {showAllLogs ? <History className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {showAllLogs ? '' : '더보기'}
+          </button>
         </div>
 
         <section className="bg-[#e8f1ff] p-4 rounded-2xl flex flex-col md:flex-row items-center gap-4">
@@ -327,7 +337,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {filtered.map((item: any, idx: number) => {
+                {filtered.slice(0, showAllLogs ? undefined : 10).map((item: any, idx: number) => {
                   const itemData = inventory.find((inv: any) => inv.name === item.title);
                   return (
                     <tr key={item.id || idx} className="hover:bg-surface-container/5 transition-colors">

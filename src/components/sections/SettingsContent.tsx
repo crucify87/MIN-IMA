@@ -254,7 +254,7 @@ function SettingsContent({
             <div className="space-y-12">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <h3 className="text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Package className="w-6 h-6" /> 등록된 상품 목록</h3>
+                  <h3 className="text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Package className="w-6 h-6" /> 등록된 상품</h3>
                   <p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">MASTER INVENTORY ITEMS</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -262,7 +262,7 @@ function SettingsContent({
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                     <input type="text" placeholder="상품명, SKU, 카테고리 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all" />
                   </div>
-                  <button onClick={() => setShowAllItems(!showAllItems)} className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">{showAllItems ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {showAllItems ? '접기' : '펼치기'}</button>
+                  <button onClick={() => setShowAllItems(!showAllItems)} className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">{showAllItems ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {showAllItems ? '' : '더보기'}</button>
                 </div>
               </div>
 
@@ -342,10 +342,10 @@ function SettingsContent({
              <hr className="border-outline-variant/20" />
              <div className="space-y-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div><h3 className="text-2xl font-black text-[#0f172a] flex items-center gap-2"><Users className="w-7 h-7" /> 거래처 목록</h3></div>
+                  <div><h3 className="text-2xl font-black text-[#0f172a] flex items-center gap-2"><Users className="w-7 h-7" /> 거래처</h3></div>
                   <div className="flex items-center gap-3">
                     <div className="relative group w-full md:w-80"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" /><input type="text" placeholder="거래처명 검색..." value={partnerSearch} onChange={(e) => setPartnerSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" /></div>
-                    <button onClick={() => setShowAllPartners(!showAllPartners)} className="flex items-center gap-2 px-6 h-12 bg-[#e8f1ff] border border-outline-variant/20 rounded-xl text-sm font-black text-[#0f172a] hover:bg-blue-100 transition-all">{showAllPartners ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} 펼치기</button>
+                    <button onClick={() => setShowAllPartners(!showAllPartners)} className="flex items-center gap-2 px-6 h-12 bg-[#e8f1ff] border border-outline-variant/20 rounded-xl text-sm font-black text-[#0f172a] hover:bg-blue-100 transition-all">{showAllPartners ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {showAllPartners ? '' : '더보기'}</button>
                   </div>
                 </div>
                 <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-sm">
@@ -384,7 +384,7 @@ function SettingsContent({
                <div><h3 className="text-2xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Users className="w-6 h-6" /> 계정 권한 관리</h3><p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">USER ACCESS CONTROL</p></div>
                <div className="flex items-center gap-3">
                   <div className="relative group w-full md:w-80"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" /><input type="text" placeholder="이름 또는 이메일 검색..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all" /></div>
-                  <button onClick={() => setShowAllUsers(!showAllUsers)} className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">{showAllUsers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}{showAllUsers ? '접기' : '펼쳐보기'}</button>
+                  <button onClick={() => setShowAllUsers(!showAllUsers)} className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">{showAllUsers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}{showAllUsers ? '' : '더보기'}</button>
                </div>
              </div>
              <div className="space-y-6">

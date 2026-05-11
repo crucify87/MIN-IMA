@@ -64,60 +64,122 @@ function ItemDetailContent({ item, logistics, onNavigate, canEditItems, canViewP
         <button onClick={() => onNavigate('inventory')} className="p-3 bg-surface-container hover:bg-surface-container-high rounded-full"><ArrowLeft className="w-6 h-6" /></button>
         <h2 className="text-2xl md:text-4xl font-black text-primary tracking-tighter">{item.name} 상세</h2>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        <div className="bg-white p-8 rounded-[40px] border-2 border-outline-variant space-y-6 shadow-sm underline-none">
-          <div className="grid grid-cols-2 gap-6 pb-6 border-b border-outline-variant">
-            <div><p className="text-[10px] font-black text-outline uppercase">카테고리</p><p className="text-xl font-black">{item.category}</p></div>
-            <div><p className="text-[10px] font-black text-outline uppercase">SKU</p><p className="text-xl font-black font-mono">{item.sku}</p></div>
-            <div><p className="text-[10px] font-black text-outline uppercase">안전 재고</p><p className="text-xl font-black">{item.safetyStock?.toLocaleString()} {item.unit}</p></div>
-            <div><p className="text-[10px] font-black text-outline uppercase">보관 위치</p><p className="text-xl font-black">{item.location || '미지정'}</p></div>
-          </div>
-          
-          {canViewPrices && (
-            <div className="grid grid-cols-2 gap-6 pb-6 border-b border-outline-variant">
-              <div className="space-y-2">
-                <p className="text-[10px] font-black text-outline uppercase">매입 단가 (W)</p>
-                {canEditPrices ? (
-                  <input type="number" value={priceForm.purchasePrice} onChange={e => setPriceForm({...priceForm, purchasePrice: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold" />
-                ) : (
-                  <p className="text-xl font-black text-[#0f172a]">{item.purchasePrice?.toLocaleString()} W</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <p className="text-[10px] font-black text-outline uppercase">판매 단가 (W)</p>
-                {canEditPrices ? (
-                  <input type="number" value={priceForm.salesPrice} onChange={e => setPriceForm({...priceForm, salesPrice: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold" />
-                ) : (
-                  <p className="text-xl font-black text-[#0f172a]">{item.salesPrice?.toLocaleString()} W</p>
-                )}
-              </div>
+      <div className="flex flex-col gap-10">
+        <div className="bg-white p-10 rounded-[48px] border-2 border-outline-variant shadow-sm w-full transition-all hover:border-primary/20">
+          <div className="flex flex-col gap-10">
+            {/* 1. SKU */}
+            <div className="space-y-1 pb-6 border-b border-outline-variant/30">
+              <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mb-2">SKU</p>
+              <p className="text-2xl font-black text-on-surface font-mono">{item.sku}</p>
             </div>
-          )}
 
-          {canEditItems ? (
-            <div className="pt-2 space-y-4">
-              <h3 className="text-lg font-black uppercase font-bold">재고 수정</h3>
-              <div className="flex gap-4">
-                <input type="number" value={stock} onChange={e => setStock(e.target.value)} className="flex-1 h-14 px-6 bg-surface-container border-2 border-outline-variant rounded-2xl outline-none font-black text-2xl" />
-                <button onClick={handleUpdate} disabled={loading} className="bg-primary text-white h-14 px-8 rounded-2xl font-black uppercase shadow-lg hover:bg-[#0f172a] transition-colors">{loading ? 'Saving...' : '저장하기'}</button>
-              </div>
+            {/* 2. Category */}
+            <div className="space-y-1 pb-6 border-b border-outline-variant/30">
+              <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mb-2">카테고리</p>
+              <p className="text-2xl font-black text-on-surface">{item.category}</p>
             </div>
-          ) : (
-             <div className="pt-2">
-                <p className="text-[10px] font-black text-outline uppercase">현재 재고</p>
-                <p className="text-4xl font-black text-primary">{item.currentStock?.toLocaleString()} {item.unit}</p>
-             </div>
-          )}
+
+            {/* 3. Current Stock */}
+            <div className="space-y-1 pb-6 border-b border-outline-variant/30">
+              <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mb-2">현재 재고</p>
+              <p className="text-5xl font-black text-primary tracking-tighter">{item.currentStock?.toLocaleString()} {item.unit}</p>
+            </div>
+
+            {/* 4. Safety Stock */}
+            <div className="space-y-1 pb-6 border-b border-outline-variant/30">
+              <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mb-2">안전 재고</p>
+              <p className="text-2xl font-black text-on-surface">{item.safetyStock?.toLocaleString()} {item.unit}</p>
+            </div>
+
+            {/* 5 & 6. Prices */}
+            {canViewPrices && (
+              <>
+                <div className="space-y-2 pb-6 border-b border-outline-variant/30">
+                  <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mb-2">매입 단가</p>
+                  {canEditPrices ? (
+                    <input type="number" value={priceForm.purchasePrice} onChange={e => setPriceForm({...priceForm, purchasePrice: e.target.value})} className="h-14 px-6 bg-surface-container rounded-2xl font-black text-lg outline-none w-full max-w-md focus:ring-2 ring-primary/20 transition-all border border-outline-variant/20" />
+                  ) : (
+                    <p className="text-2xl font-black text-[#0f172a]">{item.purchasePrice?.toLocaleString()} W</p>
+                  )}
+                </div>
+                <div className="space-y-2 pb-6 border-b border-outline-variant/30">
+                  <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mb-2">판매 단가</p>
+                  {canEditPrices ? (
+                    <input type="number" value={priceForm.salesPrice} onChange={e => setPriceForm({...priceForm, salesPrice: e.target.value})} className="h-14 px-6 bg-surface-container rounded-2xl font-black text-lg outline-none w-full max-w-md focus:ring-2 ring-primary/20 transition-all border border-outline-variant/20" />
+                  ) : (
+                    <p className="text-2xl font-black text-[#0f172a]">{item.salesPrice?.toLocaleString()} W</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* 7. Storage Location */}
+            <div className="space-y-1 pb-6 border-b border-outline-variant/30">
+              <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mb-2">보관 위치</p>
+              <p className="text-2xl font-black text-on-surface">{item.location || '미지정'}</p>
+            </div>
+
+            {/* 8. Inventory Update */}
+            {canEditItems && (
+              <div className="space-y-2 pt-4">
+                <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mb-4 text-primary">재고 수정</p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <input 
+                    type="number" 
+                    value={stock} 
+                    onChange={e => setStock(e.target.value)} 
+                    className="h-16 px-8 bg-surface-container border-2 border-outline-variant rounded-2xl outline-none font-black text-3xl w-full sm:w-48 focus:border-primary transition-all shadow-inner" 
+                  />
+                  <button 
+                    onClick={handleUpdate} 
+                    disabled={loading} 
+                    className="bg-[#0f172a] text-white h-16 px-10 rounded-2xl font-black text-lg shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap"
+                  >
+                    {loading ? '저장 중...' : '변경 사항 저장하기'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div className="space-y-6">
-          <h3 className="text-xl font-black uppercase font-bold flex items-center gap-2"><History className="w-5 h-5" /> 활동 내역</h3>
-          <div className="space-y-4">
-            {activities.map((a: any, i: number) => (
-              <div key={i} className="bg-white p-4 rounded-2xl border border-outline-variant flex justify-between items-center group">
-                <div><p className="text-xs font-black text-outline uppercase">{a.date} {a.time}</p><p className="font-bold text-on-surface">{a.partner}</p></div>
-                <div className="text-right flex items-center gap-2"><span className={`text-lg font-black ${a.type === '입고' ? 'text-emerald-600' : 'text-error'}`}>{a.type === '입고' ? '+' : '-'}{a.weight}kg</span></div>
+          <div className="flex items-center justify-between px-4">
+            <div className="flex items-center gap-2">
+              <History className="w-6 h-6 text-[#0f172a]" />
+              <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">상세 활동 내역</h3>
+            </div>
+          </div>
+          
+          <div className="flex overflow-x-auto pb-8 gap-6 px-4 no-scrollbar">
+            {activities.length > 0 ? (
+              activities.map((a: any, i: number) => (
+                <div key={i} className="min-w-[320px] bg-white p-8 rounded-[40px] border border-outline-variant shadow-sm flex flex-col justify-between gap-8 shrink-0 relative transition-all hover:border-primary/40 hover:shadow-xl group">
+                   <div className="flex items-center justify-between">
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black ${a.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} border ${a.type === '입고' ? 'border-emerald-100' : 'border-rose-100'}`}>
+                      {a.type}
+                    </span>
+                    <p className="text-[10px] font-black text-outline/60 uppercase tracking-widest">{a.date} {a.time}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-[10px] font-black text-outline uppercase tracking-widest mb-2">거래처/대상</p>
+                    <p className="text-xl font-black text-[#0f172a] line-clamp-1 group-hover:text-primary transition-colors">{a.partner}</p>
+                  </div>
+
+                  <div className="pt-6 border-t border-outline-variant/30 flex items-center justify-between">
+                    <p className="text-[10px] font-black text-outline uppercase">변동량</p>
+                    <p className={`text-4xl font-black ${a.type === '입고' ? 'text-emerald-600' : 'text-rose-600'} tracking-tighter`}>
+                      {a.type === '입고' ? '+' : '-'}{a.weight?.toLocaleString()}<span className="text-lg ml-0.5">kg</span>
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="w-full py-24 flex flex-col items-center justify-center bg-surface-container/10 rounded-[48px] border-2 border-dashed border-outline-variant/30">
+                <History className="w-12 h-12 text-outline/20 mb-4" />
+                <p className="text-xl font-black text-[#0f172a]/30">활동 내역이 아직 존재하지 않습니다.</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

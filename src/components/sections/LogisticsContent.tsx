@@ -6,7 +6,9 @@ import {
   CalendarDays,
   Edit,
   Trash2,
-  Package
+  Package,
+  ChevronDown,
+  History
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { 
@@ -24,6 +26,7 @@ import { OperationType } from '../../types';
 
 function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditItems }: any) {
   const [showForm, setShowForm] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -209,61 +212,77 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       </section>
 
       {/* Table Area */}
-      <section className="min-h-[400px] flex flex-col rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-10">
-        {filtered.length > 0 ? (
-          <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-2xl shadow-indigo-900/5">
-            <table className="w-full text-center border-collapse">
-              <thead className="bg-[#f1f4f9] text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
-                <tr>
-                  <th className="px-4 py-8 text-left pl-8">시간 (TIME)</th>
-                  <th className="px-4 py-8">구분</th>
-                  <th className="px-4 py-8">품목 (ITEM)</th>
-                  <th className="px-4 py-8">재고 변동량</th>
-                  <th className="px-4 py-8">상태</th>
-                  <th className="px-4 py-8">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/10">
-                {filtered.map((l: any, i: number) => (
-                  <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
-                    <td className="px-4 py-6 text-sm font-bold text-outline text-left pl-8">{l.date} {l.time}</td>
-                    <td className="px-4 py-6">
-                      <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                        {l.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
-                    <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {l.type === '입고' ? '+' : '-'}{l.weight?.toLocaleString()} KG
-                    </td>
-                    <td className="px-4 py-6">
-                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{l.status || '완료'}</span>
-                    </td>
-                    <td className="px-4 py-6">
-                      <div className="flex items-center justify-center gap-2">
-                         <button onClick={() => handleEdit(l)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors">
-                           <Edit className="w-4 h-4" />
-                         </button>
-                         <button onClick={() => handleDelete(l)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors">
-                           <Trash2 className="w-4 h-4" />
-                         </button>
-                      </div>
-                    </td>
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="w-6 h-6 text-[#0f172a]" />
+            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">등록된 물류</h3>
+          </div>
+          <button 
+            onClick={() => setShowAll(!showAll)} 
+            className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant/50 rounded-xl text-sm font-black text-[#0f172a] hover:bg-slate-50 transition-all shadow-sm"
+          >
+            {showAll ? <History className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {showAll ? '' : '더보기'}
+          </button>
+        </div>
+
+        <div className="min-h-[400px] flex flex-col rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-10">
+          {filtered.length > 0 ? (
+            <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-2xl shadow-indigo-900/5">
+              <table className="w-full text-center border-collapse">
+                <thead className="bg-[#f1f4f9] text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+                  <tr>
+                    <th className="px-4 py-8 text-left pl-8">시간 (TIME)</th>
+                    <th className="px-4 py-8">구분</th>
+                    <th className="px-4 py-8">품목 (ITEM)</th>
+                    <th className="px-4 py-8">재고 변동량</th>
+                    <th className="px-4 py-8">상태</th>
+                    <th className="px-4 py-8">관리</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-70">
-            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-md border border-outline-variant/20">
-              <Package className="w-10 h-10 text-outline/30" />
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {filtered.slice(0, showAll ? undefined : 15).map((l: any, i: number) => (
+                    <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
+                      <td className="px-4 py-6 text-sm font-bold text-outline text-left pl-8">{l.date} {l.time}</td>
+                      <td className="px-4 py-6">
+                        <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                          {l.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
+                      <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {l.type === '입고' ? '+' : '-'}{l.weight?.toLocaleString()} KG
+                      </td>
+                      <td className="px-4 py-6">
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{l.status || '완료'}</span>
+                      </td>
+                      <td className="px-4 py-6">
+                        <div className="flex items-center justify-center gap-2">
+                           <button onClick={() => handleEdit(l)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors">
+                             <Edit className="w-4 h-4" />
+                           </button>
+                           <button onClick={() => handleDelete(l)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors">
+                             <Trash2 className="w-4 h-4" />
+                           </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <p className="text-xl font-black text-[#0f172a]/50 tracking-tight">
-              물류 기록이 존재하지 않거나 필터 결과와 일치하지 않습니다.
-            </p>
-          </div>
-        )}
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-70">
+              <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-md border border-outline-variant/20">
+                <Package className="w-10 h-10 text-outline/30" />
+              </div>
+              <p className="text-xl font-black text-[#0f172a]/50 tracking-tight">
+                물류 기록이 존재하지 않거나 필터 결과와 일치하지 않습니다.
+              </p>
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );

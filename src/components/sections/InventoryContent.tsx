@@ -3,21 +3,39 @@ import {
   Search, 
   CalendarDays, 
   ChevronDown, 
+  ChevronUp, 
   ChevronRight, 
   Package,
   ArrowLeft,
-  Edit
+  Edit,
+  Trash2
 } from 'lucide-react';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { handleFirestoreError } from '../../lib/firestoreUtils';
+import { OperationType } from '../../types';
 
 function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] }: any) {
   const [search, setSearch] = useState('');
   const [activeShift, setActiveShift] = useState('일간');
+  const [showAll, setShowAll] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
   const filtered = inventory.filter((i: any) => 
     i.name.toLowerCase().includes(search.toLowerCase()) || 
     i.sku?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDeleteItem = async (id: string, name: string) => {
+    if (!canEditItems) return;
+    if (!window.confirm(`[${name}] 품목을 영구 삭제하시겠습니까? 관련 재고 데이터가 사라집니다.`)) return;
+    try {
+      await deleteDoc(doc(db, 'inventory', id));
+      alert('삭제 되었습니다.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `inventory/${id}`);
+    }
+  };
 
   const summaryStats = useMemo(() => {
     const skuCount = inventory.length;
@@ -100,24 +118,39 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
       </section>
 
       {/* Inventory Table */}
-      <section className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
-        <div className="overflow-x-auto">
-          <table className="w-full text-center border-collapse">
-            <thead className="bg-[#f1f4f9] text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
-              <tr>
-                <th className="px-4 py-8">SKU / 위치 / 라인</th>
-                <th className="px-4 py-8">품목 정보</th>
-                <th className="px-4 py-8">카테고리</th>
-                <th className="px-4 py-8">현재 재고</th>
-                <th className="px-4 py-8">상태</th>
-                <th className="px-4 py-8">관리</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/10">
-              {filtered.length > 0 ? (
-                filtered.map((item: any, i: number) => (
-                  <tr key={i} className="hover:bg-surface-container/5 transition-colors">
-                    <td className="px-4 py-6">
+      <section className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Package className="w-6 h-6 text-[#0f172a]" />
+            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">재고 기록</h3>
+          </div>
+          <button 
+            onClick={() => setShowAll(!showAll)} 
+            className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant/60 rounded-xl text-sm font-black text-[#0f172a] hover:bg-slate-50 transition-all shadow-sm"
+          >
+            {showAll ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {showAll ? '' : '더보기'}
+          </button>
+        </div>
+
+        <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
+          <div className="overflow-x-auto">
+            <table className="w-full text-center border-collapse">
+              <thead className="bg-[#f1f4f9] text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+                <tr>
+                  <th className="px-4 py-8">SKU / 위치 / 라인</th>
+                  <th className="px-4 py-8">품목 정보</th>
+                  <th className="px-4 py-8">카테고리</th>
+                  <th className="px-4 py-8">현재 재고</th>
+                  <th className="px-4 py-8">상태</th>
+                  <th className="px-4 py-8">관리</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {filtered.length > 0 ? (
+                  filtered.slice(0, showAll ? undefined : 15).map((item: any, i: number) => (
+                    <tr key={i} className="hover:bg-surface-container/5 transition-colors">
+                      <td className="px-4 py-6">
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-xs font-bold text-primary font-mono">{item.sku}</span>
                         <span className="text-[10px] font-black text-outline uppercase">{item.location || '미지정'}</span>
@@ -142,9 +175,14 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
                     <td className="px-4 py-6">
                       <div className="flex items-center justify-center gap-2">
                         {canEditItems ? (
-                          <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors">
-                            <Edit className="w-5 h-5" />
-                          </button>
+                          <>
+                            <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors" title="상세/수정">
+                              <Edit className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors" title="삭제">
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </>
                         ) : (
                           <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors">
                             <ChevronRight className="w-5 h-5" />
@@ -167,9 +205,10 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
             </tbody>
           </table>
         </div>
-      </section>
-    </div>
-  );
+      </div>
+    </section>
+  </div>
+);
 }
 
 export default InventoryContent;
