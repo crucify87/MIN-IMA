@@ -12,6 +12,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const today = new Date().toISOString().split('T')[0];
   
   const [activeShift, setActiveShift] = useState('일간');
+  const [showAllActivity, setShowAllActivity] = useState(false);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -193,7 +194,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   <th className="px-4 py-8">구분</th>
                   <th className="px-4 py-8">품목 (ITEM)</th>
                   <th className="px-4 py-8">재고 변동량</th>
-                  <th className="px-4 py-8">출처</th>
+                  <th className="px-4 py-8">재고 상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
@@ -245,28 +246,36 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   ].filter(item => isInRange(item.date))
                    .sort((a, b) => b.rawTime - a.rawTime);
 
-                  return combined.slice(0, 10);
-                }, [logistics, production, activeShift, today]).map((l, i) => (
-                  <tr key={i} className="hover:bg-surface-container/10 transition-colors">
-                    <td className="px-4 py-6 text-sm font-bold text-outline">{l.time}</td>
-                    <td className="px-4 py-6">
-                      <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                        {l.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
-                    <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
-                    </td>
-                    <td className="px-4 py-6">
-                      <span className={`text-[10px] font-black px-2 py-1 rounded ${
-                        l.source.includes('생산') ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-600'
-                      }`}>
-                        {l.source}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                  return showAllActivity ? combined : combined.slice(0, 10);
+                }, [logistics, production, activeShift, today, showAllActivity]).map((l, i) => {
+                  const itemInfo = inventory.find((inv: any) => inv.name === l.item);
+                  const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
+                  const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
+                  
+                  return (
+                    <tr key={i} className="hover:bg-surface-container/10 transition-colors">
+                      <td className="px-4 py-6 text-sm font-bold text-outline">{l.time}</td>
+                      <td className="px-4 py-6">
+                        <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                          {l.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
+                      <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                      </td>
+                      <td className="px-4 py-6">
+                        <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
+                          status === '부족' ? 'bg-rose-500 text-white' : 
+                          status === '보충' ? 'bg-blue-500 text-white' : 
+                          'bg-emerald-500 text-white'
+                        }`}>
+                          {status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {logistics.length === 0 && production.length === 0 && (
                   <tr>
                     <td colSpan={5} className="py-24 text-center">
@@ -277,6 +286,37 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
               </tbody>
             </table>
           </div>
+          
+          {useMemo(() => {
+            const now = new Date();
+            const startOfWeek = new Date();
+            startOfWeek.setDate(now.getDate() - 7);
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            const isInRange = (dateStr: string) => {
+              if (!dateStr) return false;
+              const d = new Date(dateStr);
+              if (activeShift === '일간') return dateStr === today;
+              if (activeShift === '주간') return d >= startOfWeek;
+              if (activeShift === '월간') return d >= startOfMonth;
+              return false;
+            };
+
+            const count = [...logistics, ...production].filter(item => {
+              const date = (item as any).date || (item as any).manufDate;
+              return isInRange(date);
+            }).length;
+            
+            return count > 10;
+          }, [logistics, production, activeShift, today]) && (
+            <button 
+              onClick={() => setShowAllActivity(!showAllActivity)}
+              className="w-full py-4 bg-surface-container/30 border-t border-outline-variant text-xs font-black text-on-surface-variant hover:text-primary transition-all flex items-center justify-center gap-2 group"
+            >
+              {showAllActivity ? '접기' : '변동 내역 더보기'}
+              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showAllActivity ? 'rotate-180' : 'group-hover:translate-y-0.5'}`} />
+            </button>
+          )}
         </div>
       </section>
     </div>
