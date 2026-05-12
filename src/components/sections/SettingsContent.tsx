@@ -219,7 +219,34 @@ function SettingsContent({
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">매입 단가 (W)</label><input type="number" placeholder={canEditPrices ? "예: 25000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.purchasePrice} onChange={e => setItemForm({...itemForm, purchasePrice: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 disabled:bg-surface-container" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">판매 단가 (W)</label><input type="number" placeholder={canEditPrices ? "예: 38000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.salesPrice} onChange={e => setItemForm({...itemForm, salesPrice: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 disabled:bg-surface-container" /></div>
                   <div className="space-y-2 flex flex-col"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1 flex items-center gap-1"><CalendarDays className="w-3 h-3 text-emerald-500" /> 제조일자</label><input type="date" value={itemForm.manufDate} onChange={e => setItemForm({...itemForm, manufDate: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all" /></div>
-                  <div className="space-y-2 flex flex-col"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1 flex items-center gap-1"><Clock className="w-3 h-3 text-rose-500" /> 소비기한</label><input type="date" value={itemForm.expiryDate} onChange={e => setItemForm({...itemForm, expiryDate: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all" /></div>
+                  <div className="space-y-2 flex flex-col">
+                    <label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-rose-500" /> 소비기한
+                    </label>
+                    <div className="space-y-2">
+                      <input type="date" value={itemForm.expiryDate} onChange={e => setItemForm({...itemForm, expiryDate: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all" />
+                      <div className="flex flex-wrap gap-1.5 px-1">
+                        {[1, 3, 6, 12, 24].map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => {
+                              if (!itemForm.manufDate) {
+                                alert('먼저 제조일자를 선택해주세요.');
+                                return;
+                              }
+                              const date = new Date(itemForm.manufDate);
+                              date.setMonth(date.getMonth() + m);
+                              setItemForm({ ...itemForm, expiryDate: date.toISOString().split('T')[0] });
+                            }}
+                            className="px-2.5 py-1.5 bg-[#f1f4f9] hover:bg-[#d0e0fb] text-[#0f172a] rounded-lg text-[10px] font-black transition-colors"
+                          >
+                            {m >= 12 ? `${m / 12}년` : `${m}개월`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">보관 위치/라인</label><input placeholder="예: A구역 / 1번라인" value={itemForm.location} onChange={e => setItemForm({...itemForm, location: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">상세 위치</label><input placeholder="예: 3단 4번" value={itemForm.detailLocation} onChange={e => setItemForm({...itemForm, detailLocation: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="md:col-span-2 pt-4 flex flex-col sm:flex-row gap-4">

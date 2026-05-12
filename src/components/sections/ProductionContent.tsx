@@ -76,6 +76,15 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
     setRows(rows.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
 
+  const setExpiryShortcut = (rowId: number, manufDate: string, months: number) => {
+    if (!manufDate) return;
+    const date = new Date(manufDate);
+    if (isNaN(date.getTime())) return;
+    date.setMonth(date.getMonth() + months);
+    const expiryDate = date.toISOString().split('T')[0];
+    updateRow(rowId, 'expiryDate', expiryDate);
+  };
+
   const handleAdd = async (e: any) => {
     e.preventDefault();
     if (loading) return;
@@ -293,15 +302,29 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         <div className="flex items-center gap-3 bg-white px-4 md:px-6 h-12 md:h-14 rounded-2xl border border-outline-variant shadow-sm flex-1">
+                         <div className="flex items-center gap-3 bg-white px-4 md:px-6 h-12 md:h-14 rounded-2xl border border-outline-variant shadow-sm self-start">
                             <span className="text-[10px] font-black text-outline whitespace-nowrap">제조일자</span>
                             <input type="date" value={row.manufDate} onChange={e => updateRow(row.id, 'manufDate', e.target.value)} className="flex-1 bg-transparent font-bold text-xs md:text-sm outline-none" />
                             <CalendarDays className="w-4 h-4 text-outline-variant" />
                          </div>
-                         <div className="flex items-center gap-3 bg-white px-4 md:px-6 h-12 md:h-14 rounded-2xl border border-outline-variant shadow-sm flex-1">
-                            <span className="text-[10px] font-black text-outline whitespace-nowrap">소비기한</span>
-                            <input type="date" value={row.expiryDate} onChange={e => updateRow(row.id, 'expiryDate', e.target.value)} className="flex-1 bg-transparent font-bold text-xs md:text-sm outline-none" placeholder="연도-월-일" />
-                            <CalendarDays className="w-4 h-4 text-outline-variant" />
+                         <div className="flex flex-col gap-2">
+                           <div className="flex items-center gap-3 bg-white px-4 md:px-6 h-12 md:h-14 rounded-2xl border border-outline-variant shadow-sm">
+                              <span className="text-[10px] font-black text-outline whitespace-nowrap">소비기한</span>
+                              <input type="date" value={row.expiryDate} onChange={e => updateRow(row.id, 'expiryDate', e.target.value)} className="flex-1 bg-transparent font-bold text-xs md:text-sm outline-none" placeholder="연도-월-일" />
+                              <CalendarDays className="w-4 h-4 text-outline-variant" />
+                           </div>
+                           <div className="flex flex-wrap gap-1.5 px-1">
+                             {[1, 3, 6, 12, 24].map((m) => (
+                               <button
+                                 key={m}
+                                 type="button"
+                                 onClick={() => setExpiryShortcut(row.id, row.manufDate, m)}
+                                 className="px-3 py-1.5 bg-white border border-outline-variant/30 rounded-lg text-[10px] font-black text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm"
+                               >
+                                 {m >= 12 ? `${m / 12}년` : `${m}개월`}
+                               </button>
+                             ))}
+                           </div>
                          </div>
                       </div>
                    </div>
