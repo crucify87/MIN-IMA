@@ -31,7 +31,7 @@ const Sidebar = ({ view, setView, user, onLogout }: SidebarProps) => {
       <div className="flex items-center gap-4 mb-20">
         <AppLogo className="w-14 h-14" />
         <div>
-          <h2 className="text-xl font-black text-on-surface tracking-tighter leading-none">MIN</h2>
+          <h2 className="text-xl font-black text-on-surface tracking-tighter leading-none">MIN IMA</h2>
           <p className="text-[10px] font-black text-outline uppercase tracking-tight">INVENTORY MANAGEMENT</p>
         </div>
       </div>

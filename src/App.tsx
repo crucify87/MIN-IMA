@@ -77,7 +77,7 @@ export default function App() {
             <AppLogo className="w-20 h-20" />
           </div>
           <div className="space-y-4">
-            <h1 className="text-6xl font-black text-primary tracking-tighter uppercase leading-none">MIN</h1>
+            <h1 className="text-6xl font-black text-primary tracking-tighter uppercase leading-none">MIN IMA</h1>
             <p className="text-xl font-black text-outline uppercase tracking-[0.3em] pb-4 border-b-2 border-outline-variant/30">INVENTORY MANAGEMENT</p>
             <p className="text-2xl text-on-surface-variant font-black tracking-tight pt-2">관리자 시스템 로그인이 필요합니다.</p>
           </div>
