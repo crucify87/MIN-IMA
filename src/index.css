@@ -39,8 +39,8 @@
 }
 
 @layer base {
-  body {
-    @apply bg-surface text-on-surface font-sans;
-    min-height: 100dvh;
-  }
+  html, body {
+  @apply bg-surface text-on-surface font-sans overflow-x-hidden;
+  min-height: 100dvh;
+}
 }

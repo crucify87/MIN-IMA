@@ -1,6 +1,6 @@
 {
-  "name": "MIN IMA",
-  "description": "사내 전용 재고 및 생산 관리 시스템 (Authorized Personnel Only)",
+  "name": "MIN INVENTORY MANAGEMENT",
+  "description": "Industrial Inventory & Production Management System (Authorized Personnel Only)",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

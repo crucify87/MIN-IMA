@@ -136,20 +136,20 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   return (
     <div className="space-y-10">
       {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
+          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-4xl font-black text-[#0f172a] tracking-tighter">물류현황</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">물류현황</h1>
         </div>
         
         {canEditItems && (
           <button 
             onClick={() => setShowForm(!showForm)} 
-            className="h-14 px-8 bg-[#0f172a] text-white rounded-2xl font-black flex items-center gap-3 shadow-lg hover:bg-slate-800 transition-all active:scale-95"
+            className="h-12 md:h-14 px-6 md:px-8 bg-[#0f172a] text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg hover:bg-slate-800 transition-all active:scale-95 w-full md:w-auto"
           >
-            <Plus className="w-6 h-6" /> 
+            <Plus className="w-5 h-5 md:w-6 md:h-6" /> 
             {showForm ? '닫기' : '신규 입고/출고'}
           </button>
         )}
@@ -170,17 +170,17 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       )}
 
       {/* Summary Stats */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
         {[
           { label: '금일 총 물동량', value: summary.totalWeight, unit: 'KG' },
           { label: '금일 입고', value: summary.inputCount, unit: '건' },
           { label: '금일 출고', value: summary.outputCount, unit: '건' },
         ].map((stat, idx) => (
-          <div key={idx} className="bg-white p-10 rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-4 transition-all hover:shadow-md">
-            <p className="text-[11px] font-black text-outline uppercase tracking-tight">{stat.label}</p>
-            <div className="flex items-baseline gap-2 text-[#0f172a]">
-              <span className="text-5xl font-black tabular-nums tracking-tighter leading-none">{stat.value.toLocaleString()}</span>
-              <span className="text-sm font-black text-outline uppercase">{stat.unit}</span>
+          <div key={idx} className="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all hover:shadow-md min-h-[180px] md:min-h-[220px]">
+            <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
+            <div className="flex flex-wrap items-baseline justify-center gap-2 text-[#0f172a] w-full">
+              <span className="text-3xl sm:text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none">{stat.value.toLocaleString()}</span>
+              <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
             </div>
           </div>
         ))}
@@ -227,11 +227,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           </button>
         </div>
 
-        <div className="min-h-[400px] flex flex-col rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-10">
+        <div className="min-h-[400px] flex flex-col rounded-[32px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-4 md:p-10">
           {filtered.length > 0 ? (
-            <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-2xl shadow-indigo-900/5">
-              <table className="w-full text-center border-collapse">
-                <thead className="bg-[#f1f4f9] text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+            <div className="w-full bg-white rounded-[24px] md:rounded-[32px] border border-outline-variant overflow-hidden shadow-2xl shadow-indigo-900/5 overflow-x-auto">
+              <table className="w-full text-center border-collapse min-w-[700px] md:min-w-0">
+                <thead className="bg-[#f1f4f9] text-[10px] md:text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                   <tr>
                     <th className="px-4 py-8 text-left pl-8">시간 (TIME)</th>
                     <th className="px-4 py-8">구분</th>

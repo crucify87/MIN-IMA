@@ -36,13 +36,13 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   return (
     <div className="space-y-10">
       {/* Dashboard Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black text-on-surface tracking-tighter">대시보드</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-on-surface tracking-tighter">대시보드</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative group">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative group flex-1 sm:flex-initial">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
             <input 
               type="text" 
@@ -72,18 +72,18 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       </header>
 
       {/* Stat Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {dailyStats.map((stat, idx) => (
           <div 
             key={idx} 
-            className={`bg-white p-8 rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-4 ${stat.active ? 'border-primary shadow-lg shadow-primary/5' : 'border-outline-variant/30 shadow-sm'}`}
+            className={`bg-white p-6 md:p-10 rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[180px] md:min-h-[220px] ${stat.active ? 'border-primary shadow-lg shadow-primary/5' : 'border-outline-variant/30 shadow-sm'}`}
           >
-            <p className={`text-[11px] font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'}`}>{stat.label}</p>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
+            <p className={`text-[10px] md:text-[11px] font-black uppercase tracking-tight text-center ${stat.active ? 'text-primary' : 'text-outline'}`}>{stat.label}</p>
+            <div className="flex flex-wrap items-baseline justify-center gap-2 w-full">
+              <span className={`text-3xl sm:text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
                 {stat.value.toLocaleString()}
               </span>
-              <span className="text-sm font-black text-outline uppercase">KG</span>
+              <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">KG</span>
             </div>
           </div>
         ))}
@@ -101,36 +101,36 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           </button>
         </div>
         
-        <div className="bg-surface-container/30 border border-dashed border-outline-variant/50 rounded-[40px] min-h-[240px] flex flex-col items-center justify-center p-12 text-center group">
+        <div className="bg-surface-container/30 border border-dashed border-outline-variant/50 rounded-[40px] min-h-[240px] flex flex-col items-center justify-center p-4 md:p-12 text-center group">
           {inventory.length > 0 ? (
-            <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm">
-              <table className="w-full text-left">
+            <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm overflow-x-auto">
+              <table className="w-full text-left min-w-[600px] md:min-w-0">
                 <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
                   <tr>
-                    <th className="px-8 py-5">품목 명칭</th>
-                    <th className="px-8 py-5">현재고 (KG)</th>
-                    <th className="px-8 py-5">상태</th>
-                    <th className="px-8 py-5"></th>
+                    <th className="px-6 md:px-8 py-5">품목 명칭</th>
+                    <th className="px-6 md:px-8 py-5">현재고 (KG)</th>
+                    <th className="px-6 md:px-8 py-5 text-center">상태</th>
+                    <th className="px-6 md:px-8 py-5"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
                   {inventory.slice(0, 5).map((item: any, i: number) => (
                     <tr key={i} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('detail', item)}>
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                            <Package className="w-5 h-5" />
+                      <td className="px-6 md:px-8 py-5">
+                        <div className="flex items-center gap-3 md:gap-4">
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                            <Package className="w-4 h-4 md:w-5 md:h-5" />
                           </div>
-                          <span className="font-black text-on-surface tracking-tight">{item.name}</span>
+                          <span className="font-black text-on-surface tracking-tight text-sm md:text-base">{item.name}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-xl font-black">{item.currentStock?.toLocaleString()} KG</td>
-                      <td className="px-8 py-5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                      <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black">{item.currentStock?.toLocaleString()} KG</td>
+                      <td className="px-6 md:px-8 py-5 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
                           {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
                         </span>
                       </td>
-                      <td className="px-8 py-5 text-right"><ChevronRight className="w-5 h-5 text-outline" /></td>
+                      <td className="px-4 md:px-8 py-5 text-right"><ChevronRight className="w-5 h-5 text-outline" /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -169,7 +169,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
         <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
           <div className="overflow-x-auto">
-            <table className="w-full text-center border-collapse">
+            <table className="w-full text-center border-collapse min-w-[600px] md:min-w-0">
               <thead className="bg-surface-container/50 text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                 <tr>
                   <th className="px-4 py-8">시간 (TIME)</th>

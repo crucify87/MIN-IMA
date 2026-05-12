@@ -209,22 +209,20 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   return (
     <div className="space-y-10">
       {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
+          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-4xl font-black text-[#0f172a] tracking-tighter">생산관리</h1>
-          </div>
+          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">생산관리</h1>
         </div>
         
         {canEditItems && (
           <button 
             onClick={() => setShowForm(!showForm)} 
-            className={`h-14 px-8 bg-[#0f172a] text-white rounded-2xl font-black flex items-center gap-3 shadow-xl hover:bg-slate-800 transition-all active:scale-95`}
+            className="h-12 md:h-14 px-6 md:px-8 bg-[#0f172a] text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl hover:bg-slate-800 transition-all active:scale-95 w-full md:w-auto"
           >
-            {showForm ? <ChevronDown className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+            {showForm ? <ChevronDown className="w-5 h-5 md:w-6 md:h-6" /> : <Plus className="w-5 h-5 md:w-6 md:h-6" />}
             {showForm ? '닫기' : '생산일지 등록'}
           </button>
         )}
@@ -232,12 +230,12 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
       {/* Entry Form */}
       {showForm && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-[48px] border border-outline-variant/30 shadow-2xl p-10 space-y-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black text-[#0f172a] tracking-tight">일지 정보 입력</h2>
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-black text-outline uppercase">생산 라인:</span>
-              <select value={line} onChange={e => setLine(e.target.value)} className="h-14 px-8 bg-white border border-outline-variant rounded-2xl font-black text-sm shadow-sm outline-none cursor-pointer hover:border-primary transition-all">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-[32px] md:rounded-[48px] border border-outline-variant/30 shadow-2xl p-6 md:p-10 space-y-8 md:space-y-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
+            <h2 className="text-2xl md:text-3xl font-black text-[#0f172a] tracking-tight">일지 정보 입력</h2>
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+              <span className="text-[10px] md:text-sm font-black text-outline uppercase">생산 라인:</span>
+              <select value={line} onChange={e => setLine(e.target.value)} className="h-12 md:h-14 px-6 md:px-8 bg-white border border-outline-variant rounded-2xl font-black text-xs md:text-sm shadow-sm outline-none cursor-pointer hover:border-primary transition-all w-full md:w-auto">
                 <option value="삼산공장">삼산공장</option>
                 <option value="언양공장 부속물">언양공장 부속물</option>
                 <option value="언양공장 식육가공">언양공장 식육가공</option>
@@ -245,8 +243,8 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             </div>
           </div>
 
-          <div className="space-y-4">
-             <div className="grid grid-cols-6 gap-6 px-4">
+          <div className="space-y-6">
+             <div className="hidden md:grid grid-cols-6 gap-6 px-4">
                 {['품목명', '원육정보', '투입량 (KG)', '생산량 (KG)', '수율 (%)', '로스 (%)'].map((label, idx) => (
                    <p key={idx} className={`text-center text-[12px] font-black tracking-tight ${idx === 4 ? 'text-emerald-700' : idx === 5 ? 'text-rose-700' : 'text-outline'}`}>{label}</p>
                 ))}
@@ -259,27 +257,47 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                 const lossRate = raw > 0 ? ((raw - prod) / raw) * 100 : 0;
 
                 return (
-                   <div key={row.id} className="relative bg-[#f1f5f9] p-2 rounded-[32px] border border-outline-variant/30 space-y-4">
+                   <div key={row.id} className="relative bg-[#f1f5f9] p-4 md:p-2 rounded-[24px] md:rounded-[32px] border border-outline-variant/30 space-y-4">
                       {index > 0 && <button onClick={() => removeRow(row.id)} className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-all z-10"><X className="w-4 h-4" /></button>}
                       
-                      <div className="grid grid-cols-6 gap-3">
-                         <input list="p-items" placeholder="품목명" value={row.title} onChange={e => updateRow(row.id, 'title', e.target.value)} className="h-16 px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm" />
-                         <input placeholder="원육 정보" value={row.rawMaterial} onChange={e => updateRow(row.id, 'rawMaterial', e.target.value)} className="h-16 px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm" />
-                         <input type="number" placeholder="0" value={row.rawQty} onChange={e => updateRow(row.id, 'rawQty', e.target.value)} className="h-16 px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm" />
-                         <input type="number" placeholder="0" value={row.production} onChange={e => updateRow(row.id, 'production', e.target.value)} className="h-16 px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm" />
-                         <div className="h-16 flex items-center justify-center bg-emerald-50 rounded-2xl font-black text-emerald-600 border border-emerald-100 shadow-sm">{yieldRate.toFixed(0)}%</div>
-                         <div className="h-16 flex items-center justify-center bg-rose-50 rounded-2xl font-black text-rose-600 border border-rose-100 shadow-sm">{lossRate.toFixed(0)}%</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+                         <div className="md:contents space-y-1">
+                           <label className="md:hidden text-[10px] font-black text-outline">품목명</label>
+                           <input list="p-items" placeholder="품목명" value={row.title} onChange={e => updateRow(row.id, 'title', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" />
+                         </div>
+                         <div className="md:contents space-y-1">
+                           <label className="md:hidden text-[10px] font-black text-outline">원육 정보</label>
+                           <input placeholder="원육 정보" value={row.rawMaterial} onChange={e => updateRow(row.id, 'rawMaterial', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" />
+                         </div>
+                         <div className="md:contents space-y-1">
+                           <label className="md:hidden text-[10px] font-black text-outline">투입량 (KG)</label>
+                           <input type="number" placeholder="0" value={row.rawQty} onChange={e => updateRow(row.id, 'rawQty', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" />
+                         </div>
+                         <div className="md:contents space-y-1">
+                           <label className="md:hidden text-[10px] font-black text-outline">생산량 (KG)</label>
+                           <input type="number" placeholder="0" value={row.production} onChange={e => updateRow(row.id, 'production', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" />
+                         </div>
+                         <div className="grid grid-cols-2 md:contents gap-2">
+                           <div className="space-y-1 md:contents">
+                             <label className="md:hidden text-[10px] font-black text-outline">수율 (%)</label>
+                             <div className="h-14 md:h-16 flex items-center justify-center bg-emerald-50 rounded-2xl font-black text-emerald-600 border border-emerald-100 shadow-sm">{yieldRate.toFixed(0)}%</div>
+                           </div>
+                           <div className="space-y-1 md:contents">
+                             <label className="md:hidden text-[10px] font-black text-outline">로스 (%)</label>
+                             <div className="h-14 md:h-16 flex items-center justify-center bg-rose-50 rounded-2xl font-black text-rose-600 border border-rose-100 shadow-sm">{lossRate.toFixed(0)}%</div>
+                           </div>
+                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                         <div className="flex items-center gap-3 bg-white px-6 h-14 rounded-2xl border border-outline-variant shadow-sm flex-1">
-                            <span className="text-[11px] font-black text-outline whitespace-nowrap">제조일자</span>
-                            <input type="date" value={row.manufDate} onChange={e => updateRow(row.id, 'manufDate', e.target.value)} className="flex-1 bg-transparent font-bold text-sm outline-none" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <div className="flex items-center gap-3 bg-white px-4 md:px-6 h-12 md:h-14 rounded-2xl border border-outline-variant shadow-sm flex-1">
+                            <span className="text-[10px] font-black text-outline whitespace-nowrap">제조일자</span>
+                            <input type="date" value={row.manufDate} onChange={e => updateRow(row.id, 'manufDate', e.target.value)} className="flex-1 bg-transparent font-bold text-xs md:text-sm outline-none" />
                             <CalendarDays className="w-4 h-4 text-outline-variant" />
                          </div>
-                         <div className="flex items-center gap-3 bg-white px-6 h-14 rounded-2xl border border-outline-variant shadow-sm flex-1">
-                            <span className="text-[11px] font-black text-outline whitespace-nowrap">소비기한</span>
-                            <input type="date" value={row.expiryDate} onChange={e => updateRow(row.id, 'expiryDate', e.target.value)} className="flex-1 bg-transparent font-bold text-sm outline-none" placeholder="연도-월-일" />
+                         <div className="flex items-center gap-3 bg-white px-4 md:px-6 h-12 md:h-14 rounded-2xl border border-outline-variant shadow-sm flex-1">
+                            <span className="text-[10px] font-black text-outline whitespace-nowrap">소비기한</span>
+                            <input type="date" value={row.expiryDate} onChange={e => updateRow(row.id, 'expiryDate', e.target.value)} className="flex-1 bg-transparent font-bold text-xs md:text-sm outline-none" placeholder="연도-월-일" />
                             <CalendarDays className="w-4 h-4 text-outline-variant" />
                          </div>
                       </div>
@@ -317,13 +335,13 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       )}
 
       {/* Summary Stats */}
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-8 rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-4 transition-all hover:shadow-md">
-            <p className="text-[11px] font-black text-outline uppercase tracking-tight">{stat.label}</p>
-            <div className={`flex items-baseline gap-2 ${idx === 3 ? 'text-emerald-600' : 'text-[#0f172a]'}`}>
-              <span className="text-5xl font-black tabular-nums tracking-tighter leading-none">{stat.value}</span>
-              <span className="text-sm font-black text-outline uppercase">{stat.unit}</span>
+          <div key={idx} className="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all hover:shadow-md min-h-[160px] md:min-h-[200px]">
+            <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
+            <div className={`flex flex-wrap items-baseline justify-center gap-2 w-full ${idx === 3 ? 'text-emerald-600' : 'text-[#0f172a]'}`}>
+              <span className="text-2xl md:text-5xl font-black tabular-nums tracking-tighter leading-none">{stat.value}</span>
+              <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
             </div>
           </div>
         ))}
@@ -356,10 +374,10 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           </div>
         </section>
 
-        <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
+        <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
           <div className="overflow-x-auto">
-            <table className="w-full text-center border-collapse">
-              <thead className="bg-[#f1f4f9] text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+            <table className="w-full text-center border-collapse min-w-[900px] md:min-w-0">
+              <thead className="bg-[#f1f4f9] text-[10px] md:text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                 <tr>
                    <th className="px-6 py-8">SKU / 라인</th>
                    <th className="px-6 py-8">품목명</th>

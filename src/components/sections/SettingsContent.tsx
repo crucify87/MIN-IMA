@@ -185,31 +185,31 @@ function SettingsContent({
 
   return (
     <div className="space-y-10">
-      <header className="flex items-center gap-4">
-        <button onClick={() => onNavigate('dashboard')} className="p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-4xl font-black text-[#0f172a] tracking-tighter">시스템 설정</h1>
+      <header className="flex flex-col md:flex-row md:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">시스템 설정</h1>
         </div>
       </header>
 
-      <div className="flex bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-fit">
-        <button onClick={() => setTab('p')} className={`px-10 py-3 rounded-xl font-black text-sm transition-all ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품</button>
-        <button onClick={() => setTab('t')} className={`px-10 py-3 rounded-xl font-black text-sm transition-all ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처</button>
-        {canManageUsers && <button onClick={() => setTab('u')} className={`px-10 py-3 rounded-xl font-black text-sm transition-all ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>관리자</button>}
+      <div className="flex flex-wrap bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit">
+        <button onClick={() => setTab('p')} className={`flex-1 md:flex-none px-6 md:px-10 py-3 rounded-xl font-black text-xs md:text-sm transition-all ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품</button>
+        <button onClick={() => setTab('t')} className={`flex-1 md:flex-none px-6 md:px-10 py-3 rounded-xl font-black text-xs md:text-sm transition-all ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처</button>
+        {canManageUsers && <button onClick={() => setTab('u')} className={`flex-1 md:flex-none px-6 md:px-10 py-3 rounded-xl font-black text-xs md:text-sm transition-all ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>관리자</button>}
       </div>
 
-      <div className="bg-white rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
+      <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
         {tab === 'p' && (
-          <div className="p-10 space-y-12">
+          <div className="p-6 md:p-10 space-y-10 md:space-y-12">
             {/* 1. Registration Form (TOP) */}
             {canEditItems ? (
-              <div id="item-form" className="max-w-4xl mx-auto space-y-10">
-                <h3 className="text-center text-[13px] font-black text-[#0f172a] uppercase tracking-widest border-b border-outline-variant pb-6">
+              <div id="item-form" className="max-w-4xl mx-auto space-y-8 md:space-y-10">
+                <h3 className="text-center text-[11px] md:text-[13px] font-black text-[#0f172a] uppercase tracking-widest border-b border-outline-variant pb-4 md:pb-6">
                   {editingItemId ? '상품(MASTER) 정보 수정' : '신규 상품(MASTER) 등록'}
                 </h3>
-                <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 md:gap-y-8">
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">SKU 번호</label><input placeholder="예: SKU-BF-001" value={itemForm.sku} onChange={e => setItemForm({...itemForm, sku: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">품목명</label><input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">카테고리</label><input placeholder="예: 소고기" value={itemForm.category} onChange={e => setItemForm({...itemForm, category: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
@@ -222,8 +222,8 @@ function SettingsContent({
                   <div className="space-y-2 flex flex-col"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1 flex items-center gap-1"><Clock className="w-3 h-3 text-rose-500" /> 소비기한</label><input type="date" value={itemForm.expiryDate} onChange={e => setItemForm({...itemForm, expiryDate: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">보관 위치/라인</label><input placeholder="예: A구역 / 1번라인" value={itemForm.location} onChange={e => setItemForm({...itemForm, location: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">상세 위치</label><input placeholder="예: 3단 4번" value={itemForm.detailLocation} onChange={e => setItemForm({...itemForm, detailLocation: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
-                  <div className="md:col-span-2 pt-4 flex gap-4">
-                    <button type="submit" className="flex-1 h-16 bg-[#0f172a] text-white rounded-2xl font-black text-lg tracking-tight shadow-xl shadow-indigo-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                  <div className="md:col-span-2 pt-4 flex flex-col sm:flex-row gap-4">
+                    <button type="submit" className="flex-1 h-14 md:h-16 bg-[#0f172a] text-white rounded-2xl font-black text-base md:text-lg tracking-tight shadow-xl shadow-indigo-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]">
                       {editingItemId ? '정보 수정 완료' : '상품등록'}
                     </button>
                     {editingItemId && (
@@ -233,7 +233,7 @@ function SettingsContent({
                           setEditingItemId(null);
                           setItemForm({ sku: '', name: '', category: '', unit: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
                         }}
-                        className="w-40 h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-lg shadow-sm hover:bg-rose-100 transition-all"
+                        className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-base md:text-lg shadow-sm hover:bg-rose-100 transition-all"
                       >
                         취소
                       </button>
@@ -251,24 +251,27 @@ function SettingsContent({
             <hr className="border-outline-variant/30" />
 
             {/* 2. Registered Product List (BOTTOM) */}
-            <div className="space-y-12">
+            <div className="space-y-8 md:space-y-12">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <h3 className="text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Package className="w-6 h-6" /> 등록된 상품</h3>
+                  <h3 className="text-lg md:text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Package className="w-5 h-5 md:w-6 md:h-6" /> 등록된 상품</h3>
                   <p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">MASTER INVENTORY ITEMS</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="relative group flex-1 md:w-80">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative group flex-1 sm:w-80">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                     <input type="text" placeholder="상품명, SKU, 카테고리 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all" />
                   </div>
-                  <button onClick={() => setShowAllItems(!showAllItems)} className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">{showAllItems ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {showAllItems ? '' : '더보기'}</button>
+                  <button onClick={() => setShowAllItems(!showAllItems)} className="flex items-center justify-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">
+                    {showAllItems ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} 
+                    {showAllItems ? '닫기' : '더보기'}
+                  </button>
                 </div>
               </div>
 
-              <div className="bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm">
+              <div className="bg-white rounded-[24px] md:rounded-[32px] border border-outline-variant overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
+                  <table className="w-full border-collapse min-w-[800px] md:min-w-0">
                     <thead className="bg-[#f0f4f8] text-[11px] font-black text-[#0f172a]/60 uppercase tracking-widest border-b border-outline-variant/50">
                       <tr>
                         <th className="px-6 py-5 text-left">코드/품목명</th>
@@ -328,70 +331,120 @@ function SettingsContent({
           </div>
         )}
         {tab === 't' && (
-          <div className="p-10 space-y-12">
-             <div className="bg-white border border-outline-variant/30 rounded-[48px] shadow-2xl p-12 space-y-10">
+          <div className="p-6 md:p-10 space-y-10 md:space-y-12">
+             <div className="bg-white border border-outline-variant/30 rounded-[32px] md:rounded-[48px] shadow-2xl p-6 md:p-12 space-y-8 md:space-y-10">
                 <h3 className="text-center text-xl font-black text-[#0f172a] uppercase tracking-tight">{editingPartnerId ? '거래처 정보 수정' : '신규 거래처 등록'}</h3>
-                <form onSubmit={handleRegisterPartner} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                  <div className="space-y-3"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">거래처명</label><input placeholder="예: (주)한울미트" value={partnerForm.name} onChange={e => setPartnerForm({...partnerForm, name: e.target.value})} className="w-full h-16 px-8 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 shadow-sm" /></div>
-                  <div className="space-y-3"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">유형</label><select value={partnerForm.type} onChange={e => setPartnerForm({...partnerForm, type: e.target.value})} className="w-full h-16 px-8 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all shadow-sm cursor-pointer"><option value="공급사">공급사</option><option value="고객사">고객사</option><option value="운송사">운송사</option></select></div>
-                  <div className="space-y-3"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">연락처</label><input placeholder="예: 010-1234-5678" value={partnerForm.phone} onChange={e => setPartnerForm({...partnerForm, phone: e.target.value})} className="w-full h-16 px-8 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 shadow-sm" /></div>
-                  <div className="space-y-3"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">주소</label><input placeholder="예: 경기도 안양시..." value={partnerForm.address} onChange={e => setPartnerForm({...partnerForm, address: e.target.value})} className="w-full h-16 px-8 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 shadow-sm" /></div>
-                  <div className="md:col-span-2 flex gap-4 pt-4"><button type="submit" className="flex-1 h-16 bg-[#3b82f6] text-white rounded-2xl font-black text-lg tracking-tight shadow-xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-95">{editingPartnerId ? '수정 완료' : '거래처등록'}</button>{editingPartnerId && <button type="button" onClick={() => { setEditingPartnerId(null); setPartnerForm({ name: '', type: '공급사', phone: '', address: '' }); }} className="w-40 h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-lg shadow-sm hover:bg-rose-100 transition-all">취소</button>}</div>
+                <form onSubmit={handleRegisterPartner} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 md:gap-y-8">
+                  <div className="space-y-2 md:space-y-3"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">거래처명</label><input placeholder="예: (주)한울미트" value={partnerForm.name} onChange={e => setPartnerForm({...partnerForm, name: e.target.value})} className="w-full h-14 md:h-16 px-6 md:px-8 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 shadow-sm" /></div>
+                  <div className="space-y-2 md:space-y-3"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">유형</label><select value={partnerForm.type} onChange={e => setPartnerForm({...partnerForm, type: e.target.value})} className="w-full h-14 md:h-16 px-6 md:px-8 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all shadow-sm cursor-pointer"><option value="공급사">공급사</option><option value="고객사">고객사</option><option value="운송사">운송사</option></select></div>
+                  <div className="space-y-2 md:space-y-3"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">연락처</label><input placeholder="예: 010-1234-5678" value={partnerForm.phone} onChange={e => setPartnerForm({...partnerForm, phone: e.target.value})} className="w-full h-14 md:h-16 px-6 md:px-8 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 shadow-sm" /></div>
+                  <div className="space-y-2 md:space-y-3"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">주소</label><input placeholder="예: 경기도 안양시..." value={partnerForm.address} onChange={e => setPartnerForm({...partnerForm, address: e.target.value})} className="w-full h-14 md:h-16 px-6 md:px-8 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 shadow-sm" /></div>
+                  <div className="md:col-span-2 flex flex-col sm:flex-row gap-4 pt-4">
+                    <button type="submit" className="flex-1 h-14 md:h-16 bg-[#3b82f6] text-white rounded-2xl font-black text-lg tracking-tight shadow-xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-95">{editingPartnerId ? '수정 완료' : '거래처등록'}</button>
+                    {editingPartnerId && <button type="button" onClick={() => { setEditingPartnerId(null); setPartnerForm({ name: '', type: '공급사', phone: '', address: '' }); }} className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-lg shadow-sm hover:bg-rose-100 transition-all">취소</button>}
+                  </div>
                 </form>
              </div>
              <hr className="border-outline-variant/20" />
-             <div className="space-y-8">
+             <div className="space-y-6 md:space-y-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div><h3 className="text-2xl font-black text-[#0f172a] flex items-center gap-2"><Users className="w-7 h-7" /> 거래처</h3></div>
-                  <div className="flex items-center gap-3">
-                    <div className="relative group w-full md:w-80"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" /><input type="text" placeholder="거래처명 검색..." value={partnerSearch} onChange={(e) => setPartnerSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" /></div>
-                    <button onClick={() => setShowAllPartners(!showAllPartners)} className="flex items-center gap-2 px-6 h-12 bg-[#e8f1ff] border border-outline-variant/20 rounded-xl text-sm font-black text-[#0f172a] hover:bg-blue-100 transition-all">{showAllPartners ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {showAllPartners ? '' : '더보기'}</button>
+                  <div><h3 className="text-xl md:text-2xl font-black text-[#0f172a] flex items-center gap-2"><Users className="w-6 h-6 md:w-7 md:h-7" /> 거래처</h3></div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="relative group w-full sm:w-80"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" /><input type="text" placeholder="거래처명 검색..." value={partnerSearch} onChange={(e) => setPartnerSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" /></div>
+                    {partners.filter((p: any) => p.name.toLowerCase().includes(partnerSearch.toLowerCase())).length > 5 && (
+                      <button onClick={() => setShowAllPartners(!showAllPartners)} className="flex items-center justify-center gap-2 px-6 h-12 bg-[#e8f1ff] border border-outline-variant/20 rounded-xl text-sm font-black text-[#0f172a] hover:bg-blue-100 transition-all">
+                        {showAllPartners ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {showAllPartners ? '닫기' : '더보기'}
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-sm">
-                  <table className="w-full border-collapse">
-                    <thead className="bg-[#f0f4f8] text-[12px] font-black text-[#0f172a]/60 uppercase tracking-widest border-b border-outline-variant/50">
-                      <tr><th className="px-6 py-6 text-left w-12"><input type="checkbox" className="w-5 h-5 rounded border-outline-variant" /></th><th className="px-6 py-6 text-left">거래처명</th><th className="px-6 py-6 text-center">유형</th><th className="px-6 py-6 text-center">연락처</th><th className="px-6 py-6 text-right">기능</th></tr>
-                    </thead>
+                <div className="bg-white rounded-[24px] md:rounded-[40px] border border-outline-variant overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse min-w-[700px] md:min-w-0">
+                      <thead className="bg-[#f0f4f8] text-[11px] md:text-[12px] font-black text-[#0f172a]/60 uppercase tracking-widest border-b border-outline-variant/50">
+                        <tr><th className="px-6 py-6 text-left w-12"><input type="checkbox" className="w-5 h-5 rounded border-outline-variant" /></th><th className="px-6 py-6 text-left">거래처명</th><th className="px-6 py-6 text-center">유형</th><th className="px-6 py-6 text-center">연락처</th><th className="px-6 py-6 text-right">기능</th></tr>
+                      </thead>
                     <tbody className="divide-y divide-outline-variant/10">
-                      {partners.filter((p: any) => p.name.toLowerCase().includes(partnerSearch.toLowerCase())).length > 0 ? (
-                          partners.filter((p: any) => p.name.toLowerCase().includes(partnerSearch.toLowerCase())).map((p: any) => (
-                              <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-6 py-6"><input type="checkbox" className="w-5 h-5 rounded border-outline-variant" /></td>
-                                <td className="px-6 py-6"><div className="font-black text-[#0f172a] text-lg">{p.name}</div><p className="text-[10px] text-outline font-bold mt-0.5">{p.address}</p></td>
-                                <td className="px-6 py-6 text-center"><span className="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black tracking-widest uppercase">{p.type}</span></td>
-                                <td className="px-6 py-6 text-center font-bold text-on-surface/70">{p.phone || '-'}</td>
-                                <td className="px-6 py-6 text-right"><div className="flex items-center justify-end gap-2"><button onClick={() => handleEditPartner(p)} className="p-3 text-primary hover:bg-primary/10 rounded-2xl transition-all" title="수정"><Edit className="w-5 h-5" /></button><button onClick={() => handleDeletePartner(p.id, p.name)} className="p-3 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all" title="삭제"><Trash2 className="w-5 h-5" /></button></div></td>
-                              </tr>
-                            ))
-                        ) : (<tr><td colSpan={5} className="py-24 text-center"><p className="text-lg font-black text-[#0f172a]/30">등록된 거래처가 없습니다.</p></td></tr>)
-                      }
+                      {(() => {
+                        const filtered = partners.filter((p: any) => 
+                          p.name.toLowerCase().includes(partnerSearch.toLowerCase())
+                        );
+                        if (filtered.length === 0) {
+                          return <tr><td colSpan={5} className="py-24 text-center"><p className="text-lg font-black text-[#0f172a]/30">등록된 거래처가 없습니다.</p></td></tr>;
+                        }
+                        return filtered.slice(0, showAllPartners ? undefined : 5).map((p: any) => (
+                          <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-6"><input type="checkbox" className="w-5 h-5 rounded border-outline-variant" /></td>
+                            <td className="px-6 py-6"><div className="font-black text-[#0f172a] text-lg">{p.name}</div><p className="text-[10px] text-outline font-bold mt-0.5">{p.address}</p></td>
+                            <td className="px-6 py-6 text-center"><span className="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black tracking-widest uppercase">{p.type}</span></td>
+                            <td className="px-6 py-6 text-center font-bold text-on-surface/70">{p.phone || '-'}</td>
+                            <td className="px-6 py-6 text-right"><div className="flex items-center justify-end gap-2"><button onClick={() => handleEditPartner(p)} className="p-3 text-primary hover:bg-primary/10 rounded-2xl transition-all" title="수정"><Edit className="w-5 h-5" /></button><button onClick={() => handleDeletePartner(p.id, p.name)} className="p-3 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all" title="삭제"><Trash2 className="w-5 h-5" /></button></div></td>
+                          </tr>
+                        ));
+                      })()}
                     </tbody>
                   </table>
                 </div>
              </div>
           </div>
+        </div>
         )}
         {tab === 'u' && (
-          <div className="p-10 space-y-12">
-             <div className="bg-[#f8fafc] p-8 rounded-[32px] border border-outline-variant space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div><h3 className="text-lg font-black text-[#0f172a] tracking-tight">신규 관리자 등록</h3><p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">REGISTER NEW ADMINISTRATOR EMAIL</p></div>
-                  <form onSubmit={handleRegisterAdmin} className="flex-1 max-w-2xl flex gap-3"><div className="relative flex-1"><Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" /><input type="email" placeholder="등록할 관리자 이메일을 입력하세요" value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} className="w-full h-14 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm" /></div><button type="submit" className="h-14 px-8 bg-[#0f172a] text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-lg active:scale-95 whitespace-nowrap">등록</button></form>
+          <div className="p-6 md:p-10 space-y-10 md:space-y-12">
+             <div className="bg-[#f8fafc] p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-outline-variant space-y-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div>
+                    <h3 className="text-base md:text-lg font-black text-[#0f172a] tracking-tight">신규 관리자 등록</h3>
+                    <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-1">REGISTER NEW ADMINISTRATOR EMAIL</p>
+                  </div>
+                  <form onSubmit={handleRegisterAdmin} className="flex-1 w-full max-w-2xl flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                      <input type="email" placeholder="등록할 관리자 이메일을 입력하세요" value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} className="w-full h-14 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm" />
+                    </div>
+                    <button type="submit" className="h-14 px-8 bg-[#0f172a] text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-lg active:scale-95 whitespace-nowrap">등록</button>
+                  </form>
                 </div>
              </div>
              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-outline-variant pb-6">
-               <div><h3 className="text-2xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Users className="w-6 h-6" /> 계정 권한 관리</h3><p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">USER ACCESS CONTROL</p></div>
-               <div className="flex items-center gap-3">
-                  <div className="relative group w-full md:w-80"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" /><input type="text" placeholder="이름 또는 이메일 검색..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all" /></div>
-                  <button onClick={() => setShowAllUsers(!showAllUsers)} className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">{showAllUsers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}{showAllUsers ? '' : '더보기'}</button>
+               <div>
+                 <h3 className="text-xl md:text-2xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Users className="w-5 h-5 md:w-6 md:h-6" /> 계정 권한 관리</h3>
+                 <p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">USER ACCESS CONTROL</p>
+               </div>
+               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative group w-full sm:w-80"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" /><input type="text" placeholder="이름 또는 이메일 검색..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all" /></div>
+                  <button onClick={() => setShowAllUsers(!showAllUsers)} className="flex items-center justify-center gap-2 px-6 h-11 bg-white border border-outline-variant rounded-xl text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all">{showAllUsers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}{showAllUsers ? '닫기' : '더보기'}</button>
                </div>
              </div>
-             <div className="space-y-6">
+             <div className="space-y-4 md:space-y-6">
                {allUsers.filter((u: any) => u.displayName?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())).slice(0, showAllUsers ? undefined : 3).map((u: any) => (
-                  <div key={u.id} className="bg-[#f8fafc] p-8 rounded-[32px] border border-outline-variant flex flex-col md:flex-row items-center justify-between gap-8 group hover:bg-white hover:border-primary transition-all">
-                    <div className="flex items-center gap-6"><div className="relative"><img src={u.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200'} className="w-16 h-16 rounded-3xl border-2 border-white shadow-xl object-cover" alt="" /><div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white ${u.role === 'super_admin' ? 'bg-indigo-500' : u.role === 'admin' ? 'bg-emerald-500' : 'bg-slate-400'}`}></div></div><div><h4 className="text-xl font-black text-[#0f172a] leading-tight">{u.displayName || '이름 없음'}</h4><p className="text-xs font-bold text-outline-variant flex items-center gap-1 mt-1">{u.email}</p></div></div>
-                    <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-outline-variant/50 shadow-sm"><select value={u.role || 'user'} onChange={(e) => handleUpdateRole(u.id, e.target.value)} disabled={!canManageUsers || u.email === 'crucify87@gmail.com'} className="bg-transparent h-10 px-4 font-black text-sm outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"><option value="super_admin">최고관리자</option><option value="admin">관리자</option><option value="user">일반</option></select><div className="h-6 w-px bg-outline-variant/30"></div><span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${u.role === 'super_admin' ? 'bg-indigo-50 text-indigo-600' : u.role === 'admin' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>{u.role === 'super_admin' ? 'SUPER' : u.role === 'admin' ? 'ADMIN' : 'USER'}</span>{canManageUsers && u.email !== user?.email && u.email !== 'crucify87@gmail.com' && (<button onClick={() => handleDeleteUser(u.id, u.email)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="계정 삭제"><Trash2 className="w-5 h-5" /></button>)}</div>
+                  <div key={u.id} className="bg-[#f8fafc] p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-outline-variant flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-8 group hover:bg-white hover:border-primary transition-all">
+                    <div className="flex items-center gap-4 md:gap-6">
+                      <div className="relative">
+                        <img src={u.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200'} className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-3xl border-2 border-white shadow-xl object-cover" alt="" />
+                        <div className={`absolute -bottom-1 -right-1 w-4 h-4 md:w-5 md:h-5 rounded-full border-2 md:border-4 border-white ${u.role === 'super_admin' ? 'bg-indigo-500' : u.role === 'admin' ? 'bg-emerald-500' : 'bg-slate-400'}`}></div>
+                      </div>
+                      <div>
+                        <h4 className="text-lg md:text-xl font-black text-[#0f172a] leading-tight">{u.displayName || '이름 없음'}</h4>
+                        <p className="text-[10px] md:text-xs font-bold text-outline-variant flex items-center gap-1 mt-1 truncate max-w-[200px] md:max-w-none">{u.email}</p>
+                      </div>
+                    </div>
+                    <div className="w-full md:w-auto flex items-center gap-4 bg-white p-1.5 md:p-2 rounded-xl md:rounded-2xl border border-outline-variant/50 shadow-sm">
+                      <select value={u.role || 'user'} onChange={(e) => handleUpdateRole(u.id, e.target.value)} disabled={!canManageUsers || u.email === 'crucify87@gmail.com'} className="flex-1 md:flex-none bg-transparent h-10 px-2 md:px-4 font-black text-xs md:text-sm outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <option value="super_admin">최고관리자</option>
+                        <option value="admin">관리자</option>
+                        <option value="user">일반</option>
+                      </select>
+                      <div className="h-6 w-px bg-outline-variant/30"></div>
+                      <span className={`px-2 md:px-4 py-1 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest ${u.role === 'super_admin' ? 'bg-indigo-50 text-indigo-600' : u.role === 'admin' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                        {u.role === 'super_admin' ? 'SUPER' : u.role === 'admin' ? 'ADMIN' : 'USER'}
+                      </span>
+                      {canManageUsers && u.email !== user?.email && u.email !== 'crucify87@gmail.com' && (
+                        <button onClick={() => handleDeleteUser(u.id, u.email)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="계정 삭제">
+                          <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
              </div>

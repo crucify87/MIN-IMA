@@ -58,16 +58,16 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="p-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors">
+          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-4xl font-black text-on-surface tracking-tighter">재고관리</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-on-surface tracking-tighter">재고관리</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative group">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative group flex-1 sm:flex-initial">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
             <input 
               type="text" 
@@ -99,19 +99,19 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
       </header>
 
       {/* Summary Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {summaryStats.map((stat, idx) => (
           <div 
             key={idx} 
-            className="bg-white p-8 rounded-[32px] border border-outline-variant shadow-sm transition-all flex flex-col items-center justify-center gap-4 group hover:shadow-md relative overflow-hidden"
+            className="bg-white p-6 md:p-10 rounded-[32px] border border-outline-variant shadow-sm transition-all flex flex-col items-center justify-center gap-2 md:gap-4 group hover:shadow-md relative overflow-hidden min-h-[180px] md:min-h-[220px]"
           >
-            <div className={`absolute top-0 left-0 w-full h-1.5 ${stat.isAlert ? 'bg-rose-500' : stat.isSuccess ? 'bg-emerald-500' : idx === 0 ? 'bg-[#94a3b8]' : 'bg-[#3b82f6]'}`} />
-            <p className="text-[11px] font-black text-outline uppercase tracking-tight">{stat.label}</p>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
+            <div className={`absolute top-0 left-0 w-full h-1 md:h-1.5 ${stat.isAlert ? 'bg-rose-500' : stat.isSuccess ? 'bg-emerald-500' : idx === 0 ? 'bg-[#94a3b8]' : 'bg-[#3b82f6]'}`} />
+            <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
+            <div className="flex flex-wrap items-baseline justify-center gap-2 w-full">
+              <span className={`text-3xl sm:text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
                 {stat.value.toLocaleString()}
               </span>
-              <span className="text-sm font-black text-outline uppercase">{stat.unit}</span>
+              <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
             </div>
           </div>
         ))}
@@ -135,7 +135,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
 
         <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
           <div className="overflow-x-auto">
-            <table className="w-full text-center border-collapse">
+            <table className="w-full text-center border-collapse min-w-[800px] md:min-w-0">
               <thead className="bg-[#f1f4f9] text-[10px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                 <tr>
                   <th className="px-4 py-5">SKU / 위치 / 라인</th>
