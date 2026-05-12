@@ -11,27 +11,44 @@ import { ViewType } from '../../types';
 function DashboardContent({ inventory, production, logistics, partners, onNavigate }: any) {
   const today = new Date().toISOString().split('T')[0];
   
-  const dailyStats = useMemo(() => {
+  const [activeShift, setActiveShift] = useState('일간');
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const startOfWeek = new Date();
+    startOfWeek.setDate(now.getDate() - 7);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const isInRange = (dateStr: string) => {
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (activeShift === '일간') return dateStr === today;
+      if (activeShift === '주간') return d >= startOfWeek;
+      if (activeShift === '월간') return d >= startOfMonth;
+      return false;
+    };
+
     const totalInventory = inventory.reduce((acc: number, curr: any) => acc + (Number(curr.currentStock) || 0), 0);
-    const dailyInput = logistics
-      .filter((l: any) => l.date === today && l.type === '입고')
+    
+    const filteredLogistics = logistics.filter((l: any) => isInRange(l.date));
+    const input = filteredLogistics
+      .filter((l: any) => l.type === '입고')
       .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
-    const dailyOutput = logistics
-      .filter((l: any) => l.date === today && l.type === '출고')
+    const output = filteredLogistics
+      .filter((l: any) => l.type === '출고')
       .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
-    const dailyProduction = production
-      .filter((p: any) => p.manufDate === today)
+      
+    const productionQty = production
+      .filter((p: any) => isInRange(p.manufDate))
       .reduce((acc: number, curr: any) => acc + (Number(curr.production) || 0), 0);
 
     return [
       { label: '현재 총 재고', value: totalInventory },
-      { label: '일간 입고', value: dailyInput },
-      { label: '일간 출고', value: dailyOutput, active: true },
-      { label: '일간 생산', value: dailyProduction },
+      { label: `${activeShift} 입고`, value: input },
+      { label: `${activeShift} 출고`, value: output, active: true },
+      { label: `${activeShift} 생산`, value: productionQty },
     ];
-  }, [inventory, logistics, production, today]);
-
-  const [activeShift, setActiveShift] = useState('일간');
+  }, [inventory, logistics, production, today, activeShift]);
 
   return (
     <div className="space-y-10">
@@ -73,7 +90,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
       {/* Stat Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {dailyStats.map((stat, idx) => (
+        {stats.map((stat, idx) => (
           <div 
             key={idx} 
             className={`bg-white p-6 md:p-10 rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[180px] md:min-h-[220px] ${stat.active ? 'border-primary shadow-lg shadow-primary/5' : 'border-outline-variant/30 shadow-sm'}`}
@@ -181,6 +198,20 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {useMemo(() => {
+                  const now = new Date();
+                  const startOfWeek = new Date();
+                  startOfWeek.setDate(now.getDate() - 7);
+                  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+                  const isInRange = (dateStr: string) => {
+                    if (!dateStr) return false;
+                    const d = new Date(dateStr);
+                    if (activeShift === '일간') return dateStr === today;
+                    if (activeShift === '주간') return d >= startOfWeek;
+                    if (activeShift === '월간') return d >= startOfMonth;
+                    return false;
+                  };
+
                   const combined = [
                     ...logistics.map((l: any) => ({
                       time: `${l.date} ${l.time}`,
@@ -188,7 +219,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       item: l.item,
                       weight: l.weight,
                       source: '물류',
-                      rawTime: l.createdAt?.seconds || 0
+                      rawTime: l.createdAt?.seconds || 0,
+                      date: l.date
                     })),
                     ...production.flatMap((p: any) => [
                       {
@@ -197,7 +229,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         item: p.title,
                         weight: p.production,
                         source: '생산(완성)',
-                        rawTime: p.createdAt?.seconds || 0
+                        rawTime: p.createdAt?.seconds || 0,
+                        date: p.manufDate
                       },
                       {
                         time: p.manufDate,
@@ -205,13 +238,15 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         item: p.rawMaterial,
                         weight: p.rawQty,
                         source: '생산(투입)',
-                        rawTime: p.createdAt?.seconds || 0
+                        rawTime: p.createdAt?.seconds || 0,
+                        date: p.manufDate
                       }
                     ]).filter(i => i.item)
-                  ].sort((a, b) => b.rawTime - a.rawTime);
+                  ].filter(item => isInRange(item.date))
+                   .sort((a, b) => b.rawTime - a.rawTime);
 
                   return combined.slice(0, 10);
-                }, [logistics, production]).map((l, i) => (
+                }, [logistics, production, activeShift, today]).map((l, i) => (
                   <tr key={i} className="hover:bg-surface-container/10 transition-colors">
                     <td className="px-4 py-6 text-sm font-bold text-outline">{l.time}</td>
                     <td className="px-4 py-6">
