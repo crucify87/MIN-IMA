@@ -38,10 +38,21 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [filterLine, setFilterLine] = useState('전체');
+  
+  const filtered = useMemo(() => {
+    return production.filter((p: any) => {
+      const matchesSearch = (p.title || '').toLowerCase().includes(search.toLowerCase());
+      const matchesDate = !date || p.manufDate === date;
+      const matchesLine = filterLine === '전체' || p.line === filterLine;
+      return matchesSearch && matchesDate && matchesLine;
+    });
+  }, [production, search, date, filterLine]);
+
   const stats = useMemo(() => {
-    const count = production.length;
-    const totalInput = production.reduce((acc: number, curr: any) => acc + (Number(curr.rawQty) || 0), 0);
-    const totalOutput = production.reduce((acc: number, curr: any) => acc + (Number(curr.production) || 0), 0);
+    const count = filtered.length;
+    const totalInput = filtered.reduce((acc: number, curr: any) => acc + (Number(curr.rawQty) || 0), 0);
+    const totalOutput = filtered.reduce((acc: number, curr: any) => acc + (Number(curr.production) || 0), 0);
     const yieldRate = totalInput > 0 ? (totalOutput / totalInput) * 100 : 0;
     
     return [
@@ -50,15 +61,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       { label: '총 생산량', value: totalOutput.toLocaleString(), unit: 'KG' },
       { label: '총 수율', value: yieldRate.toFixed(1), unit: '%' },
     ];
-  }, [production]);
-
-  const filtered = useMemo(() => {
-    return production.filter((p: any) => {
-      const matchesSearch = (p.title || '').toLowerCase().includes(search.toLowerCase());
-      const matchesDate = !date || p.manufDate === date;
-      return matchesSearch && matchesDate;
-    });
-  }, [production, search, date]);
+  }, [filtered]);
 
   const addRow = () => {
     setRows([...rows, { id: Date.now(), title: '', rawMaterial: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
@@ -363,14 +366,32 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           </button>
         </div>
 
-        <section className="bg-[#e8f1ff] p-4 rounded-2xl flex flex-col md:flex-row items-center gap-4">
+        <section className="bg-[#e8f1ff] p-4 rounded-2xl flex flex-col md:flex-row items-end gap-4">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
             <input type="text" placeholder="품목명 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/50 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" />
           </div>
-          <div className="flex items-center gap-2 px-4 h-12 bg-white border border-outline-variant/50 rounded-xl text-sm font-bold text-on-surface shadow-sm w-full md:w-64">
-            <CalendarDays className="w-4 h-4 text-outline" />
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-transparent border-none outline-none text-sm flex-1" />
+          
+          <div className="flex flex-col gap-3 w-full md:w-auto items-end">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {['전체', '삼산공장', '언양공장 부속물', '언양공장 식육가공'].map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setFilterLine(l)}
+                  className={`px-4 h-10 rounded-xl text-xs font-black transition-all ${
+                    filterLine === l 
+                      ? 'bg-[#0f172a] text-white shadow-lg' 
+                      : 'bg-white text-outline border border-outline-variant/30 hover:border-primary'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 px-4 h-12 bg-white border border-outline-variant/50 rounded-xl text-sm font-bold text-on-surface shadow-sm w-full md:w-60">
+              <CalendarDays className="w-4 h-4 text-outline" />
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-transparent border-none outline-none text-sm flex-1" />
+            </div>
           </div>
         </section>
 
