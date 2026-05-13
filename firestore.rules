@@ -33,7 +33,7 @@ service cloud.firestore {
     function isApproved() {
       return isSignedIn() && (
         request.auth.token.email == 'crucify87@gmail.com' ||
-        (userExists() && getUserData().get('status', 'pending') == 'approved')
+        userExists()
       );
     }
     

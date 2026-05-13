@@ -39,8 +39,6 @@ export default function App() {
     permissions 
   } = useAuth();
 
-  const isApproved = isSuperAdmin || userData?.status === 'approved';
-
   const {
     inventory,
     production,
@@ -48,7 +46,7 @@ export default function App() {
     partners,
     allUsers,
     settings
-  } = useAppData(user, isSuperAdmin, isApproved);
+  } = useAppData(user, isSuperAdmin);
 
   const handleLogin = async () => {
     try { await loginWithGoogle(); } catch (error) { console.error("Login failed:", error); }
@@ -100,34 +98,8 @@ export default function App() {
           </button>
 
           <p className="text-[11px] font-bold text-slate-400">
-            사내 인트라넷 계정 전용 시스템입니다.<br/>
             승인된 사용자만 접근 가능합니다.
           </p>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Handle Unauthorized/Pending Users
-  if (!isApproved) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md w-full bg-white p-12 rounded-[40px] shadow-2xl border-4 border-rose-100 text-center space-y-8">
-          <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto">
-            <div className="w-3 h-3 bg-rose-500 rounded-full animate-ping" />
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-3xl font-black text-[#0f172a]">접근 권한이 없습니다</h2>
-            <p className="text-slate-500 font-bold leading-relaxed">
-              사내 전용 시스템입니다. 관리자의 승인이 필요합니다.<br/>
-              현재 로그인 계정: <span className="text-primary">{user.email}</span>
-            </p>
-          </div>
-          <div className="pt-6 border-t border-slate-100 flex flex-col gap-3">
-             <button onClick={handleLogout} className="w-full h-14 bg-slate-50 text-slate-500 rounded-2xl font-black hover:bg-slate-100 transition-all">
-               다른 계정으로 로그인
-             </button>
-          </div>
         </motion.div>
       </div>
     );

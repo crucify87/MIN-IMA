@@ -11,7 +11,7 @@ import { db } from '../lib/firebase';
 import { handleFirestoreError } from '../lib/firestoreUtils';
 import { OperationType } from '../types';
 
-export function useAppData(user: any, isSuperAdmin: boolean, isApproved: boolean) {
+export function useAppData(user: any, isSuperAdmin: boolean) {
   const [inventory, setInventory] = useState<any[]>([]);
   const [production, setProduction] = useState<any[]>([]);
   const [logistics, setLogistics] = useState<any[]>([]);
@@ -27,7 +27,7 @@ export function useAppData(user: any, isSuperAdmin: boolean, isApproved: boolean
       }
     }, error => handleFirestoreError(error, OperationType.GET, 'settings/app'));
 
-    if (!user || !isApproved) {
+    if (!user) {
       return () => unsubSettings();
     }
 
@@ -65,7 +65,7 @@ export function useAppData(user: any, isSuperAdmin: boolean, isApproved: boolean
       unsubPartners();
       unsubAllUsers();
     };
-  }, [user, isSuperAdmin, isApproved]);
+  }, [user, isSuperAdmin]);
 
   return {
     inventory,

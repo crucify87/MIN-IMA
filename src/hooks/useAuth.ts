@@ -65,7 +65,7 @@ export function useAuth() {
             email: user.email,
             photoURL: user.photoURL,
             updatedAt: serverTimestamp(),
-            ...(isInitialSuper ? { role: 'super_admin', status: 'approved' } : {})
+            ...(isInitialSuper ? { role: 'super_admin' } : {})
           }, { merge: true });
         } catch (error) {
           console.error("Error syncing profile:", error);
