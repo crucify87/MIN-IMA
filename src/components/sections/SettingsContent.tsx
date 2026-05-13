@@ -61,29 +61,6 @@ function SettingsContent({
   
   // Admin Form
   const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [appLogoUrl, setAppLogoUrl] = useState(settings?.logoUrl || '');
-
-  React.useEffect(() => {
-    if (settings?.logoUrl) {
-      setAppLogoUrl(settings.logoUrl);
-    }
-  }, [settings?.logoUrl]);
-
-  const handleUpdateAppLogo = async (e: any) => {
-    e.preventDefault();
-    if (!canManageUsers) return;
-    try {
-      await setDoc(doc(db, 'settings', 'app'), { 
-        logoUrl: appLogoUrl, 
-        updatedAt: serverTimestamp(),
-        updatedBy: user?.email
-      }, { merge: true });
-      alert('앱 로고가 변경되었습니다.');
-    } catch (error) {
-      console.error(error);
-      alert('로고 변경에 실패했습니다.');
-    }
-  };
 
   const handleRegisterItem = async (e: any) => {
     e.preventDefault();
@@ -710,30 +687,6 @@ function SettingsContent({
         )}
         {tab === 'u' && (
           <div className="p-4 md:p-10 space-y-10 md:space-y-12">
-             {/* 0. App Identity Settings */}
-             <div className="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-outline-variant space-y-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                  <div className="text-center lg:text-left">
-                    <h3 className="text-base md:text-lg font-black text-[#0f172a] tracking-tight">시스템 아이덴티티</h3>
-                    <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-1">APP LOGO & IDENTITY</p>
-                  </div>
-                  <form onSubmit={handleUpdateAppLogo} className="flex-1 w-full max-w-2xl flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                      <input type="text" placeholder="로고 이미지 URL (HTTPS 권장)" value={appLogoUrl} onChange={(e) => setAppLogoUrl(e.target.value)} className="w-full h-12 md:h-14 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm text-xs md:text-sm" />
-                    </div>
-                    {appLogoUrl && (
-                      <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-50 border border-outline-variant rounded-xl overflow-hidden shrink-0 flex items-center justify-center p-2">
-                        <img src={appLogoUrl} alt="Preview" className="w-full h-full object-contain" />
-                      </div>
-                    )}
-                    <button type="submit" className="h-12 md:h-14 px-8 bg-blue-600 text-white rounded-2xl font-black text-xs md:text-sm hover:bg-blue-700 transition-all shadow-lg active:scale-95 whitespace-nowrap">
-                      로고 저장
-                    </button>
-                  </form>
-                </div>
-             </div>
-
              <div className="bg-[#f8fafc] p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-outline-variant space-y-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                   <div className="text-center lg:text-left">

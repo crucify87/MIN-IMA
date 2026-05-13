@@ -25,7 +25,7 @@ export function useAppData(user: any, isSuperAdmin: boolean) {
       if (snap.exists()) {
         setSettings(snap.data());
       }
-    });
+    }, error => handleFirestoreError(error, OperationType.GET, 'settings/app'));
 
     if (!user) {
       return () => unsubSettings();
@@ -58,6 +58,7 @@ export function useAppData(user: any, isSuperAdmin: boolean) {
     }
 
     return () => {
+      unsubSettings();
       unsubInv();
       unsubProd();
       unsubLog();

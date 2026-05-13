@@ -68,6 +68,12 @@ service cloud.firestore {
              data.unit is string && data.unit.size() <= 20 &&
              (!data.keys().hasAny(['sku']) || (data.sku is string && data.sku.size() <= 100)) &&
              (!data.keys().hasAny(['brand']) || (data.brand is string && data.brand.size() <= 200)) &&
+             (!data.keys().hasAny(['safetyStock']) || data.safetyStock is number) &&
+             (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 200)) &&
+             (!data.keys().hasAny(['purchasePrice']) || data.purchasePrice is number) &&
+             (!data.keys().hasAny(['salesPrice']) || data.salesPrice is number) &&
+             (!data.keys().hasAny(['manufDate']) || (data.manufDate is string && data.manufDate.size() <= 20)) &&
+             (!data.keys().hasAny(['expiryDate']) || (data.expiryDate is string && data.expiryDate.size() <= 20)) &&
              (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
     }
 
@@ -108,6 +114,12 @@ service cloud.firestore {
              (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp);
     }
 
+    function isValidSettings(data) {
+      return (!data.keys().hasAny(['logoUrl']) || (data.logoUrl is string && data.logoUrl.size() <= 2000)) &&
+             (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp) &&
+             (!data.keys().hasAny(['updatedBy']) || (data.updatedBy is string && data.updatedBy.size() <= 200));
+    }
+
     // --- Collection Routes ---
 
     match /users/{userId} {
@@ -142,6 +154,11 @@ service cloud.firestore {
 
     match /admin_emails/{email} {
       allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true; // Public for login screen logo
       allow write: if isSuperAdmin();
     }
   }
