@@ -63,6 +63,8 @@
         "time": { "type": "string" },
         "type": { "type": "string", "enum": ["입고", "출고"] },
         "item": { "type": "string" },
+        "brand": { "type": "string" },
+        "category": { "type": "string" },
         "partner": { "type": "string" },
         "weight": { "type": "number" },
         "freightType": { "type": "string" },

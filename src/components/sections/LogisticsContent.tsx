@@ -29,9 +29,23 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [showAll, setShowAll] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterBrand, setFilterBrand] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), type: '입고', item: '', partner: '', weight: '', freightType: '선불' });
+  const [form, setForm] = useState({ 
+    date: new Date().toISOString().split('T')[0], 
+    time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), 
+    type: '입고', 
+    item: '', 
+    brand: '',
+    category: '',
+    partner: '', 
+    weight: '', 
+    freightType: '선불' 
+  });
   
   const today = new Date().toISOString().split('T')[0];
 
@@ -46,10 +60,32 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const filtered = useMemo(() => {
     return logistics.filter((l: any) => {
       const matchesSearch = l.item.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !filterCategory || l.category === filterCategory;
+      const matchesBrand = !filterBrand || l.brand === filterBrand;
       const matchesDate = l.date >= startDate && l.date <= endDate;
-      return matchesSearch && matchesDate;
+      return matchesSearch && matchesCategory && matchesBrand && matchesDate;
     });
-  }, [logistics, search, startDate, endDate]);
+  }, [logistics, search, filterCategory, filterBrand, startDate, endDate]);
+
+  const categories = useMemo(() => {
+    const cats = inventory.map((i: any) => i.category).filter(Boolean);
+    return Array.from(new Set(cats));
+  }, [inventory]);
+
+  const brands = useMemo(() => {
+    const bnds = inventory.map((i: any) => i.brand).filter(Boolean);
+    return Array.from(new Set(bnds));
+  }, [inventory]);
+
+  const filteredCategories = useMemo(() => {
+    if (!form.category) return categories;
+    return categories.filter(c => c.toLowerCase().includes(form.category.toLowerCase()));
+  }, [categories, form.category]);
+
+  const filteredBrands = useMemo(() => {
+    if (!form.brand) return brands;
+    return brands.filter(b => b.toLowerCase().includes(form.brand.toLowerCase()));
+  }, [brands, form.brand]);
   
   const handleAdd = async (e: any) => {
     e.preventDefault();
@@ -62,6 +98,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         if (item) {
           await updateDoc(doc(db, 'inventory', item.id), {
             currentStock: increment(diff),
+            brand: form.brand || item.brand || '',
+            category: form.category || item.category || '미분류',
             updatedAt: serverTimestamp()
           });
         } else {
@@ -69,8 +107,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           await addDoc(collection(db, 'inventory'), {
             name: name,
             currentStock: diff,
+            brand: form.brand || '',
+            category: form.category || '미분류',
             sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
-            category: '미분류',
             unit: 'KG',
             minStock: 0,
             location: '미지정',
@@ -114,7 +153,17 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       }
       
       setShowForm(false);
-      setForm({ date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), type: '입고', item: '', partner: '', weight: '', freightType: '선불' });
+      setForm({ 
+        date: new Date().toISOString().split('T')[0], 
+        time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), 
+        type: '입고', 
+        item: '', 
+        brand: '',
+        category: '',
+        partner: '', 
+        weight: '', 
+        freightType: '선불' 
+      });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'logistics'); }
   };
 
@@ -125,6 +174,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       time: l.time,
       type: l.type,
       item: l.item,
+      brand: l.brand || '',
+      category: l.category || '',
       partner: l.partner,
       weight: l.weight.toString(),
       freightType: l.freightType || '선불'
@@ -173,13 +224,148 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       {/* Form Overlay */}
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-[40px] border-2 border-[#0f172a]/10 shadow-2xl space-y-6">
-          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             <div className="space-y-1"><label className="text-[10px] font-black text-outline">날짜</label><input required type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold" /></div>
-             <div className="space-y-1"><label className="text-[10px] font-black text-outline">품목</label><input required list="l-items" value={form.item} onChange={e => setForm({...form, item: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold" /><datalist id="l-items">{inventory.map((i: any) => <option key={i.id} value={i.name} />)}</datalist></div>
-             <div className="space-y-1"><label className="text-[10px] font-black text-outline">구분</label><select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold font-black"><option value="입고">입고</option><option value="출고">출고</option></select></div>
-             <div className="space-y-1"><label className="text-[10px] font-black text-outline">중량 (KG)</label><input required type="number" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold" /></div>
-             <div className="space-y-1"><label className="text-[10px] font-black text-outline">거래처</label><select value={form.partner} onChange={e => setForm({...form, partner: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold font-black"><option value="">선택</option>{partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></div>
-             <div className="flex items-end"><button type="submit" className="w-full h-12 bg-[#0f172a] text-white rounded-xl font-black uppercase shadow-lg shadow-[#0f172a]/20">저장 완료</button></div>
+          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
+             <div className="space-y-1">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">날짜</label>
+               <input required type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" />
+             </div>
+             
+             <div className="space-y-1">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">구분</label>
+               <div className="flex bg-surface-container p-1 rounded-xl h-12">
+                 {['입고', '출고'].map((t) => (
+                   <button 
+                     key={t}
+                     type="button"
+                     onClick={() => setForm({...form, type: t})}
+                     className={`flex-1 rounded-lg font-black text-xs transition-all ${form.type === t ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}
+                   >
+                     {t}
+                   </button>
+                 ))}
+               </div>
+             </div>
+
+             <div className="space-y-1">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">품목명</label>
+               <input 
+                 required 
+                 list="l-items" 
+                 placeholder="품목 선택 또는 입력"
+                 value={form.item} 
+                 onChange={e => {
+                   const val = e.target.value;
+                   setForm(prev => ({ ...prev, item: val }));
+                   
+                   // Attempt auto-fill if an inventory item is matched
+                   const invItem = inventory.find((it: any) => it.name === val);
+                   if (invItem) {
+                     setForm(prev => ({
+                       ...prev,
+                       brand: invItem.brand || prev.brand,
+                       category: invItem.category || prev.category
+                     }));
+                   }
+                 }} 
+                 className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
+               />
+               <datalist id="l-items">{inventory.map((i: any) => <option key={i.id} value={i.name} />)}</datalist>
+             </div>
+
+             <div className="space-y-1 relative">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">원육 / 생산</label>
+               <div className="relative">
+                 <input 
+                   placeholder="선택 또는 입력"
+                   value={form.category} 
+                   onChange={e => setForm({...form, category: e.target.value})} 
+                   onFocus={() => setShowCategoryDropdown(true)}
+                   onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
+                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all pr-10" 
+                 />
+                 <button 
+                   type="button" 
+                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
+                 >
+                   <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                 </button>
+               </div>
+               {showCategoryDropdown && filteredCategories.length > 0 && (
+                 <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-48 overflow-y-auto">
+                   {filteredCategories.map((c: string) => (
+                     <button
+                       key={c}
+                       type="button"
+                       onClick={() => {
+                         setForm({...form, category: c});
+                         setShowCategoryDropdown(false);
+                       }}
+                       className="w-full h-10 flex items-center px-4 text-xs font-bold text-slate-600 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                     >
+                       {c}
+                     </button>
+                   ))}
+                 </div>
+               )}
+             </div>
+
+             <div className="space-y-1 relative">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">브랜드</label>
+               <div className="relative">
+                 <input 
+                   placeholder="선택 또는 입력"
+                   value={form.brand} 
+                   onChange={e => setForm({...form, brand: e.target.value})} 
+                   onFocus={() => setShowBrandDropdown(true)}
+                   onBlur={() => setTimeout(() => setShowBrandDropdown(false), 200)}
+                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all pr-10" 
+                 />
+                 <button 
+                   type="button" 
+                   onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
+                 >
+                   <ChevronDown className={`w-4 h-4 transition-transform ${showBrandDropdown ? 'rotate-180' : ''}`} />
+                 </button>
+               </div>
+               {showBrandDropdown && filteredBrands.length > 0 && (
+                 <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-48 overflow-y-auto">
+                   {filteredBrands.map((b: string) => (
+                     <button
+                       key={b}
+                       type="button"
+                       onClick={() => {
+                         setForm({...form, brand: b});
+                         setShowBrandDropdown(false);
+                       }}
+                       className="w-full h-10 flex items-center px-4 text-xs font-bold text-slate-600 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                     >
+                       {b}
+                     </button>
+                   ))}
+                 </div>
+               )}
+             </div>
+
+             <div className="space-y-1">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">중량 (KG)</label>
+               <input required type="number" step="0.01" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" />
+             </div>
+
+             <div className="space-y-1">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">거래처</label>
+               <select value={form.partner} onChange={e => setForm({...form, partner: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all">
+                 <option value="">거래처 선택</option>
+                 {partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
+               </select>
+             </div>
+
+             <div className="lg:col-span-2 flex items-end">
+               <button type="submit" className="w-full h-12 bg-[#0f172a] text-white rounded-xl font-black uppercase shadow-lg shadow-[#0f172a]/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                 {editingId ? '수정 내용 저장' : '등록 완료'}
+               </button>
+             </div>
           </form>
         </motion.div>
       )}
@@ -202,27 +388,56 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       </section>
 
       {/* Filter Bar */}
-      <section className="bg-[#e8f1ff] p-4 rounded-2xl flex flex-col md:flex-row items-center gap-4">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-          <input 
-            type="text" 
-            placeholder="품목명 필터..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/50 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
-          />
-        </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 px-4 h-12 bg-white border border-outline-variant/50 rounded-xl text-sm font-bold text-on-surface shadow-sm w-full">
-            <CalendarDays className="w-4 h-4 text-outline" />
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-xs flex-1" />
+      <section className="bg-[#e8f1ff] p-4 md:p-6 rounded-[24px] md:rounded-[32px] space-y-4 shadow-inner">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline group-focus-within:text-primary transition-colors" />
+            <input 
+              type="text" 
+              placeholder="품목명 필터..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/30 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
+            />
           </div>
-          <span className="text-outline font-bold">~</span>
-          <div className="flex items-center gap-2 px-4 h-12 bg-white border border-outline-variant/50 rounded-xl text-sm font-bold text-on-surface shadow-sm w-full">
-            <CalendarDays className="w-4 h-4 text-outline" />
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-xs flex-1" />
+
+          <div className="grid grid-cols-2 gap-2">
+            <select 
+              value={filterCategory} 
+              onChange={e => setFilterCategory(e.target.value)}
+              className="h-12 px-4 bg-white border border-outline-variant/30 rounded-xl font-bold text-xs appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+            >
+              <option value="">전체 카테고리</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select 
+              value={filterBrand} 
+              onChange={e => setFilterBrand(e.target.value)}
+              className="h-12 px-4 bg-white border border-outline-variant/30 rounded-xl font-bold text-xs appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+            >
+              <option value="">전체 브랜드</option>
+              {brands.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
           </div>
+
+          <div className="flex items-center gap-2">
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="flex-1 h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-bold shadow-sm outline-none focus:border-primary transition-all" />
+            <span className="text-outline font-black text-[10px]">~</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="flex-1 h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-bold shadow-sm outline-none focus:border-primary transition-all" />
+          </div>
+
+          <button 
+            onClick={() => {
+              setSearch('');
+              setFilterCategory('');
+              setFilterBrand('');
+              setStartDate(today);
+              setEndDate(today);
+            }}
+            className="h-12 bg-white/50 text-outline hover:text-[#0f172a] hover:bg-white rounded-xl font-black text-xs transition-all border border-outline-variant/20 shadow-sm"
+          >
+            필터 초기화
+          </button>
         </div>
       </section>
 
@@ -248,37 +463,40 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               <table className="w-full text-center border-collapse min-w-[700px] md:min-w-0">
                 <thead className="bg-[#f1f4f9] text-[10px] md:text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                   <tr>
-                    <th className="px-4 py-8 text-left pl-8">시간 (TIME)</th>
+                    <th className="px-4 py-8 text-left pl-8">시간</th>
                     <th className="px-4 py-8">구분</th>
-                    <th className="px-4 py-8">품목 (ITEM)</th>
-                    <th className="px-4 py-8">재고 변동량</th>
-                    <th className="px-4 py-8">상태</th>
-                    <th className="px-4 py-8">관리</th>
+                    <th className="px-4 py-8">원육/생산</th>
+                    <th className="px-4 py-8">브랜드</th>
+                    <th className="px-4 py-8">품목</th>
+                    <th className="px-4 py-8">중량</th>
+                    <th className="px-4 py-8 text-right pr-8">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
                   {filtered.slice(0, showAll ? undefined : 15).map((l: any, i: number) => (
                     <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
-                      <td className="px-4 py-6 text-sm font-bold text-outline text-left pl-8">{l.date} {l.time}</td>
+                      <td className="px-4 py-6 text-xs font-bold text-outline text-left pl-8 whitespace-nowrap">
+                        <div className="text-on-surface">{l.date}</div>
+                        <div className="text-[10px] opacity-60">{l.time}</div>
+                      </td>
                       <td className="px-4 py-6">
-                        <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                           {l.type}
                         </span>
                       </td>
+                      <td className="px-4 py-6 text-sm font-bold text-slate-500">{l.category || '-'}</td>
+                      <td className="px-4 py-6 text-sm font-bold text-primary">{l.brand || '-'}</td>
                       <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
-                      <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {l.type === '입고' ? '+' : '-'}{l.weight?.toLocaleString()} KG
+                      <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
                       </td>
-                      <td className="px-4 py-6">
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{l.status || '완료'}</span>
-                      </td>
-                      <td className="px-4 py-6">
-                        <div className="flex items-center justify-center gap-2">
-                           <button onClick={() => handleEdit(l)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors">
-                             <Edit className="w-4 h-4" />
+                      <td className="px-4 py-6 text-right pr-8">
+                        <div className="flex items-center justify-end gap-1">
+                           <button onClick={() => handleEdit(l)} className="p-2 hover:bg-slate-100 text-slate-400 hover:text-primary rounded-xl transition-all">
+                             <Edit className="w-5 h-5" />
                            </button>
-                           <button onClick={() => handleDelete(l)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors">
-                             <Trash2 className="w-4 h-4" />
+                           <button onClick={() => handleDelete(l)} className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all">
+                             <Trash2 className="w-5 h-5" />
                            </button>
                         </div>
                       </td>

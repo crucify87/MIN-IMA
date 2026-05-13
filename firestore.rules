@@ -94,6 +94,8 @@ service cloud.firestore {
              data.item is string &&
              data.partner is string &&
              data.weight is number &&
+             (!data.keys().hasAny(['brand']) || (data.brand is string && data.brand.size() <= 200)) &&
+             (!data.keys().hasAny(['category']) || (data.category is string && data.category.size() <= 200)) &&
              (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp);
     }
 

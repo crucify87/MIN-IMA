@@ -47,11 +47,12 @@ function SettingsContent({
 
   // Item Form
   const [itemForm, setItemForm] = useState({
-    sku: '', name: '', category: '', brand: '', unit: 'kg', currentStock: '', safetyStock: '',
+    sku: '', name: '', category: '돼지고기', brand: '', unit: 'kg', currentStock: '', safetyStock: '',
     purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: ''
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showUnitOptions, setShowUnitOptions] = useState(false);
+  const [showCategoryOptions, setShowCategoryOptions] = useState(false);
 
   // Partner Form
   const [partnerForm, setPartnerForm] = useState({ name: '', type: '공급사', phone: '', address: '' });
@@ -84,7 +85,7 @@ function SettingsContent({
         });
         alert('상품 마스터 등록이 완료되었습니다.');
       }
-      setItemForm({ sku: '', name: '', category: '', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
   };
 
@@ -215,7 +216,35 @@ function SettingsContent({
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">SKU 번호</label><input placeholder="예: SKU-BF-001" value={itemForm.sku} onChange={e => setItemForm({...itemForm, sku: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">품목명</label><input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">카테고리</label><input placeholder="예: 소고기" value={itemForm.category} onChange={e => setItemForm({...itemForm, category: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
+                    <div className="space-y-2 relative">
+                      <label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">카테고리</label>
+                      <button 
+                        type="button"
+                        onClick={() => setShowCategoryOptions(!showCategoryOptions)}
+                        className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold flex items-center justify-between outline-none focus:border-primary transition-all group"
+                      >
+                        <span className="text-primary">{itemForm.category || '선택'}</span>
+                        <ChevronDown className={`w-4 h-4 text-outline group-hover:text-primary transition-transform ${showCategoryOptions ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showCategoryOptions && (
+                        <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                          {['돼지고기', '소고기', '부속물'].map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                setItemForm({...itemForm, category: c});
+                                setShowCategoryOptions(false);
+                              }}
+                              className={`w-full h-12 flex items-center justify-between px-6 font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.category === c ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                            >
+                              <span>{c}</span>
+                              {itemForm.category === c && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">브랜드</label><input placeholder="예: 한우관" value={itemForm.brand} onChange={e => setItemForm({...itemForm, brand: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   </div>
                   <div className="space-y-2 relative">
@@ -292,7 +321,7 @@ function SettingsContent({
                         type="button" 
                         onClick={() => {
                           setEditingItemId(null);
-                          setItemForm({ sku: '', name: '', category: '', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
                         }}
                         className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-base md:text-lg shadow-sm hover:bg-rose-100 transition-all"
                       >
