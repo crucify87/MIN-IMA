@@ -76,60 +76,33 @@ export default function App() {
     const appLogo = settings?.logoUrl || "/512x512.png?v=3";
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
-        {/* Background Decoration */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-50 rounded-full blur-3xl opacity-50" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-50 rounded-full blur-3xl opacity-50" />
-        </div>
-
         <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="max-w-md w-full bg-white rounded-[48px] shadow-2xl border border-slate-100 overflow-hidden relative z-10"
+          initial={{ opacity: 0, scale: 0.95 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          className="max-w-md w-full bg-white p-12 rounded-[40px] shadow-2xl border border-slate-100 text-center space-y-10"
         >
-          {/* Header Part */}
-          <div className="p-10 pb-6 text-center space-y-6">
+          <div className="space-y-6">
             <div className="w-24 h-24 mx-auto bg-slate-50 rounded-3xl p-4 flex items-center justify-center shadow-inner">
               <img src={appLogo} className="w-full h-full object-contain" alt="Logo" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-black text-[#0f172a] tracking-tight">ERP 시스템 로그인</h1>
-              <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">Administrator Portal</p>
+              <h1 className="text-3xl font-black text-[#0f172a] tracking-tight">재고 관리 시스템</h1>
+              <p className="text-slate-500 font-bold text-sm">MIN IMA INVENTORY MANAGEMENT</p>
             </div>
           </div>
 
-          {/* "Form" Part (Simulated Inputs for looks) */}
-          <div className="px-10 pb-10 space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">ID / Email</label>
-                <div className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl flex items-center px-5 text-slate-300 font-bold overflow-hidden cursor-not-allowed">
-                  example@company.com
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Password</label>
-                <div className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl flex items-center px-5 text-slate-300 font-bold overflow-hidden cursor-not-allowed">
-                  ••••••••••••
-                </div>
-              </div>
-            </div>
+          <button 
+            onClick={handleLogin} 
+            className="w-full h-16 bg-[#0f172a] text-white rounded-2xl flex items-center justify-center gap-3 font-black text-lg hover:bg-slate-800 transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10"
+          >
+            <img src="https://www.google.com/favicon.ico" className="w-6 h-6 grayscale brightness-200" alt="Google" />
+            Google 계정으로 로그인
+          </button>
 
-            <div className="pt-2">
-              <button 
-                onClick={handleLogin} 
-                className="w-full h-16 bg-[#0f172a] text-white rounded-2xl flex items-center justify-center gap-3 font-black text-lg hover:bg-slate-800 transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10"
-              >
-                <img src="https://www.google.com/favicon.ico" className="w-6 h-6 grayscale brightness-200" alt="Google" />
-                Google 계정으로 사내 로그인
-              </button>
-            </div>
-
-            <p className="text-center text-[11px] font-bold text-slate-400 leading-relaxed">
-              사내 인트라넷 계정 전용 시스템입니다.<br/>
-              문의: IT 지원팀 (내선 1004)
-            </p>
-          </div>
+          <p className="text-[11px] font-bold text-slate-400">
+            사내 인트라넷 계정 전용 시스템입니다.<br/>
+            승인된 사용자만 접근 가능합니다.
+          </p>
         </motion.div>
       </div>
     );
