@@ -440,53 +440,92 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           </button>
         </div>
 
-        <div className="min-h-[400px] flex flex-col rounded-[32px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-4 md:p-10">
+        <div className="min-h-[400px] flex flex-col rounded-[32px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-2 md:p-10">
           {filtered.length > 0 ? (
-            <div className="w-full bg-white rounded-[24px] md:rounded-[32px] border border-outline-variant overflow-hidden shadow-2xl shadow-indigo-900/5 overflow-x-auto">
-              <table className="w-full text-center border-collapse min-w-[700px] md:min-w-0">
-                <thead className="bg-[#f1f4f9] text-[10px] md:text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
-                  <tr>
-                    <th className="px-4 py-8 text-left pl-8">시간</th>
-                    <th className="px-4 py-8">구분</th>
-                    <th className="px-4 py-8">원육/생산</th>
-                    <th className="px-4 py-8">브랜드</th>
-                    <th className="px-4 py-8">품목</th>
-                    <th className="px-4 py-8">중량</th>
-                    <th className="px-4 py-8 text-right pr-8">관리</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/10">
-                  {filtered.slice(0, showAll ? undefined : 15).map((l: any, i: number) => (
-                    <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
-                      <td className="px-4 py-6 text-xs font-bold text-outline text-left pl-8 whitespace-nowrap">
-                        <div className="text-on-surface">{l.date}</div>
-                        <div className="text-[10px] opacity-60">{l.time}</div>
-                      </td>
-                      <td className="px-4 py-6">
+            <div className="w-full space-y-4">
+              {/* Desktop View Table */}
+              <div className="hidden md:block bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-2xl shadow-indigo-900/5">
+                <table className="w-full text-center border-collapse">
+                  <thead className="bg-[#f1f4f9] text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+                    <tr>
+                      <th className="px-4 py-8 text-left pl-8">시간</th>
+                      <th className="px-4 py-8">구분</th>
+                      <th className="px-4 py-8">원육/생산</th>
+                      <th className="px-4 py-8">브랜드</th>
+                      <th className="px-4 py-8">품목</th>
+                      <th className="px-4 py-8">중량</th>
+                      <th className="px-4 py-8 text-right pr-8">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10">
+                    {filtered.slice(0, showAll ? undefined : 15).map((l: any, i: number) => (
+                      <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
+                        <td className="px-4 py-6 text-xs font-bold text-outline text-left pl-8 whitespace-nowrap">
+                          <div className="text-on-surface">{l.date}</div>
+                          <div className="text-[10px] opacity-60">{l.time}</div>
+                        </td>
+                        <td className="px-4 py-6">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                            {l.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-6 text-sm font-bold text-slate-500">{l.category || '-'}</td>
+                        <td className="px-4 py-6 text-sm font-bold text-primary">{l.brand || '-'}</td>
+                        <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
+                        <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
+                        </td>
+                        <td className="px-4 py-6 text-right pr-8">
+                          <div className="flex items-center justify-end gap-1">
+                             <button onClick={() => handleEdit(l)} className="p-2 hover:bg-slate-100 text-slate-400 hover:text-primary rounded-xl transition-all">
+                               <Edit className="w-5 h-5" />
+                             </button>
+                             <button onClick={() => handleDelete(l)} className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all">
+                               <Trash2 className="w-5 h-5" />
+                             </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {filtered.slice(0, showAll ? undefined : 15).map((l: any, i: number) => (
+                  <div key={l.id || i} className="bg-white p-5 rounded-[24px] border border-outline-variant shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                           {l.type}
                         </span>
-                      </td>
-                      <td className="px-4 py-6 text-sm font-bold text-slate-500">{l.category || '-'}</td>
-                      <td className="px-4 py-6 text-sm font-bold text-primary">{l.brand || '-'}</td>
-                      <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
-                      <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
-                      </td>
-                      <td className="px-4 py-6 text-right pr-8">
-                        <div className="flex items-center justify-end gap-1">
-                           <button onClick={() => handleEdit(l)} className="p-2 hover:bg-slate-100 text-slate-400 hover:text-primary rounded-xl transition-all">
-                             <Edit className="w-5 h-5" />
-                           </button>
-                           <button onClick={() => handleDelete(l)} className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all">
-                             <Trash2 className="w-5 h-5" />
-                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <div className="text-[10px] font-black text-outline uppercase">{l.date} <span className="opacity-50 ml-1">{l.time}</span></div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                         <button onClick={() => handleEdit(l)} className="p-2 bg-slate-50 text-slate-400 rounded-lg">
+                           <Edit className="w-4 h-4" />
+                         </button>
+                         <button onClick={() => handleDelete(l)} className="p-2 bg-rose-50 text-rose-400 rounded-lg">
+                           <Trash2 className="w-4 h-4" />
+                         </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="text-[10px] font-black text-outline uppercase tracking-widest">{l.brand} | {l.category}</div>
+                      <div className="text-lg font-black text-[#0f172a]">{l.item}</div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                      <div className="text-xs font-bold text-slate-400">거래처: <span className="text-[#0f172a]">{l.partner || '-'}</span></div>
+                      <div className={`text-xl font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-xs uppercase ml-1">KG</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-70">

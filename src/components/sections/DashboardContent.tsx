@@ -119,40 +119,65 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           </button>
         </div>
         
-        <div className="bg-surface-container/30 border border-dashed border-outline-variant/50 rounded-[40px] min-h-[240px] flex flex-col items-center justify-center p-4 md:p-12 text-center group">
+        <div className="bg-surface-container/30 border border-dashed border-outline-variant/50 rounded-[40px] min-h-[240px] flex flex-col items-center justify-center p-2 md:p-12 text-center group">
           {inventory.length > 0 ? (
-            <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm overflow-x-auto">
-              <table className="w-full text-left min-w-[600px] md:min-w-0">
-                <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
-                  <tr>
-                    <th className="px-6 md:px-8 py-5">품목 명칭</th>
-                    <th className="px-6 md:px-8 py-5">현재고 (KG)</th>
-                    <th className="px-6 md:px-8 py-5 text-center">상태</th>
-                    <th className="px-6 md:px-8 py-5"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/10">
+            <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm">
+              <div className="w-full">
+                {/* Desktop View Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
+                      <tr>
+                        <th className="px-6 md:px-8 py-5">품목 명칭</th>
+                        <th className="px-6 md:px-8 py-5">현재고 (KG)</th>
+                        <th className="px-6 md:px-8 py-5 text-center">상태</th>
+                        <th className="px-6 md:px-8 py-5"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/10">
+                      {inventory.slice(0, 5).map((item: any, i: number) => (
+                        <tr key={i} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('inventory')}>
+                          <td className="px-6 md:px-8 py-5">
+                            <div className="flex items-center gap-3 md:gap-4">
+                              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                <Package className="w-4 h-4 md:w-5 md:h-5" />
+                              </div>
+                              <span className="font-black text-on-surface tracking-tight text-sm md:text-base">{item.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black">{item.currentStock?.toLocaleString()} KG</td>
+                          <td className="px-6 md:px-8 py-5 text-center">
+                            <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                              {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
+                            </span>
+                          </td>
+                          <td className="px-4 md:px-8 py-5 text-right"><ChevronRight className="w-5 h-5 text-outline" /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View Card */}
+                <div className="md:hidden divide-y divide-outline-variant/10">
                   {inventory.slice(0, 5).map((item: any, i: number) => (
-                    <tr key={i} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('detail', item)}>
-                      <td className="px-6 md:px-8 py-5">
-                        <div className="flex items-center gap-3 md:gap-4">
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                            <Package className="w-4 h-4 md:w-5 md:h-5" />
-                          </div>
-                          <span className="font-black text-on-surface tracking-tight text-sm md:text-base">{item.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black">{item.currentStock?.toLocaleString()} KG</td>
-                      <td className="px-6 md:px-8 py-5 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                          {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
-                        </span>
-                      </td>
-                      <td className="px-4 md:px-8 py-5 text-right"><ChevronRight className="w-5 h-5 text-outline" /></td>
-                    </tr>
+                    <div key={i} className="p-5 flex items-center justify-between active:bg-slate-50 transition-colors" onClick={() => onNavigate('inventory')}>
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+                            <Package className="w-5 h-5" />
+                         </div>
+                         <div className="text-left">
+                            <div className="font-black text-[#0f172a] text-sm">{item.name}</div>
+                            <div className="text-xs font-bold text-outline">{item.currentStock?.toLocaleString()} KG</div>
+                         </div>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                        {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
+                      </span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -185,106 +210,199 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           </div>
         </div>
 
-        <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
-          <div className="overflow-x-auto">
-            <table className="w-full text-center border-collapse min-w-[600px] md:min-w-0">
-              <thead className="bg-surface-container/50 text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
-                <tr>
-                  <th className="px-4 py-8">시간 (TIME)</th>
-                  <th className="px-4 py-8">구분</th>
-                  <th className="px-4 py-8">품목 (ITEM)</th>
-                  <th className="px-4 py-8">재고 변동량</th>
-                  <th className="px-4 py-8">재고 상태</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/10">
-                {useMemo(() => {
-                  const now = new Date();
-                  const startOfWeek = new Date();
-                  startOfWeek.setDate(now.getDate() - 7);
-                  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
+          <div className="w-full">
+            {/* Desktop View Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-center border-collapse">
+                <thead className="bg-surface-container/50 text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+                  <tr>
+                    <th className="px-4 py-8">시간 (TIME)</th>
+                    <th className="px-4 py-8">구분</th>
+                    <th className="px-4 py-8">품목 (ITEM)</th>
+                    <th className="px-4 py-8">재고 변동량</th>
+                    <th className="px-4 py-8">재고 상태</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {useMemo(() => {
+                    const now = new Date();
+                    const startOfWeek = new Date();
+                    startOfWeek.setDate(now.getDate() - 7);
+                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-                  const isInRange = (dateStr: string) => {
-                    if (!dateStr) return false;
-                    const d = new Date(dateStr);
-                    if (activeShift === '일간') return dateStr === today;
-                    if (activeShift === '주간') return d >= startOfWeek;
-                    if (activeShift === '월간') return d >= startOfMonth;
-                    return false;
-                  };
+                    const isInRange = (dateStr: string) => {
+                      if (!dateStr) return false;
+                      const d = new Date(dateStr);
+                      if (activeShift === '일간') return dateStr === today;
+                      if (activeShift === '주간') return d >= startOfWeek;
+                      if (activeShift === '월간') return d >= startOfMonth;
+                      return false;
+                    };
 
-                  const combined = [
-                    ...logistics.map((l: any) => ({
-                      time: `${l.date} ${l.time}`,
-                      type: l.type,
-                      item: l.item,
-                      weight: l.weight,
-                      source: '물류',
-                      rawTime: l.createdAt?.seconds || 0,
-                      date: l.date
-                    })),
-                    ...production.flatMap((p: any) => [
-                      {
-                        time: p.manufDate,
-                        type: '입고',
-                        item: p.title,
-                        weight: p.production,
-                        source: '생산(완성)',
-                        rawTime: p.createdAt?.seconds || 0,
-                        date: p.manufDate
-                      },
-                      {
-                        time: p.manufDate,
-                        type: '출고',
-                        item: p.rawMaterial,
-                        weight: p.rawQty,
-                        source: '생산(투입)',
-                        rawTime: p.createdAt?.seconds || 0,
-                        date: p.manufDate
-                      }
-                    ]).filter(i => i.item)
-                  ].filter(item => isInRange(item.date))
-                   .sort((a, b) => b.rawTime - a.rawTime);
+                    const combined = [
+                      ...logistics.map((l: any) => ({
+                        time: `${l.date} ${l.time}`,
+                        type: l.type,
+                        item: l.item,
+                        weight: l.weight,
+                        source: '물류',
+                        rawTime: l.createdAt?.seconds || 0,
+                        date: l.date
+                      })),
+                      ...production.flatMap((p: any) => [
+                        {
+                          time: p.manufDate,
+                          type: '입고',
+                          item: p.title,
+                          weight: p.production,
+                          source: '생산(완성)',
+                          rawTime: p.createdAt?.seconds || 0,
+                          date: p.manufDate
+                        },
+                        {
+                          time: p.manufDate,
+                          type: '출고',
+                          item: p.rawMaterial,
+                          weight: p.rawQty,
+                          source: '생산(투입)',
+                          rawTime: p.createdAt?.seconds || 0,
+                          date: p.manufDate
+                        }
+                      ]).filter(i => i.item)
+                    ].filter(item => isInRange(item.date))
+                    .sort((a, b) => b.rawTime - a.rawTime);
 
-                  return showAllActivity ? combined : combined.slice(0, 10);
-                }, [logistics, production, activeShift, today, showAllActivity]).map((l, i) => {
+                    return showAllActivity ? combined : combined.slice(0, 10);
+                  }, [logistics, production, activeShift, today, showAllActivity]).map((l, i) => {
+                    const itemInfo = inventory.find((inv: any) => inv.name === l.item);
+                    const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
+                    const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
+                    
+                    return (
+                      <tr key={i} className="hover:bg-surface-container/10 transition-colors">
+                        <td className="px-4 py-6 text-sm font-bold text-outline">{l.time}</td>
+                        <td className="px-4 py-6">
+                          <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                            {l.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
+                        <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                        </td>
+                        <td className="px-4 py-6">
+                          <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
+                            status === '부족' ? 'bg-rose-500 text-white' : 
+                            status === '보충' ? 'bg-blue-500 text-white' : 
+                            'bg-emerald-500 text-white'
+                          }`}>
+                            {status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {logistics.length === 0 && production.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-24 text-center">
+                        <p className="text-xl font-black text-outline/40 tracking-tight">활동 내역이 없습니다</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View Activity Cards */}
+            <div className="md:hidden divide-y divide-outline-variant/10 p-2">
+              {(() => {
+                const now = new Date();
+                const startOfWeek = new Date();
+                startOfWeek.setDate(now.getDate() - 7);
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+                const isInRange = (dateStr: string) => {
+                  if (!dateStr) return false;
+                  const d = new Date(dateStr);
+                  if (activeShift === '일간') return dateStr === today;
+                  if (activeShift === '주간') return d >= startOfWeek;
+                  if (activeShift === '월간') return d >= startOfMonth;
+                  return false;
+                };
+
+                const combined = [
+                  ...logistics.map((l: any) => ({
+                    time: `${l.date} ${l.time}`,
+                    type: l.type,
+                    item: l.item,
+                    weight: l.weight,
+                    source: '물류',
+                    rawTime: l.createdAt?.seconds || 0,
+                    date: l.date
+                  })),
+                  ...production.flatMap((p: any) => [
+                    {
+                      time: p.manufDate,
+                      type: '입고',
+                      item: p.title,
+                      weight: p.production,
+                      source: '생산(완성)',
+                      rawTime: p.createdAt?.seconds || 0,
+                      date: p.manufDate
+                    },
+                    {
+                      time: p.manufDate,
+                      type: '출고',
+                      item: p.rawMaterial,
+                      weight: p.rawQty,
+                      source: '생산(투입)',
+                      rawTime: p.createdAt?.seconds || 0,
+                      date: p.manufDate
+                    }
+                  ]).filter(i => i.item)
+                ].filter(item => isInRange(item.date))
+                .sort((a, b) => b.rawTime - a.rawTime);
+
+                const finalItems = showAllActivity ? combined : combined.slice(0, 10);
+                
+                if (finalItems.length === 0) {
+                  return <div className="py-12 text-center opacity-40 text-sm font-black">활동 내역이 없습니다</div>;
+                }
+
+                return finalItems.map((l, i) => {
                   const itemInfo = inventory.find((inv: any) => inv.name === l.item);
                   const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
                   const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
-                  
+
                   return (
-                    <tr key={i} className="hover:bg-surface-container/10 transition-colors">
-                      <td className="px-4 py-6 text-sm font-bold text-outline">{l.time}</td>
-                      <td className="px-4 py-6">
-                        <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                          {l.type}
+                    <div key={i} className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                           <span className={`px-2 py-0.5 rounded text-[8px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                              {l.type}
+                            </span>
+                            <span className="text-[10px] font-bold text-outline">{l.time}</span>
+                        </div>
+                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
+                              status === '부족' ? 'bg-rose-500 text-white' : 
+                              status === '보충' ? 'bg-blue-500 text-white' : 
+                              'bg-emerald-500 text-white'
+                            }`}>
+                              {status}
                         </span>
-                      </td>
-                      <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
-                      <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
-                      </td>
-                      <td className="px-4 py-6">
-                        <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
-                          status === '부족' ? 'bg-rose-500 text-white' : 
-                          status === '보충' ? 'bg-blue-500 text-white' : 
-                          'bg-emerald-500 text-white'
-                        }`}>
-                          {status}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-black text-[#0f172a]">{l.item}</span>
+                        <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
                         </span>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
-                })}
-                {logistics.length === 0 && production.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-24 text-center">
-                      <p className="text-xl font-black text-outline/40 tracking-tight">활동 내역이 없습니다</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                });
+              })()}
+            </div>
           </div>
           
           {useMemo(() => {

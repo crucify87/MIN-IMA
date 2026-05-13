@@ -223,79 +223,137 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
           </button>
         </div>
 
-        <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
-          <div className="overflow-x-auto">
-            <table className="w-full text-center border-collapse min-w-[800px] md:min-w-0">
-              <thead className="bg-[#f1f4f9] text-[10px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
-                <tr>
-                  <th className="px-4 py-5">SKU / 위치 / 라인</th>
-                  <th className="px-4 py-5 font-medium">품목 정보</th>
-                  <th className="px-4 py-5 font-medium">카테고리</th>
-                  <th className="px-4 py-5 font-medium">현재 재고</th>
-                  <th className="px-4 py-5 font-medium">상태</th>
-                  <th className="px-4 py-5 font-medium">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/10">
-                {filtered.length > 0 ? (
-                  filtered.slice(0, showAll ? undefined : 15).map((item: any, i: number) => (
-                    <tr key={i} className="hover:bg-surface-container/5 transition-colors">
+        <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
+          <div className="w-full">
+            {/* Desktop View Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-center border-collapse">
+                <thead className="bg-[#f1f4f9] text-[10px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+                  <tr>
+                    <th className="px-4 py-5">SKU / 위치 / 라인</th>
+                    <th className="px-4 py-5 font-medium">품목 정보</th>
+                    <th className="px-4 py-5 font-medium">카테고리</th>
+                    <th className="px-4 py-5 font-medium">현재 재고</th>
+                    <th className="px-4 py-5 font-medium">상태</th>
+                    <th className="px-4 py-5 font-medium">관리</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {filtered.length > 0 ? (
+                    filtered.slice(0, showAll ? undefined : 15).map((item: any, i: number) => (
+                      <tr key={i} className="hover:bg-surface-container/5 transition-colors">
+                        <td className="px-4 py-4">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-primary font-mono">{item.sku}</span>
+                          <span className="text-[9px] font-black text-outline uppercase">{item.location || '미지정'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 font-black text-on-surface text-base">
+                        {item.name}
+                      </td>
                       <td className="px-4 py-4">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] font-bold text-primary font-mono">{item.sku}</span>
-                        <span className="text-[9px] font-black text-outline uppercase">{item.location || '미지정'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 font-black text-on-surface text-base">
-                      {item.name}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="px-2 py-1 bg-surface-container rounded-lg text-[9px] font-black text-outline uppercase">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 font-black text-lg">
-                      {item.currentStock?.toLocaleString()} <span className="text-[10px] text-outline font-medium">{item.unit}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                        {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        {canEditItems ? (
-                          <>
-                            <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors" title="상세/수정">
-                              <Edit className="w-5 h-5" />
+                        <span className="px-2 py-1 bg-surface-container rounded-lg text-[9px] font-black text-outline uppercase">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 font-black text-lg">
+                        {item.currentStock?.toLocaleString()} <span className="text-[10px] text-outline font-medium">{item.unit}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                          {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          {canEditItems ? (
+                            <>
+                              <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-all active:scale-90" title="상세/수정">
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-all active:scale-90" title="삭제">
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </>
+                          ) : (
+                            <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-all active:scale-90">
+                              <ChevronRight className="w-5 h-5" />
                             </button>
-                            <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors" title="삭제">
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </>
-                        ) : (
-                          <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors">
-                            <ChevronRight className="w-5 h-5" />
-                          </button>
-                        )}
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-24 text-center">
+                      <div className="flex flex-col items-center gap-4 opacity-40">
+                        <Package className="w-12 h-12" />
+                        <p className="text-xl font-black tracking-tight">품목 내역이 없습니다</p>
                       </div>
                     </td>
                   </tr>
+                )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-2 p-2">
+              {filtered.length > 0 ? (
+                filtered.slice(0, showAll ? undefined : 15).map((item: any, i: number) => (
+                  <div key={i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden group">
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                    
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-primary font-mono">{item.sku}</span>
+                          <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md text-[8px] font-black text-outline uppercase">{item.category}</span>
+                        </div>
+                        <h4 className="text-base font-black text-[#0f172a]">{item.name}</h4>
+                        <div className="text-[9px] font-bold text-outline uppercase">{item.location || '미지정 위치'} / {item.brand || 'No Brand'}</div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => onNavigate('detail', item)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          {canEditItems && (
+                            <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-end justify-between pt-2 border-t border-slate-50">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-outline uppercase tracking-wider">현재 재고</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className={`text-xl font-black ${item.currentStock < (item.safetyStock || 0) ? 'text-rose-600' : 'text-[#0f172a]'}`}>
+                            {item.currentStock?.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] font-bold text-outline">{item.unit}</span>
+                        </div>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'}
+                      </span>
+                    </div>
+                  </div>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={6} className="py-24 text-center">
-                    <div className="flex flex-col items-center gap-4 opacity-40">
-                      <Package className="w-12 h-12" />
-                      <p className="text-xl font-black tracking-tight">품목 내역이 없습니다</p>
-                    </div>
-                  </td>
-                </tr>
+                <div className="py-12 text-center flex flex-col items-center gap-3 opacity-40">
+                  <Package className="w-10 h-10" />
+                  <p className="text-sm font-black">품목 내역이 없습니다</p>
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
-      </div>
     </section>
   </div>
 );

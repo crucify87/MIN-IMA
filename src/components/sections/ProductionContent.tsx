@@ -473,69 +473,137 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             <History className="w-6 h-6 text-[#0f172a]" />
             <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">생산 일지</h3>
           </div>
-          <button 
-            onClick={() => setShowAllLogs(!showAllLogs)} 
-            className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant/50 rounded-xl text-sm font-black text-[#0f172a] hover:bg-slate-50 transition-all shadow-sm"
-          >
-            {showAllLogs ? <History className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            {showAllLogs ? '' : '더보기'}
-          </button>
+          {filtered.length > 10 && (
+            <button 
+              onClick={() => setShowAllLogs(!showAllLogs)} 
+              className="px-4 h-10 bg-white border border-outline-variant/60 rounded-2xl text-[11px] font-black text-[#0f172a] hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
+            >
+              {showAllLogs ? '접기' : '더보기'}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${showAllLogs ? 'rotate-180' : ''}`} />
+            </button>
+          )}
         </div>
 
-        <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
-          <div className="overflow-x-auto">
-            <table className="w-full text-center border-collapse min-w-[900px] md:min-w-0">
-              <thead className="bg-[#f1f4f9] text-[10px] md:text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
-                <tr>
-                   <th className="px-6 py-8">SKU / 라인</th>
-                   <th className="px-6 py-8">품목명</th>
-                   <th className="px-6 py-8">원육/브랜드</th>
-                   <th className="px-6 py-8">투입량</th>
-                   <th className="px-6 py-8">생산량</th>
-                   <th className="px-6 py-8">수율</th>
-                   <th className="px-6 py-8">로스</th>
-                   <th className="px-6 py-8">제조일자</th>
-                   <th className="px-6 py-8">소비기한</th>
-                   <th className="px-6 py-8">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/10">
-                {filtered.slice(0, showAllLogs ? undefined : 10).map((item: any, idx: number) => {
-                  const itemData = inventory.find((inv: any) => inv.name === item.title);
-                  return (
-                    <tr key={item.id || idx} className="hover:bg-surface-container/5 transition-colors">
-                      <td className="px-6 py-6">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-xs font-bold text-primary font-mono">{itemData?.sku || 'N/A'}</span>
-                          <span className="text-[11px] font-black text-[#0f172a]">{item.line || '기본'}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6 font-black text-[#0f172a]">{item.title}</td>
-                      <td className="px-6 py-6 text-sm">
-                        <div className="flex flex-col items-center">
-                          <span className="font-bold text-[#0f172a]">{item.rawMaterial || '-'}</span>
-                          <span className="text-[10px] text-outline-variant">{item.brand || '-'}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6 font-bold text-outline-variant">{item.rawQty?.toLocaleString()} KG</td>
-                      <td className="px-6 py-6 font-black text-[#0f172a]">{item.production?.toLocaleString()} KG</td>
-                      <td className="px-6 py-6"><span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg font-black text-xs">{item.yield?.toFixed(1) || 0}%</span></td>
-                      <td className="px-6 py-6"><span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg font-black text-xs">{item.loss?.toFixed(1) || 0}%</span></td>
-                      <td className="px-6 py-6 text-sm font-bold text-outline">{item.manufDate}</td>
-                      <td className="px-6 py-6 text-sm font-bold text-outline">{item.expiryDate || '-'}</td>
-                      <td className="px-6 py-6">
-                        {canEditItems && (
-                          <div className="flex items-center justify-center gap-2">
-                             <button onClick={() => handleEdit(item)} disabled={loading} className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all disabled:opacity-30" title="수정"><Edit className="w-5 h-5" /></button>
-                             <button onClick={() => handleDelete(item.id, item.title)} disabled={loading} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all disabled:opacity-30" title="삭제"><Trash2 className="w-5 h-5" /></button>
+        <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
+          <div className="w-full">
+            {/* Desktop View Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-center border-collapse">
+                <thead className="bg-[#f1f4f9] text-[10px] md:text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
+                  <tr>
+                    <th className="px-6 py-8">SKU / 라인</th>
+                    <th className="px-6 py-8">품목명</th>
+                    <th className="px-6 py-8">원육/브랜드</th>
+                    <th className="px-6 py-8">투입량</th>
+                    <th className="px-6 py-8">생산량</th>
+                    <th className="px-6 py-8">수율</th>
+                    <th className="px-6 py-8">로스</th>
+                    <th className="px-6 py-8">제조일자</th>
+                    <th className="px-6 py-8">소비기한</th>
+                    <th className="px-6 py-8">관리</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {filtered.slice(0, showAllLogs ? undefined : 10).map((item: any, idx: number) => {
+                    const itemData = inventory.find((inv: any) => inv.name === item.title);
+                    return (
+                      <tr key={item.id || idx} className="hover:bg-surface-container/5 transition-colors">
+                        <td className="px-6 py-6">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-xs font-bold text-primary font-mono">{itemData?.sku || 'N/A'}</span>
+                            <span className="text-[11px] font-black text-[#0f172a]">{item.line || '기본'}</span>
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-6 py-6 font-black text-[#0f172a]">{item.title}</td>
+                        <td className="px-6 py-6 text-sm">
+                          <div className="flex flex-col items-center">
+                            <span className="font-bold text-[#0f172a]">{item.rawMaterial || '-'}</span>
+                            <span className="text-[10px] text-outline-variant">{item.brand || '-'}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 font-bold text-outline-variant">{item.rawQty?.toLocaleString()} KG</td>
+                        <td className="px-6 py-6 font-black text-[#0f172a]">{item.production?.toLocaleString()} KG</td>
+                        <td className="px-6 py-6"><span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg font-black text-xs">{item.yield?.toFixed(1) || 0}%</span></td>
+                        <td className="px-6 py-6"><span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg font-black text-xs">{item.loss?.toFixed(1) || 0}%</span></td>
+                        <td className="px-6 py-6 text-sm font-bold text-outline">{item.manufDate}</td>
+                        <td className="px-6 py-6 text-sm font-bold text-outline">{item.expiryDate || '-'}</td>
+                        <td className="px-6 py-6">
+                          {canEditItems && (
+                            <div className="flex items-center justify-center gap-2">
+                               <button onClick={() => handleEdit(item)} disabled={loading} className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all disabled:opacity-30" title="수정"><Edit className="w-5 h-5" /></button>
+                               <button onClick={() => handleDelete(item.id, item.title)} disabled={loading} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all disabled:opacity-30" title="삭제"><Trash2 className="w-5 h-5" /></button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 p-3">
+              {filtered.slice(0, showAllLogs ? undefined : 10).map((item: any, idx: number) => {
+                const itemData = inventory.find((inv: any) => inv.name === item.title);
+                return (
+                  <div key={item.id || idx} className="bg-white p-5 rounded-[28px] border border-outline-variant/60 shadow-sm space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-primary font-mono">{itemData?.sku || 'N/A'}</span>
+                          <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md text-[8px] font-black text-outline uppercase">{item.line}</span>
+                        </div>
+                        <h4 className="text-base font-black text-[#0f172a]">{item.title}</h4>
+                        <div className="text-[10px] font-bold text-outline flex gap-2">
+                          <span>원육: {item.rawMaterial || '-'}</span>
+                          <span>브랜드: {item.brand || '-'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleEdit(item)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(item.id, item.title)} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-50">
+                      <div className="bg-slate-50/50 p-3 rounded-2xl">
+                        <div className="text-[9px] font-black text-outline uppercase tracking-wider mb-1">투입 / 생산</div>
+                        <div className="text-sm font-black text-[#0f172a]">
+                          {item.rawQty?.toLocaleString()} <span className="text-[10px]">→</span> {item.production?.toLocaleString()} <span className="text-[10px]">KG</span>
+                        </div>
+                      </div>
+                      <div className="bg-emerald-50/50 p-3 rounded-2xl">
+                        <div className="text-[9px] font-black text-emerald-600 uppercase tracking-wider mb-1">수율 / 로스</div>
+                        <div className="text-sm font-black text-emerald-700">
+                          {item.yield?.toFixed(1)}% <span className="text-[10px] text-rose-600">({item.loss?.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] font-bold text-outline pt-1">
+                      <div>제조: <span className="text-[#0f172a]">{item.manufDate}</span></div>
+                      <div>기한: <span className="text-[#0f172a]">{item.expiryDate || '-'}</span></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom More Button */}
+            {filtered.length > 10 && (
+              <button 
+                onClick={() => setShowAllLogs(!showAllLogs)} 
+                className="w-full py-4 bg-surface-container/30 border-t border-outline-variant text-[11px] font-black text-on-surface-variant hover:text-primary transition-all flex items-center justify-center gap-2 group"
+              >
+                {showAllLogs ? '일지 접기' : '생산 일지 더보기'}
+                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showAllLogs ? 'rotate-180' : 'group-hover:translate-y-0.5'}`} />
+              </button>
+            )}
           </div>
         </div>
       </section>
