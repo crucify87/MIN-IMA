@@ -72,14 +72,12 @@ export default function App() {
   if (!user) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl w-full bg-white p-12 rounded-[48px] shadow-2xl border-4 border-outline-variant/30 text-center space-y-10">
-          <div className="bg-white p-4 rounded-xl flex items-center justify-center mx-auto shadow-xl shadow-primary/10 mb-6">
-            <AppLogo className="w-20 h-20" />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl w-full bg-white p-12 rounded-[48px] shadow-2xl border-4 border-outline-variant/30 text-center space-y-8">
+          <div className="flex items-center justify-center mx-auto mb-4">
+            <AppLogo className="w-full h-48 md:h-64" />
           </div>
-          <div className="space-y-4">
-            <h1 className="text-6xl font-black text-primary tracking-tighter uppercase leading-none">MIN IMA</h1>
-            <p className="text-xl font-black text-outline uppercase tracking-[0.3em] pb-4 border-b-2 border-outline-variant/30">INVENTORY MANAGEMENT</p>
-            <p className="text-2xl text-on-surface-variant font-black tracking-tight pt-2">관리자 시스템 로그인이 필요합니다.</p>
+          <div className="space-y-4 pt-4 border-t-2 border-outline-variant/30">
+            <p className="text-2xl text-on-surface-variant font-black tracking-tight">관리자 시스템 로그인이 필요합니다.</p>
           </div>
           <button onClick={handleLogin} className="w-full h-20 bg-white border-4 border-outline-variant rounded-3xl flex items-center justify-center gap-4 font-black text-base md:text-xl text-on-surface hover:bg-surface-container transition-all active:scale-95 shadow-lg">
             <img src="https://www.google.com/favicon.ico" className="w-8 h-8" alt="Google" />

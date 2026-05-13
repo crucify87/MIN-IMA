@@ -1,18 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="white" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400">
+  <!-- Animal Silhouettes -->
+  <g transform="translate(50, 50) scale(0.7)">
+    <!-- Bull/Cow Silhouette -->
+    <path d="M430 250 C430 180, 380 160, 330 160 C280 160, 100 180, 100 280 C100 320, 120 340, 140 380 L160 380 L160 320 L200 320 L200 380 L280 380 L280 320 L320 320 L320 380 L360 380 L360 280 C360 240, 480 220, 520 180 C550 150, 530 100, 480 80 Q440 60, 400 80 L380 120" fill="#800020" />
+    <!-- Pig Silhouette (Overlapping) -->
+    <path d="M180 260 Q210 240, 250 240 Q290 240, 330 270 Q330 320, 280 350 Q230 370, 180 350 Q140 330, 140 290 Q140 270, 180 260" fill="white" />
+    <circle cx="300" cy="285" r="7" fill="#800020" />
+  </g>
   
-  <g transform="translate(48, 120) scale(0.85)">
-    <!-- Bull Silhouette -->
-    <path d="M250 250 C250 200, 200 180, 150 180 C100 180, 20 200, 20 280 C20 320, 40 340, 60 380 L80 380 L80 320 L120 320 L120 380 L200 380 L200 320 L240 320 L240 380 L280 380 L280 280 C280 240, 350 220, 380 180 C400 150, 380 100, 350 80 Q320 60, 280 80 L260 120" fill="#800020" />
-    
-    <!-- Pig Silhouette (Cutout style) -->
-    <path d="M120 240 Q150 220, 180 220 Q210 220, 240 250 Q240 300, 200 330 Q160 350, 120 330 Q90 310, 90 270 Q90 250, 120 240" fill="white" />
-    <circle cx="210" cy="265" r="5" fill="#800020" />
-    
-    <!-- MIN Text -->
-    <text x="320" y="360" font-family="Arial, sans-serif" font-size="140" font-weight="900" fill="#333" letter-spacing="-5">MIN</text>
-    
-    <!-- INVENTORY MANAGEMENT Text -->
-    <text x="210" y="440" font-family="Arial, sans-serif" font-size="34" font-weight="700" text-anchor="middle" fill="#555" letter-spacing="1">INVENTORY MANAGEMENT</text>
+  <!-- Text Content -->
+  <g transform="translate(480, 230)">
+    <text font-family="Arial, sans-serif" font-size="160" font-weight="900" fill="#333" letter-spacing="-5">MIN</text>
+    <text y="100" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#666" letter-spacing="4">INVENTORY MANAGEMENT</text>
   </g>
 </svg>
