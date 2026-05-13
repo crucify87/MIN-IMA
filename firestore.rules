@@ -67,6 +67,7 @@ service cloud.firestore {
              data.currentStock is number &&
              data.unit is string && data.unit.size() <= 20 &&
              (!data.keys().hasAny(['sku']) || (data.sku is string && data.sku.size() <= 100)) &&
+             (!data.keys().hasAny(['brand']) || (data.brand is string && data.brand.size() <= 200)) &&
              (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
     }
 

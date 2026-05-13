@@ -47,10 +47,11 @@ function SettingsContent({
 
   // Item Form
   const [itemForm, setItemForm] = useState({
-    sku: '', name: '', category: '', unit: '', currentStock: '', safetyStock: '',
+    sku: '', name: '', category: '', brand: '', unit: 'kg', currentStock: '', safetyStock: '',
     purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: ''
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [showUnitOptions, setShowUnitOptions] = useState(false);
 
   // Partner Form
   const [partnerForm, setPartnerForm] = useState({ name: '', type: '공급사', phone: '', address: '' });
@@ -83,7 +84,7 @@ function SettingsContent({
         });
         alert('상품 마스터 등록이 완료되었습니다.');
       }
-      setItemForm({ sku: '', name: '', category: '', unit: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+      setItemForm({ sku: '', name: '', category: '', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
   };
 
@@ -93,7 +94,8 @@ function SettingsContent({
       sku: item.sku || '',
       name: item.name || '',
       category: item.category || '',
-      unit: item.unit || '',
+      brand: item.brand || '',
+      unit: item.unit || 'kg',
       currentStock: String(item.currentStock || 0),
       safetyStock: String(item.safetyStock || 0),
       purchasePrice: String(item.purchasePrice || 0),
@@ -212,8 +214,39 @@ function SettingsContent({
                 <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 md:gap-y-8">
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">SKU 번호</label><input placeholder="예: SKU-BF-001" value={itemForm.sku} onChange={e => setItemForm({...itemForm, sku: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">품목명</label><input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
-                  <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">카테고리</label><input placeholder="예: 소고기" value={itemForm.category} onChange={e => setItemForm({...itemForm, category: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
-                  <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">단위</label><input placeholder="예: kg" value={itemForm.unit} onChange={e => setItemForm({...itemForm, unit: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">카테고리</label><input placeholder="예: 소고기" value={itemForm.category} onChange={e => setItemForm({...itemForm, category: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
+                    <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">브랜드</label><input placeholder="예: 한우관" value={itemForm.brand} onChange={e => setItemForm({...itemForm, brand: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50" /></div>
+                  </div>
+                  <div className="space-y-2 relative">
+                    <label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">단위</label>
+                    <button 
+                      type="button"
+                      onClick={() => setShowUnitOptions(!showUnitOptions)}
+                      className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold flex items-center justify-between outline-none focus:border-primary transition-all group"
+                    >
+                      <span className="text-primary">{itemForm.unit}</span>
+                      <ChevronDown className={`w-4 h-4 text-outline group-hover:text-primary transition-transform ${showUnitOptions ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showUnitOptions && (
+                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {['kg', 'g'].map((u) => (
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => {
+                              setItemForm({...itemForm, unit: u});
+                              setShowUnitOptions(false);
+                            }}
+                            className={`w-full h-12 flex items-center justify-between px-6 font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.unit === u ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                          >
+                            <span>{u}</span>
+                            {itemForm.unit === u && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">현재 재고</label><input type="number" value={itemForm.currentStock} onChange={e => setItemForm({...itemForm, currentStock: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">안전 재고</label><input type="number" value={itemForm.safetyStock} onChange={e => setItemForm({...itemForm, safetyStock: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all" /></div>
                   <div className="space-y-2"><label className="text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">매입 단가 (W)</label><input type="number" placeholder={canEditPrices ? "예: 25000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.purchasePrice} onChange={e => setItemForm({...itemForm, purchasePrice: e.target.value})} className="w-full h-14 px-6 bg-white border border-outline-variant rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/50 disabled:bg-surface-container" /></div>
@@ -259,7 +292,7 @@ function SettingsContent({
                         type="button" 
                         onClick={() => {
                           setEditingItemId(null);
-                          setItemForm({ sku: '', name: '', category: '', unit: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+                          setItemForm({ sku: '', name: '', category: '', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
                         }}
                         className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-base md:text-lg shadow-sm hover:bg-rose-100 transition-all"
                       >
@@ -320,7 +353,10 @@ function SettingsContent({
                                 <div className="w-10 h-10 bg-[#f1f4f9] rounded-xl flex items-center justify-center text-primary"><Package className="w-5 h-5" /></div>
                                 <div>
                                   <div className="font-black text-[#0f172a]">{item.name}</div>
-                                  <div className="text-[10px] font-bold text-outline uppercase">{item.sku || '-'}</div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-outline uppercase">{item.sku || '-'}</span>
+                                    {item.brand && <span className="text-[10px] font-black text-primary/50">| {item.brand}</span>}
+                                  </div>
                                 </div>
                               </div>
                             </td>
