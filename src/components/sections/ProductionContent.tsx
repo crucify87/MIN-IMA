@@ -421,10 +421,10 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       {/* Summary Stats */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all hover:shadow-md min-h-[160px] md:min-h-[200px]">
+          <div key={idx} className="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all hover:shadow-md min-h-[140px] md:min-h-[200px]">
             <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
-            <div className={`flex flex-wrap items-baseline justify-center gap-2 w-full ${idx === 3 ? 'text-emerald-600' : 'text-[#0f172a]'}`}>
-              <span className="text-2xl md:text-5xl font-black tabular-nums tracking-tighter leading-none">{stat.value}</span>
+            <div className={`flex items-baseline justify-center gap-2 w-full ${idx === 3 ? 'text-emerald-600' : 'text-[#0f172a]'}`}>
+              <span className="text-3xl md:text-5xl font-black tabular-nums tracking-tighter leading-none">{stat.value}</span>
               <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
             </div>
           </div>
@@ -433,7 +433,42 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
       {/* Recent Production Log */}
       <section className="space-y-6">
-        <div className="flex items-center justify-between">
+        <section className="bg-[#e8f1ff] p-4 md:p-6 rounded-[24px] md:rounded-[32px] shadow-inner border border-primary/5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline group-focus-within:text-primary transition-colors" />
+              <input 
+                type="text" 
+                placeholder="품목명 검색..." 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/30 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
+              />
+            </div>
+            
+            <div className="relative">
+              <select 
+                value={filterLine} 
+                onChange={(e) => setFilterLine(e.target.value)}
+                className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-black appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+              >
+                {['전체', '삼산공장', '언양공장 부속물', '언양공장 식육가공'].map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDown className="w-4 h-4 text-outline" />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 px-4 h-12 bg-white border border-outline-variant/30 rounded-xl text-sm font-bold text-on-surface shadow-sm w-full">
+              <CalendarDays className="w-4 h-4 text-outline" />
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold flex-1" />
+            </div>
+          </div>
+        </section>
+
+        <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
             <History className="w-6 h-6 text-[#0f172a]" />
             <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">생산 일지</h3>
@@ -446,35 +481,6 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             {showAllLogs ? '' : '더보기'}
           </button>
         </div>
-
-        <section className="bg-[#e8f1ff] p-4 rounded-2xl flex flex-col md:flex-row items-end gap-4">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-            <input type="text" placeholder="품목명 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/50 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" />
-          </div>
-          
-          <div className="flex flex-col gap-3 w-full md:w-auto items-end">
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {['전체', '삼산공장', '언양공장 부속물', '언양공장 식육가공'].map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setFilterLine(l)}
-                  className={`px-4 h-10 rounded-xl text-xs font-black transition-all ${
-                    filterLine === l 
-                      ? 'bg-[#0f172a] text-white shadow-lg' 
-                      : 'bg-white text-outline border border-outline-variant/30 hover:border-primary'
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 px-4 h-12 bg-white border border-outline-variant/50 rounded-xl text-sm font-bold text-on-surface shadow-sm w-full md:w-60">
-              <CalendarDays className="w-4 h-4 text-outline" />
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-transparent border-none outline-none text-sm flex-1" />
-            </div>
-          </div>
-        </section>
 
         <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50">
           <div className="overflow-x-auto">

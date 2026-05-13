@@ -147,12 +147,12 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
         {summaryStats.map((stat, idx) => (
           <div 
             key={idx} 
-            className="bg-white p-6 md:p-10 rounded-[32px] border border-outline-variant shadow-sm transition-all flex flex-col items-center justify-center gap-2 md:gap-4 group hover:shadow-md relative overflow-hidden min-h-[180px] md:min-h-[220px]"
+            className="bg-white p-6 md:p-10 rounded-[32px] border border-outline-variant shadow-sm transition-all flex flex-col items-center justify-center gap-2 md:gap-4 group hover:shadow-md relative overflow-hidden min-h-[140px] sm:min-h-[180px] md:min-h-[220px]"
           >
             <div className={`absolute top-0 left-0 w-full h-1 md:h-1.5 ${stat.isAlert ? 'bg-rose-500' : stat.isSuccess ? 'bg-emerald-500' : idx === 0 ? 'bg-[#94a3b8]' : 'bg-[#3b82f6]'}`} />
             <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
-            <div className="flex flex-wrap items-baseline justify-center gap-2 w-full">
-              <span className={`text-3xl sm:text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
+            <div className="flex items-baseline justify-center gap-2 w-full">
+              <span className={`text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
                 {stat.value.toLocaleString()}
               </span>
               <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
@@ -162,26 +162,22 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
       </section>
 
       {/* Inventory Filter Bar */}
-      <section className="bg-[#f8fafc] p-6 rounded-[32px] border border-outline-variant/30 space-y-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <Search className="w-5 h-5 text-primary" />
-          <h3 className="text-sm font-black text-[#0f172a] uppercase tracking-wider">재고 상세 필터</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <section className="bg-[#e8f1ff] p-4 md:p-6 rounded-[24px] md:rounded-[32px] space-y-4 shadow-inner border border-primary/5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
           <div className="relative">
             <input 
               type="text" 
               placeholder="품목명/SKU..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-12 px-4 bg-white border border-outline-variant/50 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all" 
+              className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
             />
           </div>
           
           <select 
             value={filterCategory} 
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="h-12 px-4 bg-white border border-outline-variant/50 rounded-xl text-xs font-bold focus:border-primary outline-none cursor-pointer"
+            className="h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none"
           >
             <option value="">전체 카테고리</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -190,40 +186,24 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
           <select 
             value={filterBrand} 
             onChange={(e) => setFilterBrand(e.target.value)}
-            className="h-12 px-4 bg-white border border-outline-variant/50 rounded-xl text-xs font-bold focus:border-primary outline-none cursor-pointer"
+            className="h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none"
           >
             <option value="">전체 브랜드</option>
             {brands.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
 
-          <div className="flex items-center gap-2 col-span-1 lg:col-span-1">
-            <input 
-              type="date" 
-              value={filterStartDate} 
-              onChange={e => setFilterStartDate(e.target.value)} 
-              className="flex-1 h-12 px-3 bg-white border border-outline-variant/50 rounded-xl text-[10px] font-bold outline-none focus:border-primary"
-            />
-            <span className="text-outline font-black text-[10px]">~</span>
-            <input 
-              type="date" 
-              value={filterEndDate} 
-              onChange={e => setFilterEndDate(e.target.value)} 
-              className="flex-1 h-12 px-3 bg-white border border-outline-variant/50 rounded-xl text-[10px] font-bold outline-none focus:border-primary"
-            />
-          </div>
-
-          <button 
-            onClick={() => {
-              setSearch('');
-              setFilterCategory('');
-              setFilterBrand('');
-              setFilterStartDate('');
-              setFilterEndDate('');
-            }}
-            className="h-12 bg-[#0f172a] text-white rounded-xl font-black text-xs hover:bg-slate-800 transition-all shadow-md"
-          >
-            필터 초기화
-          </button>
+          <input 
+            type="date" 
+            value={filterStartDate} 
+            onChange={e => setFilterStartDate(e.target.value)} 
+            className="h-12 px-3 bg-white border border-outline-variant/30 rounded-xl text-[11px] font-bold outline-none focus:border-primary shadow-sm w-full"
+          />
+          <input 
+            type="date" 
+            value={filterEndDate} 
+            onChange={e => setFilterEndDate(e.target.value)} 
+            className="h-12 px-3 bg-white border border-outline-variant/30 rounded-xl text-[11px] font-bold outline-none focus:border-primary shadow-sm w-full"
+          />
         </div>
       </section>
 

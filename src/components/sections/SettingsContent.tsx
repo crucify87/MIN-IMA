@@ -214,10 +214,10 @@ function SettingsContent({
         </div>
       </header>
 
-      <div className="flex flex-wrap bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit">
-        <button onClick={() => setTab('p')} className={`flex-1 md:flex-none px-6 md:px-10 py-3 rounded-xl font-black text-xs md:text-sm transition-all ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품</button>
-        <button onClick={() => setTab('t')} className={`flex-1 md:flex-none px-6 md:px-10 py-3 rounded-xl font-black text-xs md:text-sm transition-all ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처</button>
-        {canManageUsers && <button onClick={() => setTab('u')} className={`flex-1 md:flex-none px-6 md:px-10 py-3 rounded-xl font-black text-xs md:text-sm transition-all ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>관리자</button>}
+      <div className="flex bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit overflow-x-auto no-scrollbar">
+        <button onClick={() => setTab('p')} className={`flex-1 md:flex-none px-6 md:px-10 py-3.5 rounded-xl font-black text-xs md:text-sm transition-all whitespace-nowrap ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품 마스터</button>
+        <button onClick={() => setTab('t')} className={`flex-1 md:flex-none px-6 md:px-10 py-3.5 rounded-xl font-black text-xs md:text-sm transition-all whitespace-nowrap ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처 관리</button>
+        {canManageUsers && <button onClick={() => setTab('u')} className={`flex-1 md:flex-none px-6 md:px-10 py-3.5 rounded-xl font-black text-xs md:text-sm transition-all whitespace-nowrap ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>관리자 설정</button>}
       </div>
 
       <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">

@@ -94,11 +94,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         {stats.map((stat, idx) => (
           <div 
             key={idx} 
-            className={`bg-white p-6 md:p-10 rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[180px] md:min-h-[220px] ${stat.active ? 'border-primary shadow-lg shadow-primary/5' : 'border-outline-variant/30 shadow-sm'}`}
+            className={`bg-white p-6 md:p-10 rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[140px] sm:min-h-[180px] md:min-h-[220px] ${stat.active ? 'border-primary shadow-lg shadow-primary/5' : 'border-outline-variant/30 shadow-sm'}`}
           >
             <p className={`text-[10px] md:text-[11px] font-black uppercase tracking-tight text-center ${stat.active ? 'text-primary' : 'text-outline'}`}>{stat.label}</p>
-            <div className="flex flex-wrap items-baseline justify-center gap-2 w-full">
-              <span className={`text-3xl sm:text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
+            <div className="flex items-baseline justify-center gap-2 w-full">
+              <span className={`text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
                 {stat.value.toLocaleString()}
               </span>
               <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">KG</span>
