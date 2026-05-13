@@ -54,47 +54,62 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const handleAdd = async (e: any) => {
     e.preventDefault();
     try {
+      const itemName = form.item.trim();
       const weightNum = Number(form.weight);
       
+      const updateInventoryStock = async (name: string, diff: number) => {
+        const item = inventory.find((i: any) => i.name === name);
+        if (item) {
+          await updateDoc(doc(db, 'inventory', item.id), {
+            currentStock: increment(diff),
+            updatedAt: serverTimestamp()
+          });
+        } else {
+          // If item doesn't exist in inventory, create it
+          await addDoc(collection(db, 'inventory'), {
+            name: name,
+            currentStock: diff,
+            sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
+            category: '미분류',
+            unit: 'KG',
+            minStock: 0,
+            location: '미지정',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+      };
+
       if (editingId) {
         const oldRecord = logistics.find((l: any) => l.id === editingId);
         if (oldRecord) {
           // Revert old inventory change
-          const oldItem = inventory.find((i: any) => i.name === oldRecord.item);
-          if (oldItem) {
-            await updateDoc(doc(db, 'inventory', oldItem.id), {
-              currentStock: increment(oldRecord.type === '입고' ? -oldRecord.weight : oldRecord.weight),
-              updatedAt: serverTimestamp()
-            });
-          }
+          await updateInventoryStock(oldRecord.item, oldRecord.type === '입고' ? -oldRecord.weight : oldRecord.weight);
         }
         
         await updateDoc(doc(db, 'logistics', editingId), { 
-          ...form, 
+          ...form,
+          item: itemName,
           weight: weightNum, 
           updatedAt: serverTimestamp() 
         });
 
         // Apply new inventory change
-        const newItem = inventory.find((i: any) => i.name === form.item);
-        if (newItem) {
-          await updateDoc(doc(db, 'inventory', newItem.id), {
-            currentStock: increment(form.type === '입고' ? weightNum : -weightNum),
-            updatedAt: serverTimestamp()
-          });
-        }
+        await updateInventoryStock(itemName, form.type === '입고' ? weightNum : -weightNum);
 
         alert('수정 완료');
         setEditingId(null);
       } else {
-        await addDoc(collection(db, 'logistics'), { ...form, weight: weightNum, status: '완료', createdAt: serverTimestamp() });
-        const item = inventory.find((i: any) => i.name === form.item);
-        if (item) { 
-          await updateDoc(doc(db, 'inventory', item.id), { 
-            currentStock: increment(form.type === '입고' ? weightNum : -weightNum), 
-            updatedAt: serverTimestamp() 
-          }); 
-        }
+        await addDoc(collection(db, 'logistics'), { 
+          ...form, 
+          item: itemName,
+          weight: weightNum, 
+          status: '완료', 
+          createdAt: serverTimestamp() 
+        });
+
+        await updateInventoryStock(itemName, form.type === '입고' ? weightNum : -weightNum);
+        
         alert('등록 완료');
       }
       

@@ -237,6 +237,7 @@ function SettingsContent({
                               }
                               const date = new Date(itemForm.manufDate);
                               date.setMonth(date.getMonth() + m);
+                              date.setDate(date.getDate() - 1);
                               setItemForm({ ...itemForm, expiryDate: date.toISOString().split('T')[0] });
                             }}
                             className="px-2.5 py-1.5 bg-[#f1f4f9] hover:bg-[#d0e0fb] text-[#0f172a] rounded-lg text-[10px] font-black transition-colors"

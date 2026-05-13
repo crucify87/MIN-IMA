@@ -77,9 +77,13 @@ service cloud.firestore {
              data.production is number &&
              data.manufDate is string &&
              (!data.keys().hasAny(['line']) || (data.line is string && data.line.size() <= 100)) &&
+             (!data.keys().hasAny(['rawMaterial']) || (data.rawMaterial is string && data.rawMaterial.size() <= 500)) &&
+             (!data.keys().hasAny(['brand']) || (data.brand is string && data.brand.size() <= 200)) &&
+             (!data.keys().hasAny(['expiryDate']) || (data.expiryDate is string)) &&
              (!data.keys().hasAny(['yield']) || data.yield is number) &&
              (!data.keys().hasAny(['loss']) || data.loss is number) &&
-             (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp);
+             (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp) &&
+             (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
     }
 
     function isValidLogistics(data) {

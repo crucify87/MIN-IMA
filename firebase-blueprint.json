@@ -45,6 +45,7 @@
         "productionLine": { "type": "string", "enum": ["삼산공장", "언양공장 식육가공", "언양공장 식육포장"] },
         "title": { "type": "string" },
         "rawMeat": { "type": "string" },
+        "brand": { "type": "string" },
         "weight": { "type": "string" },
         "loss": { "type": "string" },
         "status": { "type": "string" },

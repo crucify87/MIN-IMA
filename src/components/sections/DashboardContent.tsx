@@ -168,7 +168,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       {/* Stock Movement Activity */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-black text-on-surface tracking-tight">최근 재고 변동 내역 (통합)</h3>
+          <h3 className="text-2xl font-black text-on-surface tracking-tight">재고 변동 내역</h3>
           <div className="flex gap-4">
             <button 
               onClick={() => onNavigate('production')}

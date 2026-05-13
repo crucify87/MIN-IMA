@@ -31,7 +31,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   
   const [line, setLine] = useState('삼산공장');
   const [rows, setRows] = useState([
-    { id: Date.now(), title: '', rawMaterial: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }
+    { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }
   ]);
 
   const [showAllLogs, setShowAllLogs] = useState(false);
@@ -64,7 +64,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   }, [filtered]);
 
   const addRow = () => {
-    setRows([...rows, { id: Date.now(), title: '', rawMaterial: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
+    setRows([...rows, { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
   };
 
   const removeRow = (id: number) => {
@@ -81,6 +81,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
     const date = new Date(manufDate);
     if (isNaN(date.getTime())) return;
     date.setMonth(date.getMonth() + months);
+    date.setDate(date.getDate() - 1);
     const expiryDate = date.toISOString().split('T')[0];
     updateRow(rowId, 'expiryDate', expiryDate);
   };
@@ -90,6 +91,31 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
     if (loading) return;
     setLoading(true);
     try {
+      const updateInventoryStock = async (name: string, diff: number, isRaw: boolean = false) => {
+        if (!name) return;
+        const trimmedName = name.trim();
+        const item = inventory.find((i: any) => i.name === trimmedName);
+        if (item) {
+          await updateDoc(doc(db, 'inventory', item.id), {
+            currentStock: increment(diff),
+            updatedAt: serverTimestamp()
+          });
+        } else {
+          // If item doesn't exist, create it
+          await addDoc(collection(db, 'inventory'), {
+            name: trimmedName,
+            currentStock: diff,
+            sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
+            category: isRaw ? '원부재료' : '완제품',
+            unit: 'KG',
+            minStock: 0,
+            location: '미지정',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+      };
+
       if (editingId) {
         const row = rows[0];
         const prodNum = Number(row.production);
@@ -99,11 +125,9 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
         const oldRecord = production.find((p: any) => p.id === editingId);
         if (oldRecord) {
-          const oldPItem = inventory.find((i: any) => i.name === oldRecord.title);
-          if (oldPItem) await updateDoc(doc(db, 'inventory', String(oldPItem.id)), { currentStock: increment(-oldRecord.production), updatedAt: serverTimestamp() });
-          
-          const oldRItem = inventory.find((i: any) => i.name === oldRecord.rawMaterial);
-          if (oldRItem) await updateDoc(doc(db, 'inventory', String(oldRItem.id)), { currentStock: increment(oldRecord.rawQty), updatedAt: serverTimestamp() });
+          // Revert old inventory change
+          await updateInventoryStock(oldRecord.title, -oldRecord.production);
+          await updateInventoryStock(oldRecord.rawMaterial, oldRecord.rawQty, true);
         }
 
         // Clean up row data for Firestore
@@ -119,16 +143,14 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           updatedAt: serverTimestamp()
         });
 
-        const newPItem = inventory.find((i: any) => i.name === row.title);
-        if (newPItem) await updateDoc(doc(db, 'inventory', String(newPItem.id)), { currentStock: increment(prodNum), updatedAt: serverTimestamp() });
-
-        const newRItem = inventory.find((i: any) => i.name === row.rawMaterial);
-        if (newRItem) await updateDoc(doc(db, 'inventory', String(newRItem.id)), { currentStock: increment(-rawNum), updatedAt: serverTimestamp() });
+        // Apply new inventory change
+        await updateInventoryStock(row.title, prodNum);
+        await updateInventoryStock(row.rawMaterial, -rawNum, true);
 
         alert('생산 실적 수정 완료');
         setEditingId(null);
         setShowForm(false);
-        setRows([{ id: Date.now(), title: '', rawMaterial: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
+        setRows([{ id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
         return;
       }
 
@@ -153,15 +175,13 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           createdAt: serverTimestamp() 
         });
 
-        const pItem = inventory.find((i: any) => i.name === row.title);
-        if (pItem) await updateDoc(doc(db, 'inventory', String(pItem.id)), { currentStock: increment(prodNum), updatedAt: serverTimestamp() });
-        
-        const rItem = inventory.find((i: any) => i.name === row.rawMaterial);
-        if (rItem) await updateDoc(doc(db, 'inventory', String(rItem.id)), { currentStock: increment(-rawNum), updatedAt: serverTimestamp() });
+        // Apply inventory change
+        await updateInventoryStock(row.title, prodNum);
+        await updateInventoryStock(row.rawMaterial, -rawNum, true);
       }
       alert('생산 실적 등록 완료'); 
       setShowForm(false);
-      setRows([{ id: Date.now(), title: '', rawMaterial: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
+      setRows([{ id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
     } catch (error) { 
       handleFirestoreError(error, OperationType.WRITE, 'production_batches'); 
     } finally {
@@ -176,6 +196,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       id: Date.now(),
       title: item.title,
       rawMaterial: item.rawMaterial,
+      brand: item.brand || '',
       rawQty: item.rawQty,
       production: item.production,
       manufDate: item.manufDate,
@@ -188,10 +209,19 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   const handleDelete = async (id: string, title: string) => {
     if (!canEditItems || loading) return;
     
-    // We'll skip window.confirm as it can be blocked in iframe
-    // Instead we process it directly or we could add a local state confirm
     setLoading(true);
     try {
+      const updateInventoryStock = async (name: string, diff: number) => {
+        if (!name) return;
+        const item = inventory.find((i: any) => i.name === name);
+        if (item) {
+          await updateDoc(doc(db, 'inventory', item.id), {
+            currentStock: increment(diff),
+            updatedAt: serverTimestamp()
+          });
+        }
+      };
+
       const record = production.find((p: any) => p.id === id);
       
       // Perform deletion
@@ -199,11 +229,8 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       
       // Revert inventory changes if record existed
       if (record) {
-        const pItem = inventory.find((i: any) => i.name === record.title);
-        if (pItem) await updateDoc(doc(db, 'inventory', String(pItem.id)), { currentStock: increment(-record.production), updatedAt: serverTimestamp() });
-        
-        const rItem = inventory.find((i: any) => i.name === record.rawMaterial);
-        if (rItem) await updateDoc(doc(db, 'inventory', String(rItem.id)), { currentStock: increment(record.rawQty), updatedAt: serverTimestamp() });
+        await updateInventoryStock(record.title, -record.production);
+        await updateInventoryStock(record.rawMaterial, record.rawQty);
       }
       
       if (editingId === id) {
@@ -256,9 +283,9 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           </div>
 
           <div className="space-y-6">
-             <div className="hidden md:grid grid-cols-6 gap-6 px-4">
-                {['품목명', '원육정보', '투입량 (KG)', '생산량 (KG)', '수율 (%)', '로스 (%)'].map((label, idx) => (
-                   <p key={idx} className={`text-center text-[12px] font-black tracking-tight ${idx === 4 ? 'text-emerald-700' : idx === 5 ? 'text-rose-700' : 'text-outline'}`}>{label}</p>
+             <div className="hidden md:grid grid-cols-7 gap-4 px-4">
+                {['품목명', '원육정보', '브랜드', '투입량 (KG)', '생산량 (KG)', '수율 (%)', '로스 (%)'].map((label, idx) => (
+                   <p key={idx} className={`text-center text-[12px] font-black tracking-tight ${idx === 5 ? 'text-emerald-700' : idx === 6 ? 'text-rose-700' : 'text-outline'}`}>{label}</p>
                 ))}
              </div>
 
@@ -272,14 +299,45 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                    <div key={row.id} className="relative bg-[#f1f5f9] p-4 md:p-2 rounded-[24px] md:rounded-[32px] border border-outline-variant/30 space-y-4">
                       {index > 0 && <button onClick={() => removeRow(row.id)} className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-all z-10"><X className="w-4 h-4" /></button>}
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3">
                          <div className="md:contents space-y-1">
                            <label className="md:hidden text-[10px] font-black text-outline">품목명</label>
-                           <input list="p-items" placeholder="품목명" value={row.title} onChange={e => updateRow(row.id, 'title', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" />
+                           <div className="flex flex-col gap-1 w-full">
+                             <input list="p-items" placeholder="품목명" value={row.title} onChange={e => updateRow(row.id, 'title', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" />
+                             {row.title && (
+                               <div className="px-2 flex items-center justify-between">
+                                 <span className="text-[10px] font-black text-outline uppercase shrink-0">생산품 재고</span>
+                                 <span className="text-[10px] font-black text-emerald-600">
+                                   {inventory.find((i: any) => i.name === row.title)?.currentStock?.toLocaleString() || 0} KG
+                                 </span>
+                               </div>
+                             )}
+                           </div>
                          </div>
                          <div className="md:contents space-y-1">
                            <label className="md:hidden text-[10px] font-black text-outline">원육 정보</label>
-                           <input placeholder="원육 정보" value={row.rawMaterial} onChange={e => updateRow(row.id, 'rawMaterial', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" />
+                           <div className="flex flex-col gap-1 w-full">
+                             <input list="p-items" placeholder="원육 정보" value={row.rawMaterial} onChange={e => updateRow(row.id, 'rawMaterial', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" />
+                             {row.rawMaterial && (
+                               <div className="px-2 flex items-center justify-between">
+                                 <span className="text-[10px] font-black text-outline uppercase shrink-0">원육 재고</span>
+                                 {(() => {
+                                   const inv = inventory.find((i: any) => i.name === row.rawMaterial);
+                                   const stock = inv?.currentStock || 0;
+                                   const isLow = stock < (Number(row.rawQty) || 0);
+                                   return (
+                                     <span className={`text-[10px] font-black ${isLow ? 'text-rose-600' : 'text-blue-600'}`}>
+                                       {stock.toLocaleString()} KG
+                                     </span>
+                                   );
+                                 })()}
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                         <div className="md:contents space-y-1">
+                           <label className="md:hidden text-[10px] font-black text-outline">브랜드</label>
+                           <input placeholder="브랜드" value={row.brand} onChange={e => updateRow(row.id, 'brand', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" />
                          </div>
                          <div className="md:contents space-y-1">
                            <label className="md:hidden text-[10px] font-black text-outline">투입량 (KG)</label>
@@ -425,6 +483,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                 <tr>
                    <th className="px-6 py-8">SKU / 라인</th>
                    <th className="px-6 py-8">품목명</th>
+                   <th className="px-6 py-8">원육/브랜드</th>
                    <th className="px-6 py-8">투입량</th>
                    <th className="px-6 py-8">생산량</th>
                    <th className="px-6 py-8">수율</th>
@@ -446,6 +505,12 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                         </div>
                       </td>
                       <td className="px-6 py-6 font-black text-[#0f172a]">{item.title}</td>
+                      <td className="px-6 py-6 text-sm">
+                        <div className="flex flex-col items-center">
+                          <span className="font-bold text-[#0f172a]">{item.rawMaterial || '-'}</span>
+                          <span className="text-[10px] text-outline-variant">{item.brand || '-'}</span>
+                        </div>
+                      </td>
                       <td className="px-6 py-6 font-bold text-outline-variant">{item.rawQty?.toLocaleString()} KG</td>
                       <td className="px-6 py-6 font-black text-[#0f172a]">{item.production?.toLocaleString()} KG</td>
                       <td className="px-6 py-6"><span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg font-black text-xs">{item.yield?.toFixed(1) || 0}%</span></td>
