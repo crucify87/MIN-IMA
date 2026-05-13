@@ -195,6 +195,23 @@ function SettingsContent({
           </button>
           <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">시스템 설정</h1>
         </div>
+
+        {/* SKU Reference Guide */}
+        <div className="hidden lg:flex items-center gap-6 ml-auto bg-white/50 px-6 py-3 rounded-2xl border border-outline-variant/50 backdrop-blur-sm">
+          <div className="text-[10px] font-black text-outline uppercase tracking-widest mr-2">SKU 구분 가이드:</div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-black">O-001</span>
+            <span className="text-[11px] font-bold text-slate-500">부속물 (Offal)</span>
+          </div>
+          <div className="flex items-center gap-2 border-l border-outline-variant/30 pl-4">
+            <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded text-[10px] font-black">P-001</span>
+            <span className="text-[11px] font-bold text-rose-500">돼지고기 (Pig)</span>
+          </div>
+          <div className="flex items-center gap-2 border-l border-outline-variant/30 pl-4">
+            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-[10px] font-black">C-001</span>
+            <span className="text-[11px] font-bold text-amber-700">소고기 (Cow)</span>
+          </div>
+        </div>
       </header>
 
       <div className="flex flex-wrap bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit">
