@@ -80,7 +80,10 @@ export default function App() {
           className="max-w-md w-full bg-white p-12 rounded-[40px] shadow-2xl border border-slate-100 text-center space-y-10"
         >
           <div className="space-y-6">
-            <div className="w-24 h-24 mx-auto bg-slate-50 rounded-3xl p-4 flex items-center justify-center shadow-inner">
+            <div 
+              onClick={() => window.location.reload()}
+              className="w-24 h-24 mx-auto bg-slate-50 rounded-3xl p-4 flex items-center justify-center shadow-inner cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
+            >
               <img src={appLogo} className="w-full h-full object-contain" alt="Logo" />
             </div>
             <div className="space-y-2">

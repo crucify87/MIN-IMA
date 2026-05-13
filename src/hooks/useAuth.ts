@@ -49,6 +49,9 @@ export function useAuth() {
           setUserData({ role: 'staff' });
         }
         setLoading(false);
+      }, (error) => {
+        console.error("User data snapshot error:", error);
+        setLoading(false);
       });
       return () => unsub();
     }
