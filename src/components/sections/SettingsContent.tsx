@@ -35,7 +35,8 @@ function SettingsContent({
   onNavigate, 
   canEditItems, 
   canManageUsers, 
-  canEditPrices 
+  canEditPrices,
+  settings
 }: any) {
   const [tab, setTab] = useState<'p' | 't' | 'u'>('p');
   const [search, setSearch] = useState('');
@@ -60,6 +61,29 @@ function SettingsContent({
   
   // Admin Form
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [appLogoUrl, setAppLogoUrl] = useState(settings?.logoUrl || '');
+
+  React.useEffect(() => {
+    if (settings?.logoUrl) {
+      setAppLogoUrl(settings.logoUrl);
+    }
+  }, [settings?.logoUrl]);
+
+  const handleUpdateAppLogo = async (e: any) => {
+    e.preventDefault();
+    if (!canManageUsers) return;
+    try {
+      await setDoc(doc(db, 'settings', 'app'), { 
+        logoUrl: appLogoUrl, 
+        updatedAt: serverTimestamp(),
+        updatedBy: user?.email
+      }, { merge: true });
+      alert('앱 로고가 변경되었습니다.');
+    } catch (error) {
+      console.error(error);
+      alert('로고 변경에 실패했습니다.');
+    }
+  };
 
   const handleRegisterItem = async (e: any) => {
     e.preventDefault();
@@ -236,160 +260,156 @@ function SettingsContent({
                   <div className="w-12 h-1 bg-primary/20 mx-auto rounded-full mt-3"></div>
                 </div>
                 
-                <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-5 md:gap-y-8">
+                <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 md:gap-x-12 gap-y-5 md:gap-y-6">
+                  {/* Row 1: SKU & Name */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">SKU 번호</label>
-                    <input placeholder="예: SKU-BF-001" value={itemForm.sku} onChange={e => setItemForm({...itemForm, sku: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm" />
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">SKU 번호</label>
+                    <input placeholder="예: SKU-BF-001" value={itemForm.sku} onChange={e => setItemForm({...itemForm, sku: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">품목명</label>
-                    <input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm" />
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">품목명</label>
+                    <input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5 relative">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">카테고리</label>
-                      <button 
-                        type="button"
-                        onClick={() => setShowCategoryOptions(!showCategoryOptions)}
-                        className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold flex items-center justify-between outline-none focus:border-primary focus:bg-white transition-all group"
-                      >
-                        <span className="text-primary text-sm">{itemForm.category || '선택'}</span>
-                        <ChevronDown className={`w-4 h-4 text-outline group-hover:text-primary transition-transform ${showCategoryOptions ? 'rotate-180' : ''}`} />
-                      </button>
-                      {showCategoryOptions && (
-                        <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                          {['돼지고기', '소고기', '부속물'].map((c) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => {
-                                setItemForm({...itemForm, category: c});
-                                setShowCategoryOptions(false);
-                              }}
-                              className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.category === c ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
-                            >
-                              <span>{c}</span>
-                              {itemForm.category === c && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">브랜드</label>
-                      <input placeholder="예: 한우관" value={itemForm.brand} onChange={e => setItemForm({...itemForm, brand: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm" />
-                    </div>
+                  {/* Row 2: Category & Brand */}
+                  <div className="space-y-1.5 relative">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">카테고리</label>
+                    <button 
+                      type="button"
+                      onClick={() => setShowCategoryOptions(!showCategoryOptions)}
+                      className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold flex items-center justify-between outline-none focus:border-primary focus:bg-white transition-all group shadow-sm"
+                    >
+                      <span className="text-primary text-sm">{itemForm.category || '선택'}</span>
+                      <ChevronDown className={`w-4 h-4 text-outline group-hover:text-primary transition-transform ${showCategoryOptions ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showCategoryOptions && (
+                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {['돼지고기', '소고기', '부속물', '양념육', '기타'].map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              setItemForm({...itemForm, category: c});
+                              setShowCategoryOptions(false);
+                            }}
+                            className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.category === c ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                          >
+                            <span>{c}</span>
+                            {itemForm.category === c && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">브랜드</label>
+                    <input placeholder="예: 한우관" value={itemForm.brand} onChange={e => setItemForm({...itemForm, brand: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5 relative">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">단위</label>
-                      <button 
-                        type="button"
-                        onClick={() => setShowUnitOptions(!showUnitOptions)}
-                        className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold flex items-center justify-between outline-none focus:border-primary focus:bg-white transition-all group"
-                      >
-                        <span className="text-primary text-sm">{itemForm.unit}</span>
-                        <ChevronDown className={`w-4 h-4 text-outline group-hover:text-primary transition-transform ${showUnitOptions ? 'rotate-180' : ''}`} />
-                      </button>
-                      {showUnitOptions && (
-                        <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                          {['kg', 'g'].map((u) => (
-                            <button
-                              key={u}
-                              type="button"
-                              onClick={() => {
-                                setItemForm({...itemForm, unit: u});
-                                setShowUnitOptions(false);
-                              }}
-                              className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.unit === u ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
-                            >
-                              <span>{u}</span>
-                              {itemForm.unit === u && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">현재 재고</label>
-                      <input type="number" value={itemForm.currentStock} onChange={e => setItemForm({...itemForm, currentStock: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm" />
-                    </div>
+                  {/* Row 3: Unit & Stock */}
+                  <div className="space-y-1.5 relative">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">단위</label>
+                    <button 
+                      type="button"
+                      onClick={() => setShowUnitOptions(!showUnitOptions)}
+                      className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold flex items-center justify-between outline-none focus:border-primary focus:bg-white transition-all group shadow-sm"
+                    >
+                      <span className="text-primary text-sm">{itemForm.unit}</span>
+                      <ChevronDown className={`w-4 h-4 text-outline group-hover:text-primary transition-transform ${showUnitOptions ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showUnitOptions && (
+                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {['kg', 'g'].map((u) => (
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => {
+                              setItemForm({...itemForm, unit: u});
+                              setShowUnitOptions(false);
+                            }}
+                            className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.unit === u ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                          >
+                            <span>{u}</span>
+                            {itemForm.unit === u && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 재고</label>
+                    <input type="number" value={itemForm.currentStock} onChange={e => setItemForm({...itemForm, currentStock: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">안전 재고</label>
-                      <input type="number" value={itemForm.safetyStock} onChange={e => setItemForm({...itemForm, safetyStock: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">보관 위치</label>
-                      <input placeholder="예: A구역/1번" value={itemForm.location} onChange={e => setItemForm({...itemForm, location: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm" />
-                    </div>
+                  {/* Row 4: Safety Stock & Location */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">안전 재고</label>
+                    <input type="number" value={itemForm.safetyStock} onChange={e => setItemForm({...itemForm, safetyStock: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">보관 위치</label>
+                    <input placeholder="예: A구역/1번" value={itemForm.location} onChange={e => setItemForm({...itemForm, location: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">매입 단가 (W)</label>
-                      <input type="number" placeholder={canEditPrices ? "예: 25000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.purchasePrice} onChange={e => setItemForm({...itemForm, purchasePrice: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-surface-container text-sm" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1">판매 단가 (W)</label>
-                      <input type="number" placeholder={canEditPrices ? "예: 38000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.salesPrice} onChange={e => setItemForm({...itemForm, salesPrice: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-surface-container text-sm" />
-                    </div>
+                  {/* Row 5: Prices */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">매입 단가 (W)</label>
+                    <input type="number" placeholder={canEditPrices ? "예: 25000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.purchasePrice} onChange={e => setItemForm({...itemForm, purchasePrice: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">판매 단가 (W)</label>
+                    <input type="number" placeholder={canEditPrices ? "예: 38000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.salesPrice} onChange={e => setItemForm({...itemForm, salesPrice: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5 flex flex-col">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1 flex items-center gap-1">
-                        <CalendarDays className="w-3 h-3 text-emerald-500" /> 제조일자
-                      </label>
-                      <input type="date" value={itemForm.manufDate} onChange={e => setItemForm({...itemForm, manufDate: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm" />
-                    </div>
-                    <div className="space-y-1.5 flex flex-col">
-                      <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-tight ml-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-rose-500" /> 소비기한
-                      </label>
-                      <div className="space-y-2">
-                        <input type="date" value={itemForm.expiryDate} onChange={e => setItemForm({...itemForm, expiryDate: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm" />
-                        <div className="flex flex-wrap gap-1.5 px-1">
-                          {[1, 3, 6, 12, 24].map((m) => (
-                            <button
-                              key={m}
-                              type="button"
-                              onClick={() => {
-                                if (!itemForm.manufDate) {
-                                  alert('먼저 제조일자를 선택해주세요.');
-                                  return;
-                                }
-                                const date = new Date(itemForm.manufDate);
-                                date.setMonth(date.getMonth() + m);
-                                date.setDate(date.getDate() - 1);
-                                setItemForm({ ...itemForm, expiryDate: date.toISOString().split('T')[0] });
-                              }}
-                              className="px-2.5 py-1.5 bg-[#f1f4f9] hover:bg-[#d0e0fb] text-[#0f172a] rounded-lg text-[10px] font-black transition-colors"
-                            >
-                              {m >= 12 ? `${m / 12}년` : `${m}개월`}
-                            </button>
-                          ))}
-                        </div>
+                  {/* Row 6: Dates */}
+                  <div className="space-y-1.5 flex flex-col">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
+                      <CalendarDays className="w-3 h-3 text-emerald-500" /> 제조일자
+                    </label>
+                    <input type="date" value={itemForm.manufDate} onChange={e => setItemForm({...itemForm, manufDate: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
+                  </div>
+                  <div className="space-y-1.5 flex flex-col">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-rose-500" /> 소비기한
+                    </label>
+                    <div className="space-y-2">
+                      <input type="date" value={itemForm.expiryDate} onChange={e => setItemForm({...itemForm, expiryDate: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
+                      <div className="flex flex-wrap gap-1.5 px-1">
+                        {[1, 3, 6, 12, 24].map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => {
+                              if (!itemForm.manufDate) {
+                                alert('먼저 제조일자를 선택해주세요.');
+                                return;
+                              }
+                              const date = new Date(itemForm.manufDate);
+                              date.setMonth(date.getMonth() + m);
+                              date.setDate(date.getDate() - 1);
+                              setItemForm({ ...itemForm, expiryDate: date.toISOString().split('T')[0] });
+                            }}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-white border border-transparent hover:border-outline-variant/30 text-slate-500 hover:text-primary rounded-lg text-[10px] font-black transition-all active:scale-[0.95]"
+                          >
+                            {m >= 12 ? `${m / 12}년` : `${m}개월`}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
 
-                  <div className="md:col-span-2 pt-4 flex flex-col sm:flex-row gap-3">
-                    <button type="submit" className="flex-1 h-14 md:h-16 bg-[#0f172a] text-white rounded-2xl font-black text-sm md:text-lg tracking-tight shadow-xl shadow-indigo-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                  <div className="md:col-span-2 pt-6 flex flex-col sm:flex-row gap-3">
+                    <button type="submit" className="flex-1 h-14 md:h-16 bg-[#0f172a] text-white rounded-2xl font-black text-sm md:text-lg tracking-tight shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
                       {editingItemId ? '정보 수정 완료' : '상품 마스터 등록'}
                     </button>
                     {editingItemId && (
                       <button 
-                        type="button" 
+                        type="button"
                         onClick={() => {
                           setEditingItemId(null);
                           setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
                         }}
-                        className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm md:text-lg shadow-sm hover:bg-rose-100 transition-all"
+                        className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm md:text-lg shadow-sm hover:bg-rose-100 transition-all active:scale-[0.98]"
                       >
                         취소
                       </button>
@@ -690,6 +710,30 @@ function SettingsContent({
         )}
         {tab === 'u' && (
           <div className="p-4 md:p-10 space-y-10 md:space-y-12">
+             {/* 0. App Identity Settings */}
+             <div className="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-outline-variant space-y-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div className="text-center lg:text-left">
+                    <h3 className="text-base md:text-lg font-black text-[#0f172a] tracking-tight">시스템 아이덴티티</h3>
+                    <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-1">APP LOGO & IDENTITY</p>
+                  </div>
+                  <form onSubmit={handleUpdateAppLogo} className="flex-1 w-full max-w-2xl flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                      <input type="text" placeholder="로고 이미지 URL (HTTPS 권장)" value={appLogoUrl} onChange={(e) => setAppLogoUrl(e.target.value)} className="w-full h-12 md:h-14 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm text-xs md:text-sm" />
+                    </div>
+                    {appLogoUrl && (
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-50 border border-outline-variant rounded-xl overflow-hidden shrink-0 flex items-center justify-center p-2">
+                        <img src={appLogoUrl} alt="Preview" className="w-full h-full object-contain" />
+                      </div>
+                    )}
+                    <button type="submit" className="h-12 md:h-14 px-8 bg-blue-600 text-white rounded-2xl font-black text-xs md:text-sm hover:bg-blue-700 transition-all shadow-lg active:scale-95 whitespace-nowrap">
+                      로고 저장
+                    </button>
+                  </form>
+                </div>
+             </div>
+
              <div className="bg-[#f8fafc] p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-outline-variant space-y-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                   <div className="text-center lg:text-left">

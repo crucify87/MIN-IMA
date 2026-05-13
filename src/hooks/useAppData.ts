@@ -4,7 +4,8 @@ import {
   onSnapshot, 
   query, 
   orderBy, 
-  limit 
+  limit,
+  doc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError } from '../lib/firestoreUtils';
@@ -16,9 +17,19 @@ export function useAppData(user: any, isSuperAdmin: boolean) {
   const [logistics, setLogistics] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
-    if (!user) return;
+    // 1. Public Settings (Fetch even if not logged in)
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'app'), (snap) => {
+      if (snap.exists()) {
+        setSettings(snap.data());
+      }
+    });
+
+    if (!user) {
+      return () => unsubSettings();
+    }
 
     const qInv = query(collection(db, 'inventory'), orderBy('name'));
     const unsubInv = onSnapshot(qInv, (snap) => {
@@ -60,6 +71,7 @@ export function useAppData(user: any, isSuperAdmin: boolean) {
     production,
     logistics,
     partners,
-    allUsers
+    allUsers,
+    settings
   };
 }
