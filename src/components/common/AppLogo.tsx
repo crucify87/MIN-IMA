@@ -5,7 +5,7 @@ const AppLogo = ({ className = "w-12 h-12" }: { className?: string }) => (
     onClick={() => window.location.reload()}
     className={`${className} flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity active:scale-95 duration-200`}
   >
-    <img src="/favicon.svg?v=2" alt="Logo" className="w-full h-full object-contain" />
+    <img src="/512x512.png?v=3" alt="Logo" className="w-full h-full object-contain" />
   </div>
 );
 
