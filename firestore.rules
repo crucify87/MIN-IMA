@@ -121,22 +121,22 @@ service cloud.firestore {
     }
 
     match /inventory/{itemId} {
-      allow read: if isSignedIn(); // Allow reading for all signed in users to avoid initial blocks
+      allow read: if isApproved(); 
       allow create, update, delete: if isAdminUser();
     }
 
     match /production_batches/{batchId} {
-      allow read: if isSignedIn();
+      allow read: if isApproved();
       allow create, update, delete: if isAdminUser();
     }
 
     match /logistics/{recordId} {
-      allow read: if isSignedIn();
+      allow read: if isApproved();
       allow create, update, delete: if isAdminUser();
     }
 
     match /partners/{partnerId} {
-      allow read: if isSignedIn();
+      allow read: if isApproved();
       allow create, update, delete: if isAdminUser();
     }
 
