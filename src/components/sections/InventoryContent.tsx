@@ -17,14 +17,43 @@ import { OperationType } from '../../types';
 
 function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] }: any) {
   const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterBrand, setFilterBrand] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
   const [activeShift, setActiveShift] = useState('일간');
   const [showAll, setShowAll] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
-  const filtered = inventory.filter((i: any) => 
-    i.name.toLowerCase().includes(search.toLowerCase()) || 
-    i.sku?.toLowerCase().includes(search.toLowerCase())
-  );
+  const categories = useMemo(() => {
+    const cats = inventory.map((i: any) => i.category).filter(Boolean);
+    return Array.from(new Set(cats));
+  }, [inventory]);
+
+  const brands = useMemo(() => {
+    const bnds = inventory.map((i: any) => i.brand).filter(Boolean);
+    return Array.from(new Set(bnds));
+  }, [inventory]);
+
+  const filtered = useMemo(() => {
+    return inventory.filter((i: any) => {
+      const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase()) || 
+                           i.sku?.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !filterCategory || i.category === filterCategory;
+      const matchesBrand = !filterBrand || i.brand === filterBrand;
+      
+      let matchesDate = true;
+      if (filterStartDate || filterEndDate) {
+        const itemLogistics = logistics.filter((l: any) => l.item === i.name);
+        matchesDate = itemLogistics.some((l: any) => {
+          const d = l.date;
+          return (!filterStartDate || d >= filterStartDate) && (!filterEndDate || d <= filterEndDate);
+        });
+      }
+
+      return matchesSearch && matchesCategory && matchesBrand && matchesDate;
+    });
+  }, [inventory, search, filterCategory, filterBrand, filterStartDate, filterEndDate, logistics]);
 
   const handleDeleteItem = async (id: string, name: string) => {
     if (!canEditItems) return;
@@ -130,6 +159,72 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
             </div>
           </div>
         ))}
+      </section>
+
+      {/* Inventory Filter Bar */}
+      <section className="bg-[#f8fafc] p-6 rounded-[32px] border border-outline-variant/30 space-y-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <Search className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-black text-[#0f172a] uppercase tracking-wider">재고 상세 필터</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="품목명/SKU..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-12 px-4 bg-white border border-outline-variant/50 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all" 
+            />
+          </div>
+          
+          <select 
+            value={filterCategory} 
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="h-12 px-4 bg-white border border-outline-variant/50 rounded-xl text-xs font-bold focus:border-primary outline-none cursor-pointer"
+          >
+            <option value="">전체 카테고리</option>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <select 
+            value={filterBrand} 
+            onChange={(e) => setFilterBrand(e.target.value)}
+            className="h-12 px-4 bg-white border border-outline-variant/50 rounded-xl text-xs font-bold focus:border-primary outline-none cursor-pointer"
+          >
+            <option value="">전체 브랜드</option>
+            {brands.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+
+          <div className="flex items-center gap-2 col-span-1 lg:col-span-1">
+            <input 
+              type="date" 
+              value={filterStartDate} 
+              onChange={e => setFilterStartDate(e.target.value)} 
+              className="flex-1 h-12 px-3 bg-white border border-outline-variant/50 rounded-xl text-[10px] font-bold outline-none focus:border-primary"
+            />
+            <span className="text-outline font-black text-[10px]">~</span>
+            <input 
+              type="date" 
+              value={filterEndDate} 
+              onChange={e => setFilterEndDate(e.target.value)} 
+              className="flex-1 h-12 px-3 bg-white border border-outline-variant/50 rounded-xl text-[10px] font-bold outline-none focus:border-primary"
+            />
+          </div>
+
+          <button 
+            onClick={() => {
+              setSearch('');
+              setFilterCategory('');
+              setFilterBrand('');
+              setFilterStartDate('');
+              setFilterEndDate('');
+            }}
+            className="h-12 bg-[#0f172a] text-white rounded-xl font-black text-xs hover:bg-slate-800 transition-all shadow-md"
+          >
+            필터 초기화
+          </button>
+        </div>
       </section>
 
       {/* Inventory Table */}
