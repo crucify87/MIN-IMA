@@ -39,6 +39,8 @@ export default function App() {
     permissions 
   } = useAuth();
 
+  const isApproved = isSuperAdmin || userData?.status === 'approved';
+
   const {
     inventory,
     production,
@@ -46,7 +48,7 @@ export default function App() {
     partners,
     allUsers,
     settings
-  } = useAppData(user, isSuperAdmin);
+  } = useAppData(user, isSuperAdmin, isApproved);
 
   const handleLogin = async () => {
     try { await loginWithGoogle(); } catch (error) { console.error("Login failed:", error); }
@@ -134,8 +136,6 @@ export default function App() {
   }
 
   // Handle Unauthorized/Pending Users
-  const isApproved = isSuperAdmin || userData?.status === 'approved';
-  
   if (!isApproved) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-4">
@@ -195,6 +195,7 @@ export default function App() {
                     logistics={logistics} 
                     partners={partners} 
                     onNavigate={handleNavigate} 
+                    canEditItems={canEditItems}
                   />
                 )}
                 {currentView === 'inventory' && (
@@ -209,6 +210,8 @@ export default function App() {
                   <ItemDetailContent 
                     item={selectedItem} 
                     logistics={logistics} 
+                    production={production}
+                    inventory={inventory}
                     onNavigate={handleNavigate} 
                     canEditItems={canEditItems} 
                     canViewPrices={canViewPrices} 

@@ -111,23 +111,6 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative group flex-1 sm:flex-initial">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-            <input 
-              type="text" 
-              placeholder="품목 검색" 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all w-full md:w-48" 
-            />
-          </div>
-          
-          <div className="flex items-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface">
-            <CalendarDays className="w-4 h-4 text-outline" />
-            <span>{today}</span>
-            <ChevronDown className="w-4 h-4 text-outline" />
-          </div>
-
           <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant">
             {['일간', '주간', '월간'].map((shift) => (
               <button

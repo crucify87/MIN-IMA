@@ -28,6 +28,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [showForm, setShowForm] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeRange, setActiveRange] = useState('일간');
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -35,6 +36,22 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  React.useEffect(() => {
+    const end = new Date();
+    let start = new Date();
+    
+    if (activeRange === '일간') {
+      // today only
+    } else if (activeRange === '주간') {
+      start.setDate(end.getDate() - 7);
+    } else if (activeRange === '월간') {
+      start.setMonth(end.getMonth() - 1);
+    }
+    
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
+  }, [activeRange]);
   const [form, setForm] = useState({ 
     date: new Date().toISOString().split('T')[0], 
     time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), 
@@ -49,14 +66,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   
   const today = new Date().toISOString().split('T')[0];
 
-  const summary = useMemo(() => {
-    const todayLogistics = logistics.filter((l: any) => l.date === today);
-    const totalWeight = todayLogistics.reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
-    const inputCount = todayLogistics.filter((l: any) => l.type === '입고').length;
-    const outputCount = todayLogistics.filter((l: any) => l.type === '출고').length;
-    return { totalWeight, inputCount, outputCount };
-  }, [logistics, today]);
-
   const filtered = useMemo(() => {
     return logistics.filter((l: any) => {
       const matchesSearch = l.item.toLowerCase().includes(search.toLowerCase());
@@ -66,6 +75,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       return matchesSearch && matchesCategory && matchesBrand && matchesDate;
     });
   }, [logistics, search, filterCategory, filterBrand, startDate, endDate]);
+
+  const summary = useMemo(() => {
+    const totalWeight = filtered.reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
+    const inputCount = filtered.filter((l: any) => l.type === '입고').length;
+    const outputCount = filtered.filter((l: any) => l.type === '출고').length;
+    return { totalWeight, inputCount, outputCount };
+  }, [filtered]);
 
   const categories = useMemo(() => {
     const cats = inventory.map((i: any) => i.category).filter(Boolean);
@@ -210,15 +226,29 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">물류현황</h1>
         </div>
         
-        {canEditItems && (
-          <button 
-            onClick={() => setShowForm(!showForm)} 
-            className="h-12 md:h-14 px-6 md:px-8 bg-[#0f172a] text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg hover:bg-slate-800 transition-all active:scale-95 w-full md:w-auto"
-          >
-            <Plus className="w-5 h-5 md:w-6 md:h-6" /> 
-            {showForm ? '닫기' : '신규 입고/출고'}
-          </button>
-        )}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant shadow-sm shrink-0">
+            {['일간', '주간', '월간'].map((range) => (
+              <button
+                key={range}
+                onClick={() => setActiveRange(range)}
+                className={`px-5 py-2 rounded-lg font-black text-xs transition-all ${activeRange === range ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+
+          {canEditItems && (
+            <button 
+              onClick={() => setShowForm(!showForm)} 
+              className="h-12 md:h-14 px-6 md:px-8 bg-[#0f172a] text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg hover:bg-slate-800 transition-all active:scale-95 w-full md:w-auto"
+            >
+              <Plus className="w-5 h-5 md:w-6 md:h-6" /> 
+              {showForm ? '닫기' : '신규 입고/출고'}
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Form Overlay */}
@@ -373,9 +403,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       {/* Summary Stats */}
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
         {[
-          { label: '금일 총 물동량', value: summary.totalWeight, unit: 'KG' },
-          { label: '금일 입고', value: summary.inputCount, unit: '건' },
-          { label: '금일 출고', value: summary.outputCount, unit: '건' },
+          { label: `${activeRange} 총 물동량`, value: summary.totalWeight, unit: 'KG' },
+          { label: `${activeRange} 입고`, value: summary.inputCount, unit: '건' },
+          { label: `${activeRange} 출고`, value: summary.outputCount, unit: '건' },
         ].map((stat, idx) => (
           <div key={idx} className="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all hover:shadow-md min-h-[140px] sm:min-h-[180px] md:min-h-[220px]">
             <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>

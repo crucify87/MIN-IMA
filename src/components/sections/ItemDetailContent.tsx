@@ -1,27 +1,118 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ArrowLeft,
-  History
+  History,
+  Trash2
 } from 'lucide-react';
 import { 
   doc, 
   updateDoc, 
   serverTimestamp, 
   collection, 
-  addDoc 
+  addDoc,
+  deleteDoc,
+  increment
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
 
-function ItemDetailContent({ item, logistics, onNavigate, canEditItems, canViewPrices, canEditPrices }: any) {
+function ItemDetailContent({ item, logistics, production, inventory, onNavigate, canEditItems, canViewPrices, canEditPrices }: any) {
   const [stock, setStock] = useState(item.currentStock);
   const [priceForm, setPriceForm] = useState({
     purchasePrice: item.purchasePrice || 0,
     salesPrice: item.salesPrice || 0
   });
   const [loading, setLoading] = useState(false);
-  const activities = logistics.filter((l: any) => l.item === item.name).slice(0, 10);
+
+  const activities = useMemo(() => {
+    const combined = [
+      ...logistics.filter((l: any) => l.item === item.name).map((l: any) => ({
+        ...l,
+        source: '물류',
+        originalId: l.id,
+        rawTime: l.createdAt?.seconds || 0
+      })),
+      ...production.flatMap((p: any) => {
+        const rows = [];
+        if (p.title === item.name) {
+          rows.push({
+            date: p.manufDate,
+            type: '입고',
+            item: p.title,
+            weight: p.production,
+            partner: `공정: ${p.line} (완성)`,
+            source: '생산(완성)',
+            originalId: p.id,
+            rawTime: p.createdAt?.seconds || 0
+          });
+        }
+        if (p.rawMaterial === item.name) {
+          rows.push({
+            date: p.manufDate,
+            type: '출고',
+            item: p.rawMaterial,
+            weight: p.rawQty,
+            partner: `공정: ${p.line} (투입)`,
+            source: '생산(투입)',
+            originalId: p.id,
+            rawTime: p.createdAt?.seconds || 0
+          });
+        }
+        return rows;
+      })
+    ].sort((a, b) => b.rawTime - a.rawTime);
+    
+    return combined.slice(0, 10);
+  }, [logistics, production, item.name]);
+
+  const handleDeleteActivity = async (a: any) => {
+    if (!canEditItems || loading) return;
+
+    const isProduction = a.source.includes('생산');
+    const confirmMsg = isProduction 
+      ? `관련 생산 일지 전체를 삭제하시겠습니까? (이 품목 및 관련 원육/생산품 재고가 모두 복구됩니다)`
+      : `물류 기록을 삭제하시겠습니까? (재고가 같이 조정됩니다)`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setLoading(true);
+    try {
+      if (isProduction) {
+        const record = production.find((p: any) => p.id === a.originalId);
+        if (record) {
+          await deleteDoc(doc(db, 'production_batches', record.id));
+          
+          const prodItem = inventory?.find((i: any) => i.name === record.title);
+          if (prodItem) {
+            await updateDoc(doc(db, 'inventory', prodItem.id), {
+              currentStock: increment(-record.production),
+              updatedAt: serverTimestamp()
+            });
+          }
+          
+          const rawItem = inventory?.find((i: any) => i.name === record.rawMaterial);
+          if (rawItem) {
+            await updateDoc(doc(db, 'inventory', rawItem.id), {
+              currentStock: increment(record.rawQty),
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+      } else {
+        await deleteDoc(doc(db, 'logistics', a.originalId));
+        await updateDoc(doc(db, 'inventory', item.id), {
+          currentStock: increment(a.type === '입고' ? -a.weight : a.weight),
+          updatedAt: serverTimestamp()
+        });
+      }
+      alert('삭제 완료');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, isProduction ? 'production_batches' : 'logistics');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const handleUpdate = async () => {
     if (!canEditItems) return;
@@ -154,12 +245,23 @@ function ItemDetailContent({ item, logistics, onNavigate, canEditItems, canViewP
             {activities.length > 0 ? (
               activities.map((a: any, i: number) => (
                 <div key={i} className="min-w-[260px] bg-white p-6 rounded-[32px] border border-outline-variant shadow-sm flex flex-col justify-between gap-6 shrink-0 relative transition-all hover:border-primary/40 hover:shadow-xl group">
-                   <div className="flex items-center justify-between">
-                    <span className={`px-3 py-1 rounded-full text-[9px] font-black ${a.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} border ${a.type === '입고' ? 'border-emerald-100' : 'border-rose-100'}`}>
-                      {a.type}
-                    </span>
-                    <p className="text-[9px] font-black text-outline/60 uppercase tracking-widest">{a.date}</p>
-                  </div>
+                    <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black ${a.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} border ${a.type === '입고' ? 'border-emerald-100' : 'border-rose-100'}`}>
+                        {a.type}
+                      </span>
+                      {canEditItems && (
+                        <button 
+                          onClick={() => handleDeleteActivity(a)}
+                          className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                     </div>
+                     <p className="text-[9px] font-black text-outline/60 uppercase tracking-widest">{a.date}</p>
+                   </div>
                   
                   <div>
                     <p className="text-[9px] font-black text-outline uppercase tracking-widest mb-1">거래처/대상</p>

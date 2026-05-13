@@ -4,15 +4,82 @@ import {
   CalendarDays, 
   ChevronDown, 
   ChevronRight, 
-  Package 
+  Package,
+  Trash2
 } from 'lucide-react';
-import { ViewType } from '../../types';
+import { 
+  doc, 
+  deleteDoc, 
+  updateDoc, 
+  increment, 
+  serverTimestamp 
+} from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { handleFirestoreError } from '../../lib/firestoreUtils';
+import { ViewType, OperationType } from '../../types';
 
-function DashboardContent({ inventory, production, logistics, partners, onNavigate }: any) {
+function DashboardContent({ inventory, production, logistics, partners, onNavigate, canEditItems }: any) {
   const today = new Date().toISOString().split('T')[0];
   
   const [activeShift, setActiveShift] = useState('일간');
   const [showAllActivity, setShowAllActivity] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async (l: any) => {
+    if (!canEditItems || loading) return;
+    
+    const isProduction = l.source.includes('생산');
+    const confirmMsg = isProduction 
+      ? `[${l.item}] 관련 생산 일지 전체를 삭제하시겠습니까? (투입/생산 재고가 모두 복구됩니다)`
+      : `[${l.item}] 물류 기록을 삭제하시겠습니까? (재고가 같이 조정됩니다)`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setLoading(true);
+    try {
+      if (isProduction) {
+        // Find the full production record using the original ID
+        const record = production.find((p: any) => p.id === l.originalId);
+        if (record) {
+          await deleteDoc(doc(db, 'production_batches', record.id));
+          
+          // Revert production output
+          const prodItem = inventory.find((i: any) => i.name === record.title);
+          if (prodItem) {
+            await updateDoc(doc(db, 'inventory', prodItem.id), {
+              currentStock: increment(-record.production),
+              updatedAt: serverTimestamp()
+            });
+          }
+          
+          // Revert raw material input
+          const rawItem = inventory.find((i: any) => i.name === record.rawMaterial);
+          if (rawItem) {
+            await updateDoc(doc(db, 'inventory', rawItem.id), {
+              currentStock: increment(record.rawQty),
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+      } else {
+        // Logistics delete
+        await deleteDoc(doc(db, 'logistics', l.originalId));
+        const item = inventory.find((i: any) => i.name === l.item);
+        if (item) {
+          await updateDoc(doc(db, 'inventory', item.id), {
+            currentStock: increment(l.type === '입고' ? -l.weight : l.weight),
+            updatedAt: serverTimestamp()
+          });
+        }
+      }
+      alert('삭제 완료');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, isProduction ? 'production_batches' : 'logistics');
+    } finally {
+      setLoading(true); // Small delay before allowing next click
+      setTimeout(() => setLoading(false), 500);
+    }
+  };
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -222,6 +289,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     <th className="px-4 py-8">품목 (ITEM)</th>
                     <th className="px-4 py-8">재고 변동량</th>
                     <th className="px-4 py-8">재고 상태</th>
+                    <th className="px-4 py-8">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
@@ -242,6 +310,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
                     const combined = [
                       ...logistics.map((l: any) => ({
+                        originalId: l.id,
                         time: `${l.date} ${l.time}`,
                         type: l.type,
                         item: l.item,
@@ -252,6 +321,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       })),
                       ...production.flatMap((p: any) => [
                         {
+                          originalId: p.id,
                           time: p.manufDate,
                           type: '입고',
                           item: p.title,
@@ -261,6 +331,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                           date: p.manufDate
                         },
                         {
+                          originalId: p.id,
                           time: p.manufDate,
                           type: '출고',
                           item: p.rawMaterial,
@@ -299,6 +370,17 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                           }`}>
                             {status}
                           </span>
+                        </td>
+                        <td className="px-4 py-6">
+                           {canEditItems && (
+                             <button 
+                               onClick={() => handleDelete(l)} 
+                               className="p-2.5 hover:bg-rose-50 text-slate-300 hover:text-rose-500 rounded-xl transition-all active:scale-90"
+                               title="내역 삭제"
+                             >
+                               <Trash2 className="w-5 h-5" />
+                             </button>
+                           )}
                         </td>
                       </tr>
                     );
@@ -394,9 +476,19 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-black text-[#0f172a]">{l.item}</span>
-                        <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
-                        </span>
+                        <div className="flex items-center gap-4">
+                          <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                          </span>
+                          {canEditItems && (
+                            <button 
+                               onClick={() => handleDelete(l)} 
+                               className="p-2 bg-rose-50 text-rose-400 rounded-xl"
+                            >
+                               <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
