@@ -73,8 +73,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl w-full bg-white p-12 rounded-[48px] shadow-2xl border-4 border-outline-variant/30 text-center space-y-8">
-          <div className="flex items-center justify-center mx-auto mb-4">
-            <AppLogo className="w-full h-48 md:h-64" />
+          <div className="flex items-center justify-center mx-auto mb-4 p-8">
+            <AppLogo className="w-full h-auto max-h-48" />
           </div>
           <div className="space-y-4 pt-4 border-t-2 border-outline-variant/30">
             <p className="text-2xl text-on-surface-variant font-black tracking-tight">관리자 시스템 로그인이 필요합니다.</p>

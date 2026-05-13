@@ -1,16 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400">
-  <!-- Animal Silhouettes -->
-  <g transform="translate(50, 50) scale(0.7)">
-    <!-- Bull/Cow Silhouette -->
-    <path d="M430 250 C430 180, 380 160, 330 160 C280 160, 100 180, 100 280 C100 320, 120 340, 140 380 L160 380 L160 320 L200 320 L200 380 L280 380 L280 320 L320 320 L320 380 L360 380 L360 280 C360 240, 480 220, 520 180 C550 150, 530 100, 480 80 Q440 60, 400 80 L380 120" fill="#800020" />
-    <!-- Pig Silhouette (Overlapping) -->
-    <path d="M180 260 Q210 240, 250 240 Q290 240, 330 270 Q330 320, 280 350 Q230 370, 180 350 Q140 330, 140 290 Q140 270, 180 260" fill="white" />
-    <circle cx="300" cy="285" r="7" fill="#800020" />
-  </g>
-  
-  <!-- Text Content -->
-  <g transform="translate(480, 230)">
-    <text font-family="Arial, sans-serif" font-size="160" font-weight="900" fill="#333" letter-spacing="-5">MIN</text>
-    <text y="100" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#666" letter-spacing="4">INVENTORY MANAGEMENT</text>
+  <g transform="translate(0, 50)">
+    <!-- Animal Group (Left Side) -->
+    <g transform="translate(50, 0)">
+      <!-- Cow Silhouette (Maroon) -->
+      <path d="M125 105 C125 90, 150 85, 180 85 C220 85, 330 90, 360 85 C390 80, 450 40, 480 80 C500 110, 490 140, 450 160 C420 175, 430 200, 430 240 L380 240 L380 180 L340 180 L340 190 C340 190, 320 220, 300 240 L240 240 L240 190 L200 190 L200 240 L140 240 C140 240, 120 220, 125 180 C130 140, 125 120, 125 105 Z M120 180 C100 180, 80 160, 80 130 C80 100, 100 80, 120 80" fill="#7D0E1E" />
+      
+      <!-- Pig Silhouette (White, overlapping) -->
+      <path d="M165 145 C165 130, 200 120, 240 120 C280 120, 320 140, 335 170 C345 190, 330 220, 300 235 C270 245, 230 245, 210 240 C190 235, 165 210, 165 180 Z" fill="white" />
+      
+      <!-- Pig Eye/Ear detail -->
+      <path d="M310 165 Q320 155, 325 170" stroke="#7D0E1E" stroke-width="4" fill="none" />
+    </g>
+
+    <!-- "MIN" Text (Right Side) -->
+    <text x="480" y="240" font-family="Pretendard, 'Inter', Arial, sans-serif" font-size="200" font-weight="900" fill="#333" letter-spacing="-5">MIN</text>
+    
+    <!-- "INVENTORY MANAGEMENT" Text (Bottom) -->
+    <text x="50" y="320" font-family="Pretendard, 'Inter', Arial, sans-serif" font-size="52" font-weight="600" fill="#666" letter-spacing="4">INVENTORY MANAGEMENT</text>
   </g>
 </svg>
