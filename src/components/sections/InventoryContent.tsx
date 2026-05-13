@@ -40,20 +40,35 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
   const summaryStats = useMemo(() => {
     const skuCount = inventory.length;
     const lowStockCount = inventory.filter((i: any) => i.currentStock < (i.safetyStock || 0)).length;
-    const dailyInput = logistics
-      .filter((l: any) => l.date === today && l.type === '입고')
+    
+    const now = new Date();
+    const startOfWeek = new Date();
+    startOfWeek.setDate(now.getDate() - 7);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const isInRange = (dateStr: string) => {
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (activeShift === '일간') return dateStr === today;
+      if (activeShift === '주간') return d >= startOfWeek;
+      if (activeShift === '월간') return d >= startOfMonth;
+      return false;
+    };
+
+    const periodInput = logistics
+      .filter((l: any) => isInRange(l.date) && l.type === '입고')
       .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
-    const dailyOutput = logistics
-      .filter((l: any) => l.date === today && l.type === '출고')
+    const periodOutput = logistics
+      .filter((l: any) => isInRange(l.date) && l.type === '출고')
       .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
 
     return [
       { label: '총 SKU', value: skuCount, unit: '종' },
       { label: '재고 부족', value: lowStockCount, unit: '건', isAlert: true },
-      { label: '일간 입고', value: dailyInput, unit: 'KG' },
-      { label: '일간 출고', value: dailyOutput, unit: 'KG', isSuccess: true },
+      { label: `${activeShift} 입고`, value: periodInput, unit: 'KG' },
+      { label: `${activeShift} 출고`, value: periodOutput, unit: 'KG', isSuccess: true },
     ];
-  }, [inventory, logistics, today]);
+  }, [inventory, logistics, today, activeShift]);
 
   return (
     <div className="space-y-8">
