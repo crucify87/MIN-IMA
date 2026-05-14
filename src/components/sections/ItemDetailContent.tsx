@@ -149,6 +149,13 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
     } catch (error) { handleFirestoreError(error, OperationType.UPDATE, 'inventory'); } finally { setLoading(false); }
   };
 
+  const formatWithCommas = (value: string | number) => {
+    if (value === '' || value === null || value === undefined) return '';
+    const num = String(value).replace(/[^0-9]/g, '');
+    if (!num) return '';
+    return parseInt(num).toLocaleString();
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">
@@ -188,18 +195,63 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
                 <div className="space-y-1 pb-4 border-b border-outline-variant/30">
                   <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">매입 단가</p>
                   {canEditPrices ? (
-                    <input type="number" value={priceForm.purchasePrice} onChange={e => setPriceForm({...priceForm, purchasePrice: e.target.value})} className="h-10 px-4 bg-surface-container rounded-xl font-black text-base outline-none w-full max-w-xs focus:ring-2 ring-primary/20 transition-all border border-outline-variant/20" />
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="text" 
+                        value={formatWithCommas(priceForm.purchasePrice)} 
+                        onChange={e => setPriceForm({...priceForm, purchasePrice: e.target.value.replace(/[^0-9]/g, '')})} 
+                        className="h-10 px-4 bg-surface-container rounded-xl font-black text-base outline-none w-full max-w-xs focus:ring-2 ring-primary/20 transition-all border border-outline-variant/20" 
+                      />
+                      <span className="text-sm font-black text-outline">원</span>
+                    </div>
                   ) : (
-                    <p className="text-xl font-black text-[#0f172a]">{item.purchasePrice?.toLocaleString()} W</p>
+                    <p className="text-xl font-black text-[#0f172a]">{item.purchasePrice?.toLocaleString()} 원</p>
                   )}
                 </div>
                 <div className="space-y-1 pb-4 border-b border-outline-variant/30">
                   <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">판매 단가</p>
                   {canEditPrices ? (
-                    <input type="number" value={priceForm.salesPrice} onChange={e => setPriceForm({...priceForm, salesPrice: e.target.value})} className="h-10 px-4 bg-surface-container rounded-xl font-black text-base outline-none w-full max-w-xs focus:ring-2 ring-primary/20 transition-all border border-outline-variant/20" />
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="text" 
+                        value={formatWithCommas(priceForm.salesPrice)} 
+                        onChange={e => setPriceForm({...priceForm, salesPrice: e.target.value.replace(/[^0-9]/g, '')})} 
+                        className="h-10 px-4 bg-surface-container rounded-xl font-black text-base outline-none w-full max-w-xs focus:ring-2 ring-primary/20 transition-all border border-outline-variant/20" 
+                      />
+                      <span className="text-sm font-black text-outline">원</span>
+                    </div>
                   ) : (
-                    <p className="text-xl font-black text-[#0f172a]">{item.salesPrice?.toLocaleString()} W</p>
+                    <p className="text-xl font-black text-[#0f172a]">{item.salesPrice?.toLocaleString()} 원</p>
                   )}
+                </div>
+
+                {/* Economic Stats */}
+                <div className="space-y-1 pb-4 border-b border-outline-variant/30">
+                  <p className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-1">개당 이익금 (원)</p>
+                  <p className="text-xl font-black text-emerald-600">
+                    {(Number(priceForm.salesPrice) - Number(priceForm.purchasePrice)).toLocaleString()} 원
+                  </p>
+                </div>
+                <div className="space-y-1 pb-4 border-b border-outline-variant/30">
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-[0.2em] mb-1">이익률 (%)</p>
+                  <p className="text-xl font-black text-blue-600">
+                    {Number(priceForm.salesPrice) > 0 
+                      ? (((Number(priceForm.salesPrice) - Number(priceForm.purchasePrice)) / Number(priceForm.salesPrice)) * 100).toFixed(1)
+                      : '0'} %
+                  </p>
+                </div>
+
+                <div className="space-y-1 pb-4 border-b border-outline-variant/30">
+                  <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">재고 자산 가치 (매입가 기준)</p>
+                  <p className="text-xl font-black text-on-surface">
+                    {(item.currentStock * Number(priceForm.purchasePrice)).toLocaleString()} 원
+                  </p>
+                </div>
+                <div className="space-y-1 pb-4 border-b border-outline-variant/30">
+                  <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">총 예상 매출 (재고 기준)</p>
+                  <p className="text-xl font-black text-on-surface">
+                    {(item.currentStock * Number(priceForm.salesPrice)).toLocaleString()} 원
+                  </p>
                 </div>
               </>
             )}
@@ -216,9 +268,9 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
                 <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-2 text-primary">재고 직접 수정</p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input 
-                    type="number" 
-                    value={stock} 
-                    onChange={e => setStock(e.target.value)} 
+                    type="text" 
+                    value={formatWithCommas(stock)} 
+                    onChange={e => setStock(e.target.value.replace(/[^0-9]/g, ''))} 
                     className="h-12 px-6 bg-surface-container border-2 border-outline-variant rounded-xl outline-none font-black text-xl w-full sm:w-40 focus:border-primary transition-all shadow-inner" 
                   />
                   <button 

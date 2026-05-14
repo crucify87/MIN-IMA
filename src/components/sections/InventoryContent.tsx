@@ -37,7 +37,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
   }, [inventory]);
 
   const filtered = useMemo(() => {
-    return inventory.filter((i: any) => {
+    const result = inventory.filter((i: any) => {
       const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase()) || 
                            i.sku?.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = !filterCategory || i.category === filterCategory;
@@ -53,6 +53,13 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
       }
 
       return matchesSearch && matchesCategory && matchesBrand && matchesDate;
+    });
+
+    // Sort by latest update first
+    return [...result].sort((a: any, b: any) => {
+      const timeA = a.updatedAt?.seconds || 0;
+      const timeB = b.updatedAt?.seconds || 0;
+      return timeB - timeA;
     });
   }, [inventory, search, filterCategory, filterBrand, filterStartDate, filterEndDate, logistics]);
 
@@ -234,7 +241,6 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
       <section className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Package className="w-6 h-6 text-[#0f172a]" />
             <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">재고 기록</h3>
           </div>
         </div>

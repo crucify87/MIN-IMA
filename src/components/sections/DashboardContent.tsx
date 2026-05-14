@@ -31,12 +31,18 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const [loading, setLoading] = useState(false);
 
   const filteredInventory = useMemo(() => {
-    if (!searchQuery) return inventory;
-    return inventory.filter((item: any) => 
+    let result = !searchQuery ? inventory : inventory.filter((item: any) => 
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
     );
+    
+    // Sort by latest update first
+    return [...result].sort((a: any, b: any) => {
+      const timeA = a.updatedAt?.seconds || 0;
+      const timeB = b.updatedAt?.seconds || 0;
+      return timeB - timeA;
+    });
   }, [inventory, searchQuery]);
 
   const paginatedInventory = useMemo(() => {
@@ -94,7 +100,12 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         }
       ]).filter(i => i.item)
     ].filter(item => isInRange(item.date))
-    .sort((a, b) => b.rawTime - a.rawTime);
+    .sort((a, b) => {
+      // Sort by date then time in reverse (latest first)
+      if (a.date !== b.date) return b.date.localeCompare(a.date);
+      if (a.time !== b.time) return b.time.localeCompare(a.time);
+      return b.rawTime - a.rawTime;
+    });
 
     return combined;
   }, [logistics, production, activeShift, today]);

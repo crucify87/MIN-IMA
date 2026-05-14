@@ -55,6 +55,13 @@ function SettingsContent({
   const [logoUrl, setLogoUrl] = useState(settings?.logoUrl || '');
   const [appName, setAppName] = useState(settings?.appName || '재고 관리 시스템');
   const [savingSettings, setSavingSettings] = useState(false);
+  
+  const formatWithCommas = (value: string | number) => {
+    if (value === '' || value === null || value === undefined) return '';
+    const num = String(value).replace(/[^0-9]/g, '');
+    if (!num) return '';
+    return parseInt(num).toLocaleString();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -247,11 +254,20 @@ function SettingsContent({
     } catch (error) { console.error(error); alert('계정 삭제 중 오류가 발생했습니다.'); }
   };
 
-  const filteredItems = inventory.filter((i: any) => 
-    i.name.toLowerCase().includes(search.toLowerCase()) || 
-    i.sku?.toLowerCase().includes(search.toLowerCase()) ||
-    i.category?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredItems = React.useMemo(() => {
+    const result = inventory.filter((i: any) => 
+      i.name.toLowerCase().includes(search.toLowerCase()) || 
+      i.sku?.toLowerCase().includes(search.toLowerCase()) ||
+      i.category?.toLowerCase().includes(search.toLowerCase())
+    );
+
+    // Sort by latest update first
+    return [...result].sort((a: any, b: any) => {
+      const timeA = a.updatedAt?.seconds || 0;
+      const timeB = b.updatedAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [inventory, search]);
 
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
   const paginatedItems = React.useMemo(() => {
@@ -481,21 +497,45 @@ function SettingsContent({
                   {/* Row 4: Stocks */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 재고</label>
-                    <input type="number" value={itemForm.currentStock} onChange={e => setItemForm({...itemForm, currentStock: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
+                    <input 
+                      type="text" 
+                      value={formatWithCommas(itemForm.currentStock)} 
+                      onChange={e => setItemForm({...itemForm, currentStock: e.target.value.replace(/[^0-9]/g, '')})} 
+                      className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">안전 재고</label>
-                    <input type="number" value={itemForm.safetyStock} onChange={e => setItemForm({...itemForm, safetyStock: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
+                    <input 
+                      type="text" 
+                      value={formatWithCommas(itemForm.safetyStock)} 
+                      onChange={e => setItemForm({...itemForm, safetyStock: e.target.value.replace(/[^0-9]/g, '')})} 
+                      className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
+                    />
                   </div>
 
                   {/* Row 5: Prices - Sales Price moved up */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">매입 단가 (W)</label>
-                    <input type="number" placeholder={canEditPrices ? "예: 25000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.purchasePrice} onChange={e => setItemForm({...itemForm, purchasePrice: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" />
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">매입 단가 (원)</label>
+                    <input 
+                      type="text" 
+                      placeholder={canEditPrices ? "예: 25,000" : "권한 없음"} 
+                      disabled={!canEditPrices} 
+                      value={formatWithCommas(itemForm.purchasePrice)} 
+                      onChange={e => setItemForm({...itemForm, purchasePrice: e.target.value.replace(/[^0-9]/g, '')})} 
+                      className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" 
+                    />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">판매 단가 (W)</label>
-                    <input type="number" placeholder={canEditPrices ? "예: 38000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.salesPrice} onChange={e => setItemForm({...itemForm, salesPrice: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" />
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">판매 단가 (원)</label>
+                    <input 
+                      type="text" 
+                      placeholder={canEditPrices ? "예: 38,000" : "권한 없음"} 
+                      disabled={!canEditPrices} 
+                      value={formatWithCommas(itemForm.salesPrice)} 
+                      onChange={e => setItemForm({...itemForm, salesPrice: e.target.value.replace(/[^0-9]/g, '')})} 
+                      className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" 
+                    />
                   </div>
 
                   {/* Row 6: Dates - Expiry moved up */}
@@ -550,7 +590,7 @@ function SettingsContent({
 
                   <div className="md:col-span-2 pt-6 flex flex-col sm:flex-row gap-3">
                     <button type="submit" className="flex-1 h-14 md:h-16 bg-[#0f172a] text-white rounded-2xl font-black text-sm md:text-lg tracking-tight shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
-                      {editingItemId ? '정보 수정 완료' : '상품 마스터 등록'}
+                      {editingItemId ? '정보 수정 완료' : '상품등록'}
                     </button>
                     {editingItemId && (
                       <button 
@@ -581,7 +621,7 @@ function SettingsContent({
             <div id="items-list" className="space-y-8 md:space-y-12">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <h3 className="text-lg md:text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Package className="w-5 h-5 md:w-6 md:h-6" /> 등록된 상품</h3>
+                  <h3 className="text-lg md:text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2">등록된 상품</h3>
                   <p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">MASTER INVENTORY ITEMS</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -614,7 +654,6 @@ function SettingsContent({
                             <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                               <td className="px-6 py-5">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-[#f1f4f9] rounded-xl flex items-center justify-center text-primary"><Package className="w-5 h-5" /></div>
                                   <div>
                                     <div className="font-black text-[#0f172a]">{item.name}</div>
                                     <div className="flex items-center gap-2">
@@ -650,7 +689,7 @@ function SettingsContent({
                             </tr>
                           ))
                         ) : (
-                          <tr><td colSpan={7} className="py-20 text-center opacity-40"><Package className="w-12 h-12 mx-auto mb-3" /><p className="font-black">등록된 상품이 없습니다.</p></td></tr>
+                          <tr><td colSpan={7} className="py-20 text-center opacity-40"><p className="font-black text-xl">등록된 상품이 없습니다.</p></td></tr>
                         )}
                       </tbody>
                     </table>
@@ -724,7 +763,6 @@ function SettingsContent({
                       })
                     ) : (
                       <div className="py-16 text-center opacity-40 bg-slate-50/50 rounded-[32px] border border-dashed border-outline-variant">
-                         <Package className="w-12 h-12 mx-auto mb-3 text-outline" />
                          <p className="text-sm font-black text-[#0f172a]">등록된 상품이 없습니다</p>
                       </div>
                     )}
@@ -779,7 +817,7 @@ function SettingsContent({
              <hr className="border-outline-variant/20" />
              <div className="space-y-6 md:space-y-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div><h3 className="text-xl md:text-2xl font-black text-[#0f172a] flex items-center gap-2"><Users className="w-6 h-6 md:w-7 md:h-7" /> 거래처</h3></div>
+                  <div><h3 className="text-xl md:text-2xl font-black text-[#0f172a]">거래처</h3></div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <div className="relative group flex-1 sm:w-80">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
@@ -881,7 +919,7 @@ function SettingsContent({
              
              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-outline-variant pb-6 md:pb-8">
                <div>
-                 <h3 className="text-lg md:text-2xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Users className="w-5 h-5 md:w-6 md:h-6" /> 계정 권한 관리</h3>
+                 <h3 className="text-lg md:text-2xl font-black text-[#0f172a] tracking-tight flex items-center gap-2">계정 권한 관리</h3>
                  <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-1">USER ACCESS CONTROL</p>
                </div>
                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

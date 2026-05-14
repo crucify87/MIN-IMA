@@ -42,12 +42,29 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
   const [filterLine, setFilterLine] = useState('전체');
 
+  const formatWithCommas = (value: string | number) => {
+    if (value === '' || value === null || value === undefined) return '';
+    const num = String(value).replace(/[^0-9.]/g, '');
+    if (!num) return '';
+    const parts = num.split('.');
+    parts[0] = parseInt(parts[0]).toLocaleString();
+    return parts.join('.');
+  };
+
   const filtered = useMemo(() => {
-    return production.filter((p: any) => {
+    const result = production.filter((p: any) => {
       const matchesSearch = (p.title || '').toLowerCase().includes(search.toLowerCase());
       const matchesDate = !date || p.manufDate === date;
       const matchesLine = filterLine === '전체' || p.line === filterLine;
       return matchesSearch && matchesDate && matchesLine;
+    });
+
+    // Sort by manufDate descending then createdAt (latest first)
+    return [...result].sort((a: any, b: any) => {
+      if (a.manufDate !== b.manufDate) return b.manufDate.localeCompare(a.manufDate);
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
     });
   }, [production, search, date, filterLine]);
 
@@ -395,11 +412,23 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                          </div>
                          <div className="md:contents space-y-1">
                            <label className="md:hidden text-[10px] font-black text-outline">투입량 (KG)</label>
-                           <input type="number" placeholder="0" value={row.rawQty} onChange={e => updateRow(row.id, 'rawQty', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" />
+                           <input 
+                              type="text" 
+                              placeholder="0" 
+                              value={formatWithCommas(row.rawQty)} 
+                              onChange={e => updateRow(row.id, 'rawQty', e.target.value.replace(/[^0-9.]/g, ''))} 
+                              className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
+                           />
                          </div>
                          <div className="md:contents space-y-1">
                            <label className="md:hidden text-[10px] font-black text-outline">생산량 (KG)</label>
-                           <input type="number" placeholder="0" value={row.production} onChange={e => updateRow(row.id, 'production', e.target.value)} className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" />
+                           <input 
+                              type="text" 
+                              placeholder="0" 
+                              value={formatWithCommas(row.production)} 
+                              onChange={e => updateRow(row.id, 'production', e.target.value.replace(/[^0-9.]/g, ''))} 
+                              className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
+                           />
                          </div>
                          <div className="grid grid-cols-2 md:contents gap-2">
                            <div className="space-y-1 md:contents">
@@ -524,7 +553,6 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
-            <History className="w-6 h-6 text-[#0f172a]" />
             <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">생산 일지</h3>
           </div>
         </div>

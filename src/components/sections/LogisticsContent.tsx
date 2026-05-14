@@ -45,12 +45,18 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const today = new Date().toISOString().split('T')[0];
 
   const filtered = useMemo(() => {
-    return logistics.filter((l: any) => {
+    const result = logistics.filter((l: any) => {
       const matchesSearch = l.item.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = !filterCategory || l.category === filterCategory;
       const matchesBrand = !filterBrand || l.brand === filterBrand;
       const matchesDate = l.date >= startDate && l.date <= endDate;
       return matchesSearch && matchesCategory && matchesBrand && matchesDate;
+    });
+
+    // Sort by date then time in reverse (latest first)
+    return [...result].sort((a: any, b: any) => {
+      if (a.date !== b.date) return b.date.localeCompare(a.date);
+      return b.time.localeCompare(a.time);
     });
   }, [logistics, search, filterCategory, filterBrand, startDate, endDate]);
 
@@ -129,6 +135,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     weight: '', 
     freightType: '선불' 
   });
+
+  const formatWithCommas = (value: string | number) => {
+    if (value === '' || value === null || value === undefined) return '';
+    const num = String(value).replace(/[^0-9.]/g, ''); // Allow decimal point for weight
+    if (!num) return '';
+    const parts = num.split('.');
+    parts[0] = parseInt(parts[0]).toLocaleString();
+    return parts.join('.');
+  };
 
   const summary = useMemo(() => {
     const totalWeight = filtered.reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
@@ -434,7 +449,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
              <div className="space-y-1">
                <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">중량 (KG)</label>
-               <input required type="number" step="0.01" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" />
+               <input 
+                  required 
+                  type="text" 
+                  value={formatWithCommas(form.weight)} 
+                  onChange={e => setForm({...form, weight: e.target.value.replace(/[^0-9.]/g, '')})} 
+                  className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
+                />
              </div>
 
              <div className="space-y-1">
@@ -512,11 +533,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       <section id="logistics-list" className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <History className="w-6 h-6 text-[#0f172a]" />
-            <div>
-              <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">등록된 물류</h3>
-              <p className="text-[10px] font-bold text-outline uppercase tracking-wider">재고현황 품목(완제품/원물) 수불 현황</p>
-            </div>
+            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">등록된 물류</h3>
           </div>
         </div>
 
