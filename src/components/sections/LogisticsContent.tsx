@@ -331,7 +331,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
              </div>
 
              <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">품목명</label>
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">품목명 (완제품/원물)</label>
                <input 
                  required 
                  list="l-items" 
@@ -513,7 +513,10 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-6 h-6 text-[#0f172a]" />
-            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">등록된 물류</h3>
+            <div>
+              <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">등록된 물류</h3>
+              <p className="text-[10px] font-bold text-outline uppercase tracking-wider">재고현황 품목(완제품/원물) 수불 현황</p>
+            </div>
           </div>
         </div>
 
@@ -546,7 +549,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                             {l.type}
                           </span>
                         </td>
-                        <td className="px-4 py-6 text-sm font-bold text-slate-500">{l.category || '-'}</td>
+                        <td className="px-4 py-6 text-sm font-bold text-slate-500">
+                          {l.category ? (
+                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-600">
+                              {l.category}
+                            </span>
+                          ) : '-'}
+                        </td>
                         <td className="px-4 py-6 text-sm font-bold text-primary">{l.brand || '-'}</td>
                         <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
                         <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>

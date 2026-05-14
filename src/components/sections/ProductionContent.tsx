@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Plus,
   ChevronDown,
+  ChevronRight,
   Search,
   CalendarDays,
   X,
@@ -34,12 +35,13 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
     { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }
   ]);
 
-  const [showAllLogs, setShowAllLogs] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(false);
 
   const [filterLine, setFilterLine] = useState('전체');
-  
+
   const filtered = useMemo(() => {
     return production.filter((p: any) => {
       const matchesSearch = (p.title || '').toLowerCase().includes(search.toLowerCase());
@@ -62,6 +64,58 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       { label: '총 수율', value: yieldRate.toFixed(1), unit: '%' },
     ];
   }, [filtered]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, date, filterLine]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
+    if (total <= 1) return null;
+    return (
+      <div className="flex items-center justify-center gap-2 mt-8 pb-4">
+        <button 
+          disabled={current === 1}
+          onClick={() => {
+            onChange(current - 1);
+            window.scrollTo({ top: (document.getElementById('production-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+          }}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4 rotate-180" />
+        </button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: total }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              onClick={() => {
+                onChange(p);
+                window.scrollTo({ top: (document.getElementById('production-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+              }}
+              className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <button 
+          disabled={current === total}
+          onClick={() => {
+            onChange(current + 1);
+            window.scrollTo({ top: (document.getElementById('production-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+          }}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
 
   const addRow = () => {
     setRows([...rows, { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
@@ -432,7 +486,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       </section>
 
       {/* Recent Production Log */}
-      <section className="space-y-6">
+      <section id="production-list" className="space-y-6">
         <section className="bg-[#e8f1ff] p-4 md:p-6 rounded-[24px] md:rounded-[32px] shadow-inner border border-primary/5">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             <div className="relative group">
@@ -473,15 +527,6 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             <History className="w-6 h-6 text-[#0f172a]" />
             <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">생산 일지</h3>
           </div>
-          {filtered.length > 10 && (
-            <button 
-              onClick={() => setShowAllLogs(!showAllLogs)} 
-              className="px-4 h-10 bg-white border border-outline-variant/60 rounded-2xl text-[11px] font-black text-[#0f172a] hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
-            >
-              {showAllLogs ? '접기' : '더보기'}
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${showAllLogs ? 'rotate-180' : ''}`} />
-            </button>
-          )}
         </div>
 
         <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
@@ -504,7 +549,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  {filtered.slice(0, showAllLogs ? undefined : 10).map((item: any, idx: number) => {
+                  {paginatedItems.map((item: any, idx: number) => {
                     const itemData = inventory.find((inv: any) => inv.name === item.title);
                     return (
                       <tr key={item.id || idx} className="hover:bg-surface-container/5 transition-colors">
@@ -544,7 +589,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3 p-3">
-              {filtered.slice(0, showAllLogs ? undefined : 10).map((item: any, idx: number) => {
+              {paginatedItems.map((item: any, idx: number) => {
                 const itemData = inventory.find((inv: any) => inv.name === item.title);
                 return (
                   <div key={item.id || idx} className="bg-white p-5 rounded-[28px] border border-outline-variant/60 shadow-sm space-y-4">
@@ -594,16 +639,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
               })}
             </div>
 
-            {/* Bottom More Button */}
-            {filtered.length > 10 && (
-              <button 
-                onClick={() => setShowAllLogs(!showAllLogs)} 
-                className="w-full py-4 bg-surface-container/30 border-t border-outline-variant text-[11px] font-black text-on-surface-variant hover:text-primary transition-all flex items-center justify-center gap-2 group"
-              >
-                {showAllLogs ? '일지 접기' : '생산 일지 더보기'}
-                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showAllLogs ? 'rotate-180' : 'group-hover:translate-y-0.5'}`} />
-              </button>
-            )}
+            <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
           </div>
         </div>
       </section>

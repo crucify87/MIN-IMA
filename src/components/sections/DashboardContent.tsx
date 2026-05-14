@@ -7,6 +7,7 @@ import {
   Package,
   Trash2
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { 
   doc, 
   deleteDoc, 
@@ -24,15 +25,26 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const [activeShift, setActiveShift] = useState('일간');
   const [inventoryPage, setInventoryPage] = useState(1);
   const [activityPage, setActivityPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(false);
 
+  const filteredInventory = useMemo(() => {
+    if (!searchQuery) return inventory;
+    return inventory.filter((item: any) => 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [inventory, searchQuery]);
+
   const paginatedInventory = useMemo(() => {
     const startIndex = (inventoryPage - 1) * ITEMS_PER_PAGE;
-    return inventory.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [inventory, inventoryPage]);
+    return filteredInventory.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredInventory, inventoryPage]);
 
-  const totalInventoryPages = Math.ceil(inventory.length / ITEMS_PER_PAGE);
+  const totalInventoryPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
 
   const combinedActivity = useMemo(() => {
     const startOfWeek = new Date();
@@ -93,6 +105,12 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   }, [combinedActivity, activityPage]);
 
   const totalActivityPages = Math.ceil(combinedActivity.length / ITEMS_PER_PAGE);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    // Explicit refresh feel
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
 
   const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
@@ -198,27 +216,29 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       return false;
     };
 
-    const totalInventory = inventory.reduce((acc: number, curr: any) => acc + (Number(curr.currentStock) || 0), 0);
+    const totalInventoryCount = filteredInventory.reduce((acc: number, curr: any) => acc + (Number(curr.currentStock) || 0), 0);
     
-    const filteredLogistics = logistics.filter((l: any) => isInRange(l.date));
-    const input = filteredLogistics
+    // Calculate stats based on combined activity (includes both Logistics and Production)
+    const activeActivity = combinedActivity.filter(a => isInRange(a.date));
+    const input = activeActivity
       .filter((l: any) => l.type === '입고')
       .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
-    const output = filteredLogistics
+    const output = activeActivity
       .filter((l: any) => l.type === '출고')
       .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
       
+    // Production stat specifically from production records
     const productionQty = production
       .filter((p: any) => isInRange(p.manufDate))
       .reduce((acc: number, curr: any) => acc + (Number(curr.production) || 0), 0);
 
     return [
-      { label: '현재 총 재고', value: totalInventory },
+      { label: searchQuery ? '검색 필터 재고' : '현재 총 재고', value: totalInventoryCount },
       { label: `${activeShift} 입고`, value: input },
       { label: `${activeShift} 출고`, value: output, active: true },
       { label: `${activeShift} 생산`, value: productionQty },
     ];
-  }, [inventory, logistics, production, today, activeShift]);
+  }, [filteredInventory, combinedActivity, production, today, activeShift, searchQuery]);
 
   return (
     <div className="space-y-10">
@@ -234,15 +254,27 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             <input 
               type="text" 
               placeholder="품목 검색" 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setInventoryPage(1);
+              }}
               className="h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all w-full md:w-48" 
             />
           </div>
           
-          <div className="flex items-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface">
-            <CalendarDays className="w-4 h-4 text-outline" />
-            <span>{today}</span>
-            <ChevronDown className="w-4 h-4 text-outline" />
-          </div>
+          <button 
+            onClick={handleRefresh}
+            className="flex items-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary transition-all active:scale-95 group"
+          >
+            <motion.div
+              animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+            >
+              <CalendarDays className={`w-4 h-4 ${isRefreshing ? 'text-primary' : 'text-outline'}`} />
+            </motion.div>
+            <span>{isRefreshing ? '최신화 중...' : today}</span>
+          </button>
 
           <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant">
             {['일간', '주간', '월간'].map((shift) => (

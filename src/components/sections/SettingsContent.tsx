@@ -47,7 +47,8 @@ function SettingsContent({
   const [partnerSearch, setPartnerSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [showAllPartners, setShowAllPartners] = useState(false);
-  const [showAllItems, setShowAllItems] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [showAllUsers, setShowAllUsers] = useState(false);
 
   // App Settings Form
@@ -251,6 +252,58 @@ function SettingsContent({
     i.sku?.toLowerCase().includes(search.toLowerCase()) ||
     i.category?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const paginatedItems = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
+    if (total <= 1) return null;
+    return (
+      <div className="flex items-center justify-center gap-2 mt-8 pb-4">
+        <button 
+          disabled={current === 1}
+          onClick={() => {
+            onChange(current - 1);
+            window.scrollTo({ top: (document.getElementById('items-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+          }}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronDown className="w-4 h-4 rotate-90" />
+        </button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: total }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              onClick={() => {
+                onChange(p);
+                window.scrollTo({ top: (document.getElementById('items-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+              }}
+              className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <button 
+          disabled={current === total}
+          onClick={() => {
+            onChange(current + 1);
+            window.scrollTo({ top: (document.getElementById('items-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+          }}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronDown className="w-4 h-4 -rotate-90" />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-10">
@@ -525,7 +578,7 @@ function SettingsContent({
             <hr className="border-outline-variant/30" />
 
             {/* 2. Registered Product List (BOTTOM) */}
-            <div className="space-y-8 md:space-y-12">
+            <div id="items-list" className="space-y-8 md:space-y-12">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <h3 className="text-lg md:text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2"><Package className="w-5 h-5 md:w-6 md:h-6" /> 등록된 상품</h3>
@@ -536,10 +589,6 @@ function SettingsContent({
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                     <input type="text" placeholder="상품명, SKU, 카테고리 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
                   </div>
-                  <button onClick={() => setShowAllItems(!showAllItems)} className="flex items-center justify-center gap-2 px-6 h-12 bg-white border border-outline-variant rounded-2xl text-[11px] md:text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all shadow-sm">
-                    {showAllItems ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} 
-                    {showAllItems ? '접기' : '더보기'}
-                  </button>
                 </div>
               </div>
 
@@ -560,8 +609,8 @@ function SettingsContent({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-outline-variant/10">
-                        {filteredItems.length > 0 ? (
-                          filteredItems.slice(0, showAllItems ? undefined : 15).map((item: any) => (
+                        {paginatedItems.length > 0 ? (
+                          paginatedItems.map((item: any) => (
                             <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                               <td className="px-6 py-5">
                                 <div className="flex items-center gap-3">
@@ -609,8 +658,8 @@ function SettingsContent({
 
                   {/* Mobile Card View */}
                   <div className="md:hidden space-y-4 p-2">
-                    {filteredItems.length > 0 ? (
-                      filteredItems.slice(0, showAllItems ? undefined : 15).map((item: any) => {
+                    {paginatedItems.length > 0 ? (
+                      paginatedItems.map((item: any) => {
                         const isShortage = item.currentStock <= (item.safetyStock || 0);
                         return (
                           <div key={item.id} className={`bg-white p-5 rounded-[28px] border ${isShortage ? 'border-rose-200 bg-rose-50/20' : 'border-outline-variant/60'} shadow-sm space-y-4 relative overflow-hidden group transition-all`}>
@@ -681,6 +730,7 @@ function SettingsContent({
                     )}
                   </div>
 
+                  <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
                 </div>
               </div>
             </div>
