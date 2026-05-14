@@ -30,7 +30,7 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-80 bg-white border-r-2 border-outline-variant/30 flex flex-col p-8 z-50">
       <div className="mb-12">
-        <AppLogo className="w-full h-auto" src={logoSrc} />
+        <AppLogo className="w-full h-auto" src={logoSrc || "/sidebarlogo.png"} />
       </div>
 
       <nav className="flex-1 space-y-3">

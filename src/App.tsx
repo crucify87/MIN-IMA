@@ -91,7 +91,7 @@ export default function App() {
   }
 
   if (!user) {
-    const appLogo = settings?.logoUrl || "/512x512.png?v=3";
+    const appLogo = settings?.logoUrl || "/IMA512.png";
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
         <motion.div 

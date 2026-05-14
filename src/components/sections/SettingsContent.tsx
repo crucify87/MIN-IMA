@@ -93,7 +93,7 @@ function SettingsContent({
 
   // Item Form
   const [itemForm, setItemForm] = useState({
-    sku: '', name: '', category: '돼지고기', brand: '', unit: 'kg', currentStock: '', safetyStock: '',
+    sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', currentStock: '', safetyStock: '',
     purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: ''
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -149,7 +149,7 @@ function SettingsContent({
         });
         alert('상품 등록이 완료되었습니다.');
       }
-      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
   };
 
@@ -160,6 +160,7 @@ function SettingsContent({
       name: item.name || '',
       category: item.category || '',
       brand: item.brand || '',
+      specs: item.specs || '',
       unit: item.unit || 'kg',
       currentStock: String(item.currentStock || 0),
       safetyStock: String(item.safetyStock || 0),
@@ -387,6 +388,10 @@ function SettingsContent({
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">브랜드</label>
                     <input placeholder="예: 한우관" value={itemForm.brand} onChange={e => setItemForm({...itemForm, brand: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">규격 (Specs)</label>
+                    <input placeholder="예: 250g/팩, 10kg/박스" value={itemForm.specs} onChange={e => setItemForm({...itemForm, specs: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
+                  </div>
 
                   {/* Row 3: Unit & Stock */}
                   <div className="space-y-1.5 relative">
@@ -489,7 +494,7 @@ function SettingsContent({
                         type="button"
                         onClick={() => {
                           setEditingItemId(null);
-                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
                         }}
                         className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm md:text-lg shadow-sm hover:bg-rose-100 transition-all active:scale-[0.98]"
                       >
@@ -556,6 +561,7 @@ function SettingsContent({
                                     <div className="flex items-center gap-2">
                                       <span className="text-[10px] font-bold text-outline uppercase">{item.sku || '-'}</span>
                                       {item.brand && <span className="text-[10px] font-black text-primary/50">| {item.brand}</span>}
+                                      {item.specs && <span className="text-[10px] font-black text-emerald-500/70">| {item.specs}</span>}
                                     </div>
                                   </div>
                                 </div>
@@ -607,7 +613,10 @@ function SettingsContent({
                                   <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[9px] font-black text-outline uppercase">{item.category}</span>
                                 </div>
                                 <h4 className="text-lg font-black text-[#0f172a] leading-tight truncate">{item.name}</h4>
-                                {item.brand && <p className="text-[10px] font-bold text-outline-variant">{item.brand}</p>}
+                                <div className="flex items-center gap-2">
+                                  {item.brand && <p className="text-[10px] font-bold text-outline-variant">{item.brand}</p>}
+                                  {item.specs && <p className="text-[10px] font-black text-emerald-500/70">({item.specs})</p>}
+                                </div>
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
                                 {canEditItems && (
@@ -901,7 +910,7 @@ function SettingsContent({
                 <div className="flex flex-col items-center gap-6 p-8 bg-slate-50/50 rounded-[32px] border border-outline-variant/40">
                   <div className="text-[10px] font-black text-outline uppercase tracking-widest">로고 미리보기 (PREVIEW)</div>
                   <div className="w-32 h-32 bg-white rounded-3xl p-6 flex items-center justify-center shadow-xl border border-slate-100">
-                    <img src={logoUrl || "/512x512.png?v=3"} className="max-w-full max-h-full object-contain" alt="Logo Preview" />
+                    <img src={logoUrl || "/IMA512.png"} className="max-w-full max-h-full object-contain" alt="Logo Preview" />
                   </div>
                   <div className="text-center space-y-1">
                     <p className="text-[11px] font-bold text-slate-500">200x200 이상 PNG/JPG 권장</p>
