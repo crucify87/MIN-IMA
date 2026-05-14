@@ -58,9 +58,11 @@ function SettingsContent({
   
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
-    const num = String(value).replace(/[^0-9]/g, '');
-    if (!num) return '';
-    return parseInt(num).toLocaleString();
+    const valStr = String(value);
+    const isNegative = valStr.startsWith('-');
+    const num = valStr.replace(/[^0-9]/g, '');
+    if (!num) return isNegative ? '-' : '';
+    return (isNegative ? '-' : '') + parseInt(num).toLocaleString();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,10 +142,10 @@ function SettingsContent({
     try {
       const data = {
         ...itemForm,
-        currentStock: Number(itemForm.currentStock),
-        safetyStock: Number(itemForm.safetyStock),
-        purchasePrice: Number(itemForm.purchasePrice),
-        salesPrice: Number(itemForm.salesPrice),
+        currentStock: Number(itemForm.currentStock) || 0,
+        safetyStock: Number(itemForm.safetyStock) || 0,
+        purchasePrice: Number(itemForm.purchasePrice) || 0,
+        salesPrice: Number(itemForm.salesPrice) || 0,
         updatedAt: serverTimestamp()
       };
 
@@ -500,7 +502,11 @@ function SettingsContent({
                     <input 
                       type="text" 
                       value={formatWithCommas(itemForm.currentStock)} 
-                      onChange={e => setItemForm({...itemForm, currentStock: e.target.value.replace(/[^0-9]/g, '')})} 
+                      onChange={e => {
+                        const val = e.target.value;
+                        const cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9-]/g, '');
+                        setItemForm({...itemForm, currentStock: cleaned});
+                      }} 
                       className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
                     />
                   </div>
@@ -509,7 +515,11 @@ function SettingsContent({
                     <input 
                       type="text" 
                       value={formatWithCommas(itemForm.safetyStock)} 
-                      onChange={e => setItemForm({...itemForm, safetyStock: e.target.value.replace(/[^0-9]/g, '')})} 
+                      onChange={e => {
+                        const val = e.target.value;
+                        const cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9-]/g, '');
+                        setItemForm({...itemForm, safetyStock: cleaned});
+                      }} 
                       className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
                     />
                   </div>
