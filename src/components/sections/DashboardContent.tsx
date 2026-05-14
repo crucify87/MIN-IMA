@@ -338,22 +338,24 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                 <div className="w-full">
                   {/* Desktop View Table */}
                   <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left">
+                    <table className="w-full text-left table-fixed">
                       <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
                         <tr>
-                          <th className="px-6 md:px-8 py-5">품목 명칭</th>
-                          <th className="px-6 md:px-8 py-5">현재고 (KG)</th>
-                          <th className="px-6 md:px-8 py-5 text-center">상태</th>
-                          <th className="px-6 md:px-8 py-5"></th>
+                          <th className="px-6 md:px-8 py-5 w-[35%]">품목 명칭</th>
+                          <th className="px-6 md:px-8 py-5 text-center w-[20%]">규격</th>
+                          <th className="px-6 md:px-8 py-5 w-[25%]">현재고 (KG)</th>
+                          <th className="px-6 md:px-8 py-5 text-center w-[15%] text-nowrap">상태</th>
+                          <th className="px-6 md:px-8 py-5 w-[5%] tracking-normal"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-outline-variant/10">
                         {paginatedInventory.map((item: any, i: number) => (
                           <tr key={i} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('inventory')}>
-                            <td className="px-6 md:px-8 py-5">
-                              <span className="font-black text-on-surface tracking-tight text-sm md:text-base">{item.name}</span>
+                            <td className="px-6 md:px-8 py-5 truncate">
+                              <span className="font-black text-on-surface tracking-tight text-sm md:text-base truncate block" title={item.name}>{item.name}</span>
                             </td>
-                            <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black">{item.currentStock?.toLocaleString()} KG</td>
+                            <td className="px-6 md:px-8 py-5 text-center text-xs font-bold text-outline truncate" title={item.specs || ''}>{item.specs || '-'}</td>
+                            <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black text-nowrap">{item.currentStock?.toLocaleString()} KG</td>
                             <td className="px-6 md:px-8 py-5 text-center">
                               <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
                                 {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
@@ -373,6 +375,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         <div className="flex items-center gap-3">
                            <div className="text-left">
                               <div className="font-black text-[#0f172a] text-sm">{item.name}</div>
+                              <div className="text-[10px] font-bold text-emerald-600/70">{item.specs || ''}</div>
                               <div className="text-xs font-bold text-outline">{item.currentStock?.toLocaleString()} KG</div>
                            </div>
                         </div>
@@ -446,7 +449,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                             {l.type}
                           </span>
                         </td>
-                        <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
+                        <td className="px-4 py-6">
+                          <div className="font-black text-on-surface">{l.item}</div>
+                          <div className="text-[10px] font-bold text-outline mt-0.5">{itemInfo?.specs || ''}</div>
+                        </td>
                         <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
                         </td>
@@ -509,7 +515,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-black text-[#0f172a]">{l.item}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-[#0f172a]">{l.item}</span>
+                        <span className="text-[10px] font-bold text-outline">{itemInfo?.specs || ''}</span>
+                      </div>
                       <div className="flex items-center gap-4">
                         <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG

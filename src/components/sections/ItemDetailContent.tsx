@@ -177,6 +177,12 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
               <p className="text-xl font-black text-on-surface">{item.category}</p>
             </div>
 
+            {/* 2.1 Specs */}
+            <div className="space-y-1 pb-4 border-b border-outline-variant/30">
+              <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">규격</p>
+              <p className="text-xl font-black text-on-surface">{item.specs || '-'}</p>
+            </div>
+
             {/* 3. Current Stock */}
             <div className="space-y-1 pb-4 border-b border-outline-variant/30">
               <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1 text-primary">현재 재고</p>

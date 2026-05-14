@@ -241,7 +241,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
       <section className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">재고 기록</h3>
+            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">재고리스트</h3>
           </div>
         </div>
 
@@ -254,6 +254,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
                   <tr>
                     <th className="px-4 py-5">SKU / 위치 / 라인</th>
                     <th className="px-4 py-5 font-medium">품목 정보</th>
+                    <th className="px-4 py-5 font-medium">규격</th>
                     <th className="px-4 py-5 font-medium">카테고리</th>
                     <th className="px-4 py-5 font-medium">현재 재고</th>
                     <th className="px-4 py-5 font-medium">상태</th>
@@ -272,6 +273,9 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
                       </td>
                       <td className="px-4 py-4 font-black text-on-surface text-base">
                         {item.name}
+                      </td>
+                      <td className="px-4 py-4 text-xs font-bold text-outline">
+                        {item.specs || '-'}
                       </td>
                       <td className="px-4 py-4">
                         <span className="px-2 py-1 bg-surface-container rounded-lg text-[9px] font-black text-outline uppercase">
@@ -334,6 +338,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
                           <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md text-[8px] font-black text-outline uppercase">{item.category}</span>
                         </div>
                         <h4 className="text-base font-black text-[#0f172a]">{item.name}</h4>
+                        <div className="text-[10px] font-black text-emerald-600/80">{item.specs || ''}</div>
                         <div className="text-[9px] font-bold text-outline uppercase">{item.location || '미지정 위치'} / {item.brand || 'No Brand'}</div>
                       </div>
                       

@@ -292,7 +292,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">물류현황</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">물류관리</h1>
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -533,7 +533,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       <section id="logistics-list" className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">등록된 물류</h3>
+            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">물류리스트</h3>
           </div>
         </div>
 
@@ -549,6 +549,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                       <th className="px-4 py-8">구분</th>
                       <th className="px-4 py-8">원육/생산</th>
                       <th className="px-4 py-8">브랜드</th>
+                      <th className="px-4 py-8">규격</th>
                       <th className="px-4 py-8">품목</th>
                       <th className="px-4 py-8">중량</th>
                       <th className="px-4 py-8 text-right pr-8">관리</th>
@@ -574,6 +575,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           ) : '-'}
                         </td>
                         <td className="px-4 py-6 text-sm font-bold text-primary">{l.brand || '-'}</td>
+                        <td className="px-4 py-6 text-xs font-bold text-outline">
+                          {inventory?.find((i: any) => i.name === l.item)?.specs || '-'}
+                        </td>
                         <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
                         <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
@@ -616,7 +620,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     </div>
 
                     <div className="space-y-1">
-                      <div className="text-[10px] font-black text-outline uppercase tracking-widest">{l.brand} | {l.category}</div>
+                      <div className="text-[10px] font-black text-outline uppercase tracking-widest">
+                        {l.brand} | {l.category} {inventory?.find((i: any) => i.name === l.item)?.specs && `| ${inventory.find((i: any) => i.name === l.item).specs}`}
+                      </div>
                       <div className="text-lg font-black text-[#0f172a]">{l.item}</div>
                     </div>
 

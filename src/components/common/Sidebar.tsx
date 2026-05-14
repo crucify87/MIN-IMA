@@ -23,7 +23,7 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
     { id: 'dashboard', icon: LayoutDashboard, label: '대시보드' },
     { id: 'inventory', icon: Package, label: '재고현황' },
     { id: 'logistics', icon: Truck, label: '물류현황' },
-    { id: 'production', icon: Factory, label: '생산관리' },
+    { id: 'production', icon: Factory, label: '생산현황' },
     { id: 'settings', icon: Settings, label: '시스템설정' },
   ] as const;
 

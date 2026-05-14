@@ -553,7 +553,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">생산 일지</h3>
+            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">생산리스트</h3>
           </div>
         </div>
 
@@ -587,7 +587,10 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                             <span className="text-[11px] font-black text-[#0f172a]">{item.line || '기본'}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-6 font-black text-[#0f172a]">{item.title}</td>
+                        <td className="px-6 py-6">
+                          <div className="font-black text-[#0f172a]">{item.title}</div>
+                          <div className="text-[10px] font-bold text-outline uppercase tracking-tight">{itemData?.specs || ''}</div>
+                        </td>
                         <td className="px-6 py-6 text-sm">
                           <div className="flex flex-col items-center">
                             <span className="font-bold text-[#0f172a]">{item.rawMaterial || '-'}</span>
@@ -628,6 +631,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                           <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md text-[8px] font-black text-outline uppercase">{item.line}</span>
                         </div>
                         <h4 className="text-base font-black text-[#0f172a]">{item.title}</h4>
+                        {itemData?.specs && <div className="text-[10px] font-black text-emerald-600/70 uppercase tracking-tight">{itemData.specs}</div>}
                         <div className="text-[10px] font-bold text-outline flex gap-2">
                           <span>원육: {item.rawMaterial || '-'}</span>
                           <span>브랜드: {item.brand || '-'}</span>

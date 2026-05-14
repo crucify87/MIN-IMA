@@ -23,6 +23,7 @@
         "name": { "type": "string" },
         "category": { "type": "string" },
         "brand": { "type": "string" },
+        "specs": { "type": "string" },
         "currentStock": { "type": "number" },
         "unit": { "type": "string" },
         "purchasePrice": { "type": "number" },
