@@ -478,7 +478,7 @@ function SettingsContent({
                     </button>
                     {showUnitOptions && (
                       <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                        {['kg', 'g', 'box'].map((u) => (
+                        {['ea', 'kg', 'g', 'box'].map((u) => (
                           <button
                             key={u}
                             type="button"
