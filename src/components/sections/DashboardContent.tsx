@@ -37,8 +37,14 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
-    // Sort by latest update first
+    // Sort by shortage status first, then by latest update
     return [...result].sort((a: any, b: any) => {
+      const aShortage = a.currentStock < (a.safetyStock || 0);
+      const bShortage = b.currentStock < (b.safetyStock || 0);
+      
+      if (aShortage && !bShortage) return -1;
+      if (!aShortage && bShortage) return 1;
+      
       const timeA = a.updatedAt?.seconds || 0;
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
