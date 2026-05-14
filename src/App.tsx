@@ -48,6 +48,26 @@ export default function App() {
     settings
   } = useAppData(user, isSuperAdmin);
 
+  // Dynamic Favicon & Title Update
+  React.useEffect(() => {
+    if (settings?.logoUrl) {
+      const link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+      if (link) {
+        link.href = settings.logoUrl;
+      } else {
+        const newLink = document.createElement('link');
+        newLink.rel = 'icon';
+        newLink.href = settings.logoUrl;
+        document.head.appendChild(newLink);
+      }
+      
+      const appleLink: HTMLLinkElement | null = document.querySelector("link[rel='apple-touch-icon']");
+      if (appleLink) {
+        appleLink.href = settings.logoUrl;
+      }
+    }
+  }, [settings?.logoUrl]);
+
   const handleLogin = async () => {
     try { await loginWithGoogle(); } catch (error) { console.error("Login failed:", error); }
   };
@@ -87,7 +107,7 @@ export default function App() {
               <img src={appLogo} className="w-full h-full object-contain" alt="Logo" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-black text-[#0f172a] tracking-tight">재고 관리 시스템</h1>
+              <h1 className="text-3xl font-black text-[#0f172a] tracking-tight">{settings?.appName || "재고 관리 시스템"}</h1>
               <p className="text-slate-500 font-bold text-sm">MIN IMA INVENTORY MANAGEMENT</p>
             </div>
           </div>

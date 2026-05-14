@@ -12,6 +12,9 @@ import {
   Users,
   Mail,
   Lock,
+  Settings,
+  Image as ImageIcon,
+  Upload,
   AlertTriangle
 } from 'lucide-react';
 import { 
@@ -38,13 +41,55 @@ function SettingsContent({
   canEditPrices,
   settings
 }: any) {
-  const [tab, setTab] = useState<'p' | 't' | 'u'>('p');
+  const [tab, setTab] = useState<'p' | 't' | 'u' | 's'>('p');
   const [search, setSearch] = useState('');
   const [partnerSearch, setPartnerSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [showAllPartners, setShowAllPartners] = useState(false);
   const [showAllItems, setShowAllItems] = useState(false);
   const [showAllUsers, setShowAllUsers] = useState(false);
+
+  // App Settings Form
+  const [logoUrl, setLogoUrl] = useState(settings?.logoUrl || '');
+  const [appName, setAppName] = useState(settings?.appName || '재고 관리 시스템');
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 800000) { // Approx 800KB to stay safe within Firestore's 1MB limit (inc metadata)
+      alert('파일 크기가 너무 큽니다. 800KB 이하의 이미지를 선택해주세요.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setLogoUrl(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveAppSettings = async (e: any) => {
+    e.preventDefault();
+    if (!canManageUsers) return;
+    setSavingSettings(true);
+    try {
+      await setDoc(doc(db, 'settings', 'app'), {
+        logoUrl,
+        appName,
+        updatedAt: serverTimestamp(),
+        updatedBy: user?.email
+      }, { merge: true });
+      alert('앱 설정이 저장되었습니다.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'settings/app');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   // Item Form
   const [itemForm, setItemForm] = useState({
@@ -54,6 +99,24 @@ function SettingsContent({
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showUnitOptions, setShowUnitOptions] = useState(false);
   const [showCategoryOptions, setShowCategoryOptions] = useState(false);
+  const [showSkuOptions, setShowSkuOptions] = useState(false);
+
+  const getNextSku = (prefix: string) => {
+    const itemsWithPrefix = inventory.filter((i: any) => i.sku?.startsWith(prefix));
+    let nextNum = 1;
+    
+    if (itemsWithPrefix.length > 0) {
+      const nums = itemsWithPrefix.map((i: any) => {
+        const parts = i.sku.split('-');
+        const lastPart = parts[parts.length - 1];
+        const num = parseInt(lastPart);
+        return isNaN(num) ? 0 : num;
+      });
+      nextNum = Math.max(...nums) + 1;
+    }
+    
+    return `${prefix}-${String(nextNum).padStart(3, '0')}`;
+  };
 
   // Partner Form
   const [partnerForm, setPartnerForm] = useState({ name: '', type: '공급사', phone: '', address: '' });
@@ -219,6 +282,7 @@ function SettingsContent({
         <button onClick={() => setTab('p')} className={`flex-1 md:flex-none min-w-[100px] px-4 md:px-10 py-3.5 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품</button>
         <button onClick={() => setTab('t')} className={`flex-1 md:flex-none min-w-[100px] px-4 md:px-10 py-3.5 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처 관리</button>
         {canManageUsers && <button onClick={() => setTab('u')} className={`flex-1 md:flex-none min-w-[100px] px-4 md:px-10 py-3.5 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>관리자 설정</button>}
+        {canManageUsers && <button onClick={() => setTab('s')} className={`flex-1 md:flex-none min-w-[100px] px-4 md:px-10 py-3.5 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 's' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>앱 설정</button>}
       </div>
 
       <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
@@ -239,9 +303,50 @@ function SettingsContent({
                 
                 <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 md:gap-x-12 gap-y-5 md:gap-y-6">
                   {/* Row 1: SKU & Name */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 relative">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">SKU 번호</label>
-                    <input placeholder="예: SKU-BF-001" value={itemForm.sku} onChange={e => setItemForm({...itemForm, sku: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
+                    <div className="relative group">
+                      <input 
+                        placeholder="예: P-001" 
+                        value={itemForm.sku} 
+                        onChange={e => setItemForm({...itemForm, sku: e.target.value.toUpperCase()})} 
+                        className="w-full h-12 md:h-14 px-5 md:px-6 pr-12 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" 
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowSkuOptions(!showSkuOptions)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showSkuOptions ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                    {showSkuOptions && (
+                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="px-5 py-3 bg-[#f8fafc] text-[10px] font-black text-outline uppercase tracking-widest">자동 번호 부여</div>
+                        {[
+                          { label: '부속물', prefix: 'O', category: '부속물' },
+                          { label: '돼지고기', prefix: 'P', category: '돼지고기' },
+                          { label: '소고기', prefix: 'C', category: '소고기' }
+                        ].map((opt) => (
+                          <button
+                            key={opt.prefix}
+                            type="button"
+                            onClick={() => {
+                              const newSku = getNextSku(opt.prefix);
+                              setItemForm({ ...itemForm, sku: newSku, category: opt.category });
+                              setShowSkuOptions(false);
+                            }}
+                            className="w-full h-12 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors text-slate-600"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-10 text-left font-black text-primary">{opt.prefix}-</span>
+                              <span>{opt.label}</span>
+                            </div>
+                            <div className="text-[10px] font-black text-outline/50">{getNextSku(opt.prefix)} 예정</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">품목명</label>
@@ -780,6 +885,82 @@ function SettingsContent({
                  </div>
                </div>
              </div>
+          </div>
+        )}
+        {tab === 's' && (
+          <div className="p-4 md:p-10 space-y-10 md:space-y-12">
+            <div className="max-w-xl mx-auto space-y-10">
+              <div className="text-center space-y-1">
+                <h3 className="text-base md:text-xl font-black text-[#0f172a] tracking-tight">앱 로고 및 정보 변경</h3>
+                <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest">APPLICATION BRANDING & SETTINGS</p>
+                <div className="w-12 h-1 bg-primary/20 mx-auto rounded-full mt-3"></div>
+              </div>
+
+              <form onSubmit={handleSaveAppSettings} className="space-y-8">
+                {/* Logo Preview */}
+                <div className="flex flex-col items-center gap-6 p-8 bg-slate-50/50 rounded-[32px] border border-outline-variant/40">
+                  <div className="text-[10px] font-black text-outline uppercase tracking-widest">로고 미리보기 (PREVIEW)</div>
+                  <div className="w-32 h-32 bg-white rounded-3xl p-6 flex items-center justify-center shadow-xl border border-slate-100">
+                    <img src={logoUrl || "/512x512.png?v=3"} className="max-w-full max-h-full object-contain" alt="Logo Preview" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-[11px] font-bold text-slate-500">200x200 이상 PNG/JPG 권장</p>
+                    <p className="text-[10px] text-primary/60 font-black">브라우저 아이콘도 함께 변경됩니다</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-2">
+                      <Upload className="w-3 h-3 text-primary" /> 로고 이미지 첨부
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="logo-upload"
+                      />
+                      <label 
+                        htmlFor="logo-upload"
+                        className="w-full h-14 px-6 bg-white border border-outline-variant/60 rounded-2xl font-bold flex items-center justify-between cursor-pointer hover:border-primary hover:bg-slate-50 transition-all shadow-sm group"
+                      >
+                        <span className="text-sm text-slate-600 truncate mr-4">
+                          {logoUrl.startsWith('data:') ? '새 이미지 분석됨' : (logoUrl ? '현재 사용 중인 이미지' : '이미지 선택...')}
+                        </span>
+                        <div className="shrink-0 flex items-center gap-2 text-primary font-black text-[11px] uppercase tracking-wider">
+                          <ImageIcon className="w-4 h-4" />
+                          <span>파일 선택</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-2">
+                      <Settings className="w-3 h-3 text-primary" /> 시스템 명칭
+                    </label>
+                    <input 
+                      placeholder="재고 관리 시스템" 
+                      value={appName} 
+                      onChange={e => setAppName(e.target.value)} 
+                      className="w-full h-14 px-6 bg-white border border-outline-variant/60 rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/30 text-sm shadow-sm" 
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={savingSettings}
+                  className="w-full h-16 bg-[#0f172a] text-white rounded-2xl font-black text-lg shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {savingSettings ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : '설정 저장하기'}
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </div>
