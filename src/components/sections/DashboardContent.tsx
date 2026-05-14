@@ -254,13 +254,13 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   return (
     <div className="space-y-10">
       {/* Dashboard Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 md:px-0">
         <div className="space-y-1">
-          <h1 className="text-3xl md:text-4xl font-black text-on-surface tracking-tighter">대시보드</h1>
+          <h1 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter">대시보드</h1>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative group flex-1 sm:flex-initial">
+        <div className="flex flex-row items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar pb-1 px-1 -mx-1">
+          <div className="relative group shrink-0 w-40 md:w-48">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
             <input 
               type="text" 
@@ -270,13 +270,13 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                 setSearchQuery(e.target.value);
                 setInventoryPage(1);
               }}
-              className="h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all w-full md:w-48" 
+              className="h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all w-full" 
             />
           </div>
           
           <button 
             onClick={handleRefresh}
-            className="flex items-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary transition-all active:scale-95 group"
+            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary transition-all active:scale-95 group whitespace-nowrap"
           >
             <motion.div
               animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
@@ -284,15 +284,16 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             >
               <CalendarDays className={`w-4 h-4 ${isRefreshing ? 'text-primary' : 'text-outline'}`} />
             </motion.div>
-            <span>{isRefreshing ? '최신화 중...' : today}</span>
+            <span className="hidden sm:inline">{isRefreshing ? '최신화 중...' : today}</span>
+            <span className="sm:hidden">{isRefreshing ? '...' : today.split('-').slice(1).join('/')}</span>
           </button>
 
-          <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant">
+          <div className="flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center">
             {['일간', '주간', '월간'].map((shift) => (
               <button
                 key={shift}
                 onClick={() => setActiveShift(shift)}
-                className={`px-6 py-1.5 rounded-lg text-xs font-black transition-all ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+                className={`px-4 md:px-6 h-full rounded-lg text-[11px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
               >
                 {shift}
               </button>
@@ -302,18 +303,18 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       </header>
 
       {/* Stat Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {stats.map((stat, idx) => (
           <div 
             key={idx} 
-            className={`bg-white p-6 md:p-10 rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[140px] sm:min-h-[180px] md:min-h-[220px] ${stat.active ? 'border-primary shadow-lg shadow-primary/5' : 'border-outline-variant/30 shadow-sm'}`}
+            className={`bg-white p-5 md:p-10 rounded-[28px] md:rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[120px] sm:min-h-[180px] md:min-h-[220px] ${stat.active ? 'border-primary shadow-lg shadow-primary/5' : 'border-outline-variant/30 shadow-sm'}`}
           >
-            <p className={`text-[10px] md:text-[11px] font-black uppercase tracking-tight text-center ${stat.active ? 'text-primary' : 'text-outline'}`}>{stat.label}</p>
-            <div className="flex items-baseline justify-center gap-2 w-full">
-              <span className={`text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
+            <p className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight text-center ${stat.active ? 'text-primary' : 'text-outline'}`}>{stat.label}</p>
+            <div className="flex items-baseline justify-center gap-1.5 md:gap-2 w-full">
+              <span className={`text-2xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
                 {stat.value.toLocaleString()}
               </span>
-              <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">KG</span>
+              <span className="text-[9px] md:text-sm font-black text-outline uppercase shrink-0">KG</span>
             </div>
           </div>
         ))}
@@ -371,15 +372,17 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   {/* Mobile View Card */}
                   <div className="md:hidden divide-y divide-outline-variant/10 text-left">
                     {paginatedInventory.map((item: any, i: number) => (
-                      <div key={i} className="p-5 flex items-center justify-between active:bg-slate-50 transition-colors" onClick={() => onNavigate('inventory')}>
-                        <div className="flex items-center gap-3">
-                           <div className="text-left">
-                              <div className="font-black text-[#0f172a] text-sm">{item.name}</div>
-                              <div className="text-[10px] font-bold text-emerald-600/70">{item.specs || ''}</div>
-                              <div className="text-xs font-bold text-outline">{item.currentStock?.toLocaleString()} KG</div>
+                      <div key={i} className="p-4 flex items-center justify-between active:bg-slate-50 transition-colors" onClick={() => onNavigate('inventory')}>
+                        <div className="flex items-center gap-3 min-w-0">
+                           <div className="text-left min-w-0">
+                              <div className="font-black text-[#0f172a] text-sm truncate">{item.name}</div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <div className="text-[10px] font-bold text-emerald-600/70">{item.specs || '-'}</div>
+                                <div className="text-[10px] font-bold text-outline">{item.currentStock?.toLocaleString()} KG</div>
+                              </div>
                            </div>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
                           {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
                         </span>
                       </div>

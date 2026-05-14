@@ -149,43 +149,41 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 md:px-0">
         <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors">
+          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-3xl md:text-4xl font-black text-on-surface tracking-tighter">재고관리</h1>
+          <h1 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter">재고관리</h1>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant">
-            {['일간', '주간', '월간'].map((shift) => (
-              <button
-                key={shift}
-                onClick={() => setActiveShift(shift)}
-                className={`px-6 py-1.5 rounded-lg text-xs font-black transition-all ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
-              >
-                {shift}
-              </button>
-            ))}
-          </div>
+        <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant self-start sm:self-auto overflow-x-auto no-scrollbar">
+          {['일간', '주간', '월간'].map((shift) => (
+            <button
+              key={shift}
+              onClick={() => setActiveShift(shift)}
+              className={`px-6 py-2 rounded-lg text-[11px] font-black transition-all whitespace-nowrap ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+            >
+              {shift}
+            </button>
+          ))}
         </div>
       </header>
 
       {/* Summary Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {summaryStats.map((stat, idx) => (
           <div 
             key={idx} 
-            className="bg-white p-6 md:p-10 rounded-[32px] border border-outline-variant shadow-sm transition-all flex flex-col items-center justify-center gap-2 md:gap-4 group hover:shadow-md relative overflow-hidden min-h-[140px] sm:min-h-[180px] md:min-h-[220px]"
+            className="bg-white p-5 md:p-10 rounded-[28px] md:rounded-[32px] border border-outline-variant shadow-sm transition-all flex flex-col items-center justify-center gap-2 md:gap-4 group hover:shadow-md relative overflow-hidden min-h-[120px] sm:min-h-[180px] md:min-h-[220px]"
           >
             <div className={`absolute top-0 left-0 w-full h-1 md:h-1.5 ${stat.isAlert ? 'bg-rose-500' : stat.isSuccess ? 'bg-emerald-500' : idx === 0 ? 'bg-[#94a3b8]' : 'bg-[#3b82f6]'}`} />
-            <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
-            <div className="flex items-baseline justify-center gap-2 w-full">
-              <span className={`text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
+            <p className="text-[9px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
+            <div className="flex items-baseline justify-center gap-1.5 md:gap-2 w-full">
+              <span className={`text-2xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
                 {stat.value.toLocaleString()}
               </span>
-              <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
+              <span className="text-[9px] md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
             </div>
           </div>
         ))}
@@ -324,42 +322,41 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
               </table>
             </div>
 
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-2 p-2">
+            <div className="md:hidden space-y-3 p-2">
               {paginatedItems.length > 0 ? (
                 paginatedItems.map((item: any, i: number) => (
-                  <div key={i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden group">
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                  <div key={i} className="bg-white p-4 rounded-[28px] border border-outline-variant/60 shadow-sm space-y-4 relative overflow-hidden group transition-all active:bg-slate-50">
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                     
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-primary font-mono">{item.sku}</span>
-                          <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md text-[8px] font-black text-outline uppercase">{item.category}</span>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[9px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg">{item.sku}</span>
+                          <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[9px] font-black text-outline uppercase">{item.category}</span>
                         </div>
-                        <h4 className="text-base font-black text-[#0f172a]">{item.name}</h4>
-                        <div className="text-[10px] font-black text-emerald-600/80">{item.specs || ''}</div>
-                        <div className="text-[9px] font-bold text-outline uppercase">{item.location || '미지정 위치'} / {item.brand || 'No Brand'}</div>
+                        <h4 className="text-base font-black text-[#0f172a] leading-tight truncate">{item.name}</h4>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="text-[10px] font-black text-emerald-600/80">{item.specs || '-'}</div>
+                          <div className="text-[10px] font-bold text-outline uppercase">{item.location || '위치미정'}</div>
+                        </div>
                       </div>
                       
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => onNavigate('detail', item)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
-                            <Edit className="w-4 h-4" />
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => onNavigate('detail', item)} className="p-3 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        {canEditItems && (
+                          <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-3 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                            <Trash2 className="w-4 h-4" />
                           </button>
-                          {canEditItems && (
-                            <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-end justify-between pt-2 border-t border-slate-50">
+                    <div className="flex items-end justify-between pt-3 border-t border-slate-50">
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-outline uppercase tracking-wider">현재 재고</span>
-                        <div className="flex items-baseline gap-1">
+                        <span className="text-[9px] font-black text-outline uppercase tracking-wider mb-1">현재 재고</span>
+                        <div className="flex items-baseline gap-1.5">
                           <span className={`text-xl font-black ${item.currentStock < (item.safetyStock || 0) ? 'text-rose-600' : 'text-[#0f172a]'}`}>
                             {item.currentStock?.toLocaleString()}
                           </span>

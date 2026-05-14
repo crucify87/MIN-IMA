@@ -28,7 +28,7 @@ const MobileNav = ({ view, setView }: MobileNavProps) => {
         <button
           key={item.id}
           onClick={() => setView(item.id)}
-          className={`flex flex-col items-center gap-1.5 transition-all ${
+          className={`relative flex flex-col items-center gap-1.5 transition-all ${
             view === item.id || (view === 'detail' && item.id === 'inventory') ? 'text-primary scale-110' : 'text-outline hover:text-on-surface'
           }`}
         >

@@ -530,14 +530,25 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       </section>
 
       {/* Table Area */}
-      <section id="logistics-list" className="space-y-6">
-        <div className="flex items-center justify-between">
+      <section id="logistics-list" className="space-y-6 lg:space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1 md:px-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">물류리스트</h3>
+            <h3 className="text-xl md:text-3xl font-black text-[#0f172a] tracking-tight">물류리스트</h3>
+            <span className="md:hidden px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-outline uppercase tracking-widest mt-1">LOGISTICS LOGS</span>
+          </div>
+          <div className="relative group w-full md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+            <input 
+              type="text" 
+              placeholder="품목명, 거래처 검색..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="w-full h-11 md:h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
+            />
           </div>
         </div>
 
-        <div className="min-h-[400px] flex flex-col rounded-[32px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-2 md:p-10">
+        <div className="min-h-[400px] flex flex-col rounded-[28px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-1.5 md:p-10">
           {paginatedItems.length > 0 ? (
             <div className="w-full space-y-4">
               {/* Desktop View Table */}
@@ -599,38 +610,44 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="md:hidden space-y-3 p-1">
                 {paginatedItems.map((l: any, i: number) => (
-                  <div key={l.id || i} className="bg-white p-5 rounded-[24px] border border-outline-variant shadow-sm space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                          {l.type}
-                        </span>
-                        <div className="text-[10px] font-black text-outline uppercase">{l.date} <span className="opacity-50 ml-1">{l.time}</span></div>
+                  <div key={l.id || i} className="bg-white p-5 rounded-[28px] border border-outline-variant shadow-sm space-y-4 relative overflow-hidden active:bg-slate-50 transition-all">
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${l.type === '입고' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                    
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black tracking-widest uppercase ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                            {l.type}
+                          </span>
+                          <div className="text-[10px] font-black text-outline uppercase tracking-tight">{l.date} <span className="opacity-40 ml-0.5">{l.time}</span></div>
+                        </div>
+                        <h4 className="text-base font-black text-[#0f172a] truncate">{l.item}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold text-outline uppercase">{l.category}</span>
+                          <span className="text-[10px] font-black text-primary/60">{l.brand}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                         <button onClick={() => handleEdit(l)} className="p-2 bg-slate-50 text-slate-400 rounded-lg">
-                           <Edit className="w-4 h-4" />
-                         </button>
-                         <button onClick={() => handleDelete(l)} className="p-2 bg-rose-50 text-rose-400 rounded-lg">
-                           <Trash2 className="w-4 h-4" />
-                         </button>
+                      
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                         <div className={`text-xl font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                           {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline">KG</span>
+                         </div>
+                         <div className="flex items-center gap-1">
+                           <button onClick={() => handleEdit(l)} className="p-3 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                             <Edit className="w-4 h-4" />
+                           </button>
+                           <button onClick={() => handleDelete(l)} className="p-3 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                             <Trash2 className="w-4 h-4" />
+                           </button>
+                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <div className="text-[10px] font-black text-outline uppercase tracking-widest">
-                        {l.brand} | {l.category} {inventory?.find((i: any) => i.name === l.item)?.specs && `| ${inventory.find((i: any) => i.name === l.item).specs}`}
-                      </div>
-                      <div className="text-lg font-black text-[#0f172a]">{l.item}</div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                      <div className="text-xs font-bold text-slate-400">거래처: <span className="text-[#0f172a]">{l.partner || '-'}</span></div>
-                      <div className={`text-xl font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-xs uppercase ml-1">KG</span>
-                      </div>
+                    <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
+                       <p className="text-[10px] font-bold text-slate-400 truncate flex-1 mr-4">거래처: <span className="text-[#0f172a]">{l.partner || '-'}</span></p>
+                       <span className="text-[9px] font-black text-emerald-600/80 uppercase">{inventory?.find((i: any) => i.name === l.item)?.specs || ''}</span>
                     </div>
                   </div>
                 ))}

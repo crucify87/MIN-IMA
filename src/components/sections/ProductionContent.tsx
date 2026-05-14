@@ -551,13 +551,24 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           </div>
         </section>
 
-        <div className="flex items-center justify-between px-2">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">생산리스트</h3>
+            <h3 className="text-xl md:text-3xl font-black text-[#0f172a] tracking-tight">생산리스트</h3>
+            <span className="md:hidden px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-outline uppercase tracking-widest">LOGS</span>
+          </div>
+          <div className="relative group w-full md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+            <input 
+              type="text" 
+              placeholder="품목명 검색..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="w-full h-11 md:h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
+            />
           </div>
         </div>
 
-        <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
+        <div className="bg-white rounded-[28px] md:rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-1.5 md:p-0">
           <div className="w-full">
             {/* Desktop View Table */}
             <div className="hidden md:block overflow-x-auto">
@@ -619,29 +630,28 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             </div>
 
             {/* Mobile Card View */}
-            <div className="md:hidden space-y-3 p-3">
+            <div className="md:hidden space-y-3 p-1.5">
               {paginatedItems.map((item: any, idx: number) => {
                 const itemData = inventory.find((inv: any) => inv.name === item.title);
                 return (
-                  <div key={item.id || idx} className="bg-white p-5 rounded-[28px] border border-outline-variant/60 shadow-sm space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-primary font-mono">{itemData?.sku || 'N/A'}</span>
-                          <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md text-[8px] font-black text-outline uppercase">{item.line}</span>
+                  <div key={item.id || idx} className="bg-white p-5 rounded-[28px] border border-outline-variant/60 shadow-sm space-y-4 relative overflow-hidden active:bg-slate-50 transition-all">
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary" />
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg">{itemData?.sku || 'N/A'}</span>
+                          <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[9px] font-black text-outline uppercase">{item.line} 라인</span>
                         </div>
-                        <h4 className="text-base font-black text-[#0f172a]">{item.title}</h4>
-                        {itemData?.specs && <div className="text-[10px] font-black text-emerald-600/70 uppercase tracking-tight">{itemData.specs}</div>}
-                        <div className="text-[10px] font-bold text-outline flex gap-2">
-                          <span>원육: {item.rawMaterial || '-'}</span>
-                          <span>브랜드: {item.brand || '-'}</span>
+                        <h4 className="text-base font-black text-[#0f172a] leading-tight truncate">{item.title}</h4>
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-outline uppercase tracking-tight truncate">
+                          {itemData?.specs} {itemData?.specs && '|'} 원육: {item.rawMaterial}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => handleEdit(item)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => handleEdit(item)} className="p-3 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all shadow-sm">
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(item.id, item.title)} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                        <button onClick={() => handleDelete(item.id, item.title)} className="p-3 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all shadow-sm">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -649,22 +659,22 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
                     <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-50">
                       <div className="bg-slate-50/50 p-3 rounded-2xl">
-                        <div className="text-[9px] font-black text-outline uppercase tracking-wider mb-1">투입 / 생산</div>
-                        <div className="text-sm font-black text-[#0f172a]">
+                        <div className="text-[8px] font-black text-outline uppercase tracking-wider mb-1">투입 / 생산</div>
+                        <div className="text-xs font-black text-[#0f172a]">
                           {item.rawQty?.toLocaleString()} <span className="text-[10px]">→</span> {item.production?.toLocaleString()} <span className="text-[10px]">KG</span>
                         </div>
                       </div>
                       <div className="bg-emerald-50/50 p-3 rounded-2xl">
-                        <div className="text-[9px] font-black text-emerald-600 uppercase tracking-wider mb-1">수율 / 로스</div>
-                        <div className="text-sm font-black text-emerald-700">
-                          {item.yield?.toFixed(1)}% <span className="text-[10px] text-rose-600">({item.loss?.toFixed(1)}%)</span>
+                        <div className="text-[8px] font-black text-emerald-600 uppercase tracking-wider mb-1">수율 / 로스</div>
+                        <div className="text-xs font-black text-emerald-700">
+                          {item.yield?.toFixed(1)}% <span className="text-[10px] text-rose-600 font-bold">({item.loss?.toFixed(1)}%)</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] font-bold text-outline pt-1">
-                      <div>제조: <span className="text-[#0f172a]">{item.manufDate}</span></div>
-                      <div>기한: <span className="text-[#0f172a]">{item.expiryDate || '-'}</span></div>
+                    <div className="flex items-center justify-between text-[10px] font-bold text-outline pt-1 opacity-70">
+                      <div>제조: <span className="text-[#0f172a] font-black">{item.manufDate}</span></div>
+                      <div>기한: <span className="text-[#0f172a] font-black">{item.expiryDate || '-'}</span></div>
                     </div>
                   </div>
                 );
