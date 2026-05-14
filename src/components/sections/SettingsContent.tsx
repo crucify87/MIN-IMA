@@ -330,7 +330,7 @@ function SettingsContent({
           <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">시스템 설정</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">설정</h1>
         </div>
 
         {/* SKU Reference Guide */}
