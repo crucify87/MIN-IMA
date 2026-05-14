@@ -22,7 +22,8 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
   const [activeShift, setActiveShift] = useState('일간');
-  const [showAll, setShowAll] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const today = new Date().toISOString().split('T')[0];
 
   const categories = useMemo(() => {
@@ -54,6 +55,45 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
       return matchesSearch && matchesCategory && matchesBrand && matchesDate;
     });
   }, [inventory, search, filterCategory, filterBrand, filterStartDate, filterEndDate, logistics]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
+    if (total <= 1) return null;
+    return (
+      <div className="flex items-center justify-center gap-2 mt-8 pb-4">
+        <button 
+          disabled={current === 1}
+          onClick={() => onChange(current - 1)}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4 rotate-180" />
+        </button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: total }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              onClick={() => onChange(p)}
+              className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <button 
+          disabled={current === total}
+          onClick={() => onChange(current + 1)}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
 
   const handleDeleteItem = async (id: string, name: string) => {
     if (!canEditItems) return;
@@ -197,13 +237,6 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
             <Package className="w-6 h-6 text-[#0f172a]" />
             <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">재고 기록</h3>
           </div>
-          <button 
-            onClick={() => setShowAll(!showAll)} 
-            className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant/60 rounded-xl text-sm font-black text-[#0f172a] hover:bg-slate-50 transition-all shadow-sm"
-          >
-            {showAll ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            {showAll ? '' : '더보기'}
-          </button>
         </div>
 
         <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
@@ -222,8 +255,8 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  {filtered.length > 0 ? (
-                    filtered.slice(0, showAll ? undefined : 15).map((item: any, i: number) => (
+                  {paginatedItems.length > 0 ? (
+                    paginatedItems.map((item: any, i: number) => (
                       <tr key={i} className="hover:bg-surface-container/5 transition-colors">
                         <td className="px-4 py-4">
                         <div className="flex flex-col items-center gap-1">
@@ -283,8 +316,8 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-2 p-2">
-              {filtered.length > 0 ? (
-                filtered.slice(0, showAll ? undefined : 15).map((item: any, i: number) => (
+              {paginatedItems.length > 0 ? (
+                paginatedItems.map((item: any, i: number) => (
                   <div key={i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden group">
                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                     
@@ -336,6 +369,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
               )}
             </div>
           </div>
+          <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
         </div>
     </section>
   </div>

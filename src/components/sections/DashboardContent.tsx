@@ -22,8 +22,110 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const today = new Date().toISOString().split('T')[0];
   
   const [activeShift, setActiveShift] = useState('일간');
-  const [showAllActivity, setShowAllActivity] = useState(false);
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [activityPage, setActivityPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(false);
+
+  const paginatedInventory = useMemo(() => {
+    const startIndex = (inventoryPage - 1) * ITEMS_PER_PAGE;
+    return inventory.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [inventory, inventoryPage]);
+
+  const totalInventoryPages = Math.ceil(inventory.length / ITEMS_PER_PAGE);
+
+  const combinedActivity = useMemo(() => {
+    const startOfWeek = new Date();
+    startOfWeek.setDate(new Date().getDate() - 7);
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const isInRange = (dateStr: string) => {
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (activeShift === '일간') return dateStr === today;
+      if (activeShift === '주간') return d >= startOfWeek;
+      if (activeShift === '월간') return d >= startOfMonth;
+      return false;
+    };
+
+    const combined = [
+      ...logistics.map((l: any) => ({
+        originalId: l.id,
+        time: `${l.date} ${l.time}`,
+        type: l.type,
+        item: l.item,
+        weight: l.weight,
+        source: '물류',
+        rawTime: l.createdAt?.seconds || 0,
+        date: l.date
+      })),
+      ...production.flatMap((p: any) => [
+        {
+          originalId: p.id,
+          time: p.manufDate,
+          type: '입고',
+          item: p.title,
+          weight: p.production,
+          source: '생산(완성)',
+          rawTime: p.createdAt?.seconds || 0,
+          date: p.manufDate
+        },
+        {
+          originalId: p.id,
+          time: p.manufDate,
+          type: '출고',
+          item: p.rawMaterial,
+          weight: p.rawQty,
+          source: '생산(투입)',
+          rawTime: p.createdAt?.seconds || 0,
+          date: p.manufDate
+        }
+      ]).filter(i => i.item)
+    ].filter(item => isInRange(item.date))
+    .sort((a, b) => b.rawTime - a.rawTime);
+
+    return combined;
+  }, [logistics, production, activeShift, today]);
+
+  const paginatedActivity = useMemo(() => {
+    const startIndex = (activityPage - 1) * ITEMS_PER_PAGE;
+    return combinedActivity.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [combinedActivity, activityPage]);
+
+  const totalActivityPages = Math.ceil(combinedActivity.length / ITEMS_PER_PAGE);
+
+  const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
+    if (total <= 1) return null;
+    return (
+      <div className="flex items-center justify-center gap-2 mt-6">
+        <button 
+          disabled={current === 1}
+          onClick={() => onChange(current - 1)}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4 rotate-180" />
+        </button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: total }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              onClick={() => onChange(p)}
+              className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <button 
+          disabled={current === total}
+          onClick={() => onChange(current + 1)}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
 
   const handleDelete = async (l: any) => {
     if (!canEditItems || loading) return;
@@ -188,64 +290,59 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         
         <div className="bg-surface-container/30 border border-dashed border-outline-variant/50 rounded-[40px] min-h-[240px] flex flex-col items-center justify-center p-2 md:p-12 text-center group">
           {inventory.length > 0 ? (
-            <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm">
-              <div className="w-full">
-                {/* Desktop View Table */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
-                      <tr>
-                        <th className="px-6 md:px-8 py-5">품목 명칭</th>
-                        <th className="px-6 md:px-8 py-5">현재고 (KG)</th>
-                        <th className="px-6 md:px-8 py-5 text-center">상태</th>
-                        <th className="px-6 md:px-8 py-5"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-outline-variant/10">
-                      {inventory.slice(0, 5).map((item: any, i: number) => (
-                        <tr key={i} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('inventory')}>
-                          <td className="px-6 md:px-8 py-5">
-                            <div className="flex items-center gap-3 md:gap-4">
-                              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                <Package className="w-4 h-4 md:w-5 md:h-5" />
-                              </div>
-                              <span className="font-black text-on-surface tracking-tight text-sm md:text-base">{item.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black">{item.currentStock?.toLocaleString()} KG</td>
-                          <td className="px-6 md:px-8 py-5 text-center">
-                            <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                              {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
-                            </span>
-                          </td>
-                          <td className="px-4 md:px-8 py-5 text-right"><ChevronRight className="w-5 h-5 text-outline" /></td>
+            <>
+              <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm">
+                <div className="w-full">
+                  {/* Desktop View Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
+                        <tr>
+                          <th className="px-6 md:px-8 py-5">품목 명칭</th>
+                          <th className="px-6 md:px-8 py-5">현재고 (KG)</th>
+                          <th className="px-6 md:px-8 py-5 text-center">상태</th>
+                          <th className="px-6 md:px-8 py-5"></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/10">
+                        {paginatedInventory.map((item: any, i: number) => (
+                          <tr key={i} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('inventory')}>
+                            <td className="px-6 md:px-8 py-5">
+                              <span className="font-black text-on-surface tracking-tight text-sm md:text-base">{item.name}</span>
+                            </td>
+                            <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black">{item.currentStock?.toLocaleString()} KG</td>
+                            <td className="px-6 md:px-8 py-5 text-center">
+                              <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                                {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
+                              </span>
+                            </td>
+                            <td className="px-4 md:px-8 py-5 text-right"><ChevronRight className="w-5 h-5 text-outline" /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-                {/* Mobile View Card */}
-                <div className="md:hidden divide-y divide-outline-variant/10">
-                  {inventory.slice(0, 5).map((item: any, i: number) => (
-                    <div key={i} className="p-5 flex items-center justify-between active:bg-slate-50 transition-colors" onClick={() => onNavigate('inventory')}>
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary">
-                            <Package className="w-5 h-5" />
-                         </div>
-                         <div className="text-left">
-                            <div className="font-black text-[#0f172a] text-sm">{item.name}</div>
-                            <div className="text-xs font-bold text-outline">{item.currentStock?.toLocaleString()} KG</div>
-                         </div>
+                  {/* Mobile View Card */}
+                  <div className="md:hidden divide-y divide-outline-variant/10 text-left">
+                    {paginatedInventory.map((item: any, i: number) => (
+                      <div key={i} className="p-5 flex items-center justify-between active:bg-slate-50 transition-colors" onClick={() => onNavigate('inventory')}>
+                        <div className="flex items-center gap-3">
+                           <div className="text-left">
+                              <div className="font-black text-[#0f172a] text-sm">{item.name}</div>
+                              <div className="text-xs font-bold text-outline">{item.currentStock?.toLocaleString()} KG</div>
+                           </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                          {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
+                        </span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                        {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+              <Pagination current={inventoryPage} total={totalInventoryPages} onChange={setInventoryPage} />
+            </>
           ) : (
             <div className="space-y-4">
               <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-md border border-outline-variant/30">
@@ -293,59 +390,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  {useMemo(() => {
-                    const now = new Date();
-                    const startOfWeek = new Date();
-                    startOfWeek.setDate(now.getDate() - 7);
-                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-                    const isInRange = (dateStr: string) => {
-                      if (!dateStr) return false;
-                      const d = new Date(dateStr);
-                      if (activeShift === '일간') return dateStr === today;
-                      if (activeShift === '주간') return d >= startOfWeek;
-                      if (activeShift === '월간') return d >= startOfMonth;
-                      return false;
-                    };
-
-                    const combined = [
-                      ...logistics.map((l: any) => ({
-                        originalId: l.id,
-                        time: `${l.date} ${l.time}`,
-                        type: l.type,
-                        item: l.item,
-                        weight: l.weight,
-                        source: '물류',
-                        rawTime: l.createdAt?.seconds || 0,
-                        date: l.date
-                      })),
-                      ...production.flatMap((p: any) => [
-                        {
-                          originalId: p.id,
-                          time: p.manufDate,
-                          type: '입고',
-                          item: p.title,
-                          weight: p.production,
-                          source: '생산(완성)',
-                          rawTime: p.createdAt?.seconds || 0,
-                          date: p.manufDate
-                        },
-                        {
-                          originalId: p.id,
-                          time: p.manufDate,
-                          type: '출고',
-                          item: p.rawMaterial,
-                          weight: p.rawQty,
-                          source: '생산(투입)',
-                          rawTime: p.createdAt?.seconds || 0,
-                          date: p.manufDate
-                        }
-                      ]).filter(i => i.item)
-                    ].filter(item => isInRange(item.date))
-                    .sort((a, b) => b.rawTime - a.rawTime);
-
-                    return showAllActivity ? combined : combined.slice(0, 10);
-                  }, [logistics, production, activeShift, today, showAllActivity]).map((l, i) => {
+                  {paginatedActivity.map((l: any, i: number) => {
                     const itemInfo = inventory.find((inv: any) => inv.name === l.item);
                     const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
                     const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
@@ -385,9 +430,9 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       </tr>
                     );
                   })}
-                  {logistics.length === 0 && production.length === 0 && (
+                  {paginatedActivity.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-24 text-center">
+                      <td colSpan={6} className="py-24 text-center">
                         <p className="text-xl font-black text-outline/40 tracking-tight">활동 내역이 없습니다</p>
                       </td>
                     </tr>
@@ -398,135 +443,56 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
             {/* Mobile View Activity Cards */}
             <div className="md:hidden divide-y divide-outline-variant/10 p-2">
-              {(() => {
-                const now = new Date();
-                const startOfWeek = new Date();
-                startOfWeek.setDate(now.getDate() - 7);
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+              {paginatedActivity.map((l: any, i: number) => {
+                const itemInfo = inventory.find((inv: any) => inv.name === l.item);
+                const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
+                const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
 
-                const isInRange = (dateStr: string) => {
-                  if (!dateStr) return false;
-                  const d = new Date(dateStr);
-                  if (activeShift === '일간') return dateStr === today;
-                  if (activeShift === '주간') return d >= startOfWeek;
-                  if (activeShift === '월간') return d >= startOfMonth;
-                  return false;
-                };
-
-                const combined = [
-                  ...logistics.map((l: any) => ({
-                    time: `${l.date} ${l.time}`,
-                    type: l.type,
-                    item: l.item,
-                    weight: l.weight,
-                    source: '물류',
-                    rawTime: l.createdAt?.seconds || 0,
-                    date: l.date
-                  })),
-                  ...production.flatMap((p: any) => [
-                    {
-                      time: p.manufDate,
-                      type: '입고',
-                      item: p.title,
-                      weight: p.production,
-                      source: '생산(완성)',
-                      rawTime: p.createdAt?.seconds || 0,
-                      date: p.manufDate
-                    },
-                    {
-                      time: p.manufDate,
-                      type: '출고',
-                      item: p.rawMaterial,
-                      weight: p.rawQty,
-                      source: '생산(투입)',
-                      rawTime: p.createdAt?.seconds || 0,
-                      date: p.manufDate
-                    }
-                  ]).filter(i => i.item)
-                ].filter(item => isInRange(item.date))
-                .sort((a, b) => b.rawTime - a.rawTime);
-
-                const finalItems = showAllActivity ? combined : combined.slice(0, 10);
-                
-                if (finalItems.length === 0) {
-                  return <div className="py-12 text-center opacity-40 text-sm font-black">활동 내역이 없습니다</div>;
-                }
-
-                return finalItems.map((l, i) => {
-                  const itemInfo = inventory.find((inv: any) => inv.name === l.item);
-                  const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
-                  const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
-
-                  return (
-                    <div key={i} className="p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                           <span className={`px-2 py-0.5 rounded text-[8px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                              {l.type}
-                            </span>
-                            <span className="text-[10px] font-bold text-outline">{l.time}</span>
-                        </div>
-                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
-                              status === '부족' ? 'bg-rose-500 text-white' : 
-                              status === '보충' ? 'bg-blue-500 text-white' : 
-                              'bg-emerald-500 text-white'
-                            }`}>
-                              {status}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-black text-[#0f172a]">{l.item}</span>
-                        <div className="flex items-center gap-4">
-                          <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                return (
+                  <div key={i} className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                         <span className={`px-2 py-0.5 rounded text-[8px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                            {l.type}
                           </span>
-                          {canEditItems && (
-                            <button 
-                               onClick={() => handleDelete(l)} 
-                               className="p-2 bg-rose-50 text-rose-400 rounded-xl"
-                            >
-                               <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
+                          <span className="text-[10px] font-bold text-outline">{l.time}</span>
+                      </div>
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
+                            status === '부족' ? 'bg-rose-500 text-white' : 
+                            status === '보충' ? 'bg-blue-500 text-white' : 
+                            'bg-emerald-500 text-white'
+                          }`}>
+                            {status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-black text-[#0f172a]">{l.item}</span>
+                      <div className="flex items-center gap-4">
+                        <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                        </span>
+                        {canEditItems && (
+                          <button 
+                             onClick={() => handleDelete(l)} 
+                             className="p-2 bg-rose-50 text-rose-400 rounded-xl"
+                          >
+                             <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
-                  );
-                });
-              })()}
+                  </div>
+                );
+              })}
+              {paginatedActivity.length === 0 && (
+                <div className="py-12 text-center opacity-40 text-sm font-black">활동 내역이 없습니다</div>
+              )}
             </div>
           </div>
           
-          {useMemo(() => {
-            const now = new Date();
-            const startOfWeek = new Date();
-            startOfWeek.setDate(now.getDate() - 7);
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-            const isInRange = (dateStr: string) => {
-              if (!dateStr) return false;
-              const d = new Date(dateStr);
-              if (activeShift === '일간') return dateStr === today;
-              if (activeShift === '주간') return d >= startOfWeek;
-              if (activeShift === '월간') return d >= startOfMonth;
-              return false;
-            };
-
-            const count = [...logistics, ...production].filter(item => {
-              const date = (item as any).date || (item as any).manufDate;
-              return isInRange(date);
-            }).length;
-            
-            return count > 10;
-          }, [logistics, production, activeShift, today]) && (
-            <button 
-              onClick={() => setShowAllActivity(!showAllActivity)}
-              className="w-full py-4 bg-surface-container/30 border-t border-outline-variant text-xs font-black text-on-surface-variant hover:text-primary transition-all flex items-center justify-center gap-2 group"
-            >
-              {showAllActivity ? '접기' : '변동 내역 더보기'}
-              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showAllActivity ? 'rotate-180' : 'group-hover:translate-y-0.5'}`} />
-            </button>
-          )}
+          <div className="p-4 bg-surface-container/10 border-t border-outline-variant">
+            <Pagination current={activityPage} total={totalActivityPages} onChange={setActivityPage} />
+          </div>
         </div>
       </section>
     </div>

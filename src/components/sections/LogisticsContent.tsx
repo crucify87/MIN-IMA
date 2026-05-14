@@ -26,7 +26,8 @@ import { OperationType } from '../../types';
 
 function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditItems }: any) {
   const [showForm, setShowForm] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeRange, setActiveRange] = useState('일간');
   const [search, setSearch] = useState('');
@@ -36,6 +37,70 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterCategory, filterBrand, startDate, endDate, activeRange]);
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const filtered = useMemo(() => {
+    return logistics.filter((l: any) => {
+      const matchesSearch = l.item.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !filterCategory || l.category === filterCategory;
+      const matchesBrand = !filterBrand || l.brand === filterBrand;
+      const matchesDate = l.date >= startDate && l.date <= endDate;
+      return matchesSearch && matchesCategory && matchesBrand && matchesDate;
+    });
+  }, [logistics, search, filterCategory, filterBrand, startDate, endDate]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
+    if (total <= 1) return null;
+    return (
+      <div className="flex items-center justify-center gap-2 mt-8 pb-4">
+        <button 
+          disabled={current === 1}
+          onClick={() => {
+            onChange(current - 1);
+            window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+          }}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronDown className="w-4 h-4 rotate-90" />
+        </button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: total }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              onClick={() => {
+                onChange(p);
+                window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+              }}
+              className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <button 
+          disabled={current === total}
+          onClick={() => {
+            onChange(current + 1);
+            window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+          }}
+          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+        >
+          <ChevronDown className="w-4 h-4 -rotate-90" />
+        </button>
+      </div>
+    );
+  };
 
   React.useEffect(() => {
     const end = new Date();
@@ -52,6 +117,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     setStartDate(start.toISOString().split('T')[0]);
     setEndDate(end.toISOString().split('T')[0]);
   }, [activeRange]);
+
   const [form, setForm] = useState({ 
     date: new Date().toISOString().split('T')[0], 
     time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), 
@@ -63,18 +129,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     weight: '', 
     freightType: '선불' 
   });
-  
-  const today = new Date().toISOString().split('T')[0];
-
-  const filtered = useMemo(() => {
-    return logistics.filter((l: any) => {
-      const matchesSearch = l.item.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = !filterCategory || l.category === filterCategory;
-      const matchesBrand = !filterBrand || l.brand === filterBrand;
-      const matchesDate = l.date >= startDate && l.date <= endDate;
-      return matchesSearch && matchesCategory && matchesBrand && matchesDate;
-    });
-  }, [logistics, search, filterCategory, filterBrand, startDate, endDate]);
 
   const summary = useMemo(() => {
     const totalWeight = filtered.reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
@@ -455,23 +509,16 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       </section>
 
       {/* Table Area */}
-      <section className="space-y-6">
+      <section id="logistics-list" className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-6 h-6 text-[#0f172a]" />
             <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">등록된 물류</h3>
           </div>
-          <button 
-            onClick={() => setShowAll(!showAll)} 
-            className="flex items-center gap-2 px-6 h-11 bg-white border border-outline-variant/50 rounded-xl text-sm font-black text-[#0f172a] hover:bg-slate-50 transition-all shadow-sm"
-          >
-            {showAll ? <History className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            {showAll ? '' : '더보기'}
-          </button>
         </div>
 
         <div className="min-h-[400px] flex flex-col rounded-[32px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-2 md:p-10">
-          {filtered.length > 0 ? (
+          {paginatedItems.length > 0 ? (
             <div className="w-full space-y-4">
               {/* Desktop View Table */}
               <div className="hidden md:block bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-2xl shadow-indigo-900/5">
@@ -488,7 +535,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/10">
-                    {filtered.slice(0, showAll ? undefined : 15).map((l: any, i: number) => (
+                    {paginatedItems.map((l: any, i: number) => (
                       <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
                         <td className="px-4 py-6 text-xs font-bold text-outline text-left pl-8 whitespace-nowrap">
                           <div className="text-on-surface">{l.date}</div>
@@ -523,7 +570,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3">
-                {filtered.slice(0, showAll ? undefined : 15).map((l: any, i: number) => (
+                {paginatedItems.map((l: any, i: number) => (
                   <div key={l.id || i} className="bg-white p-5 rounded-[24px] border border-outline-variant shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -567,6 +614,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               </p>
             </div>
           )}
+          <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
         </div>
       </section>
     </div>
