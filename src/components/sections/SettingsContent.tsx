@@ -15,7 +15,8 @@ import {
   Settings,
   Image as ImageIcon,
   Upload,
-  AlertTriangle
+  AlertTriangle,
+  MapPin
 } from 'lucide-react';
 import { 
   doc, 
@@ -388,12 +389,12 @@ function SettingsContent({
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">브랜드</label>
                     <input placeholder="예: 한우관" value={itemForm.brand} onChange={e => setItemForm({...itemForm, brand: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
                   </div>
+
+                  {/* Row 3: Specs & Unit */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">규격 (Specs)</label>
                     <input placeholder="예: 250g/팩, 10kg/박스" value={itemForm.specs} onChange={e => setItemForm({...itemForm, specs: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
                   </div>
-
-                  {/* Row 3: Unit & Stock */}
                   <div className="space-y-1.5 relative">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">단위</label>
                     <button 
@@ -423,22 +424,18 @@ function SettingsContent({
                       </div>
                     )}
                   </div>
+
+                  {/* Row 4: Stocks */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 재고</label>
                     <input type="number" value={itemForm.currentStock} onChange={e => setItemForm({...itemForm, currentStock: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
                   </div>
-
-                  {/* Row 4: Safety Stock & Location */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">안전 재고</label>
                     <input type="number" value={itemForm.safetyStock} onChange={e => setItemForm({...itemForm, safetyStock: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">보관 위치</label>
-                    <input placeholder="예: A구역/1번" value={itemForm.location} onChange={e => setItemForm({...itemForm, location: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
-                  </div>
 
-                  {/* Row 5: Prices */}
+                  {/* Row 5: Prices - Sales Price moved up */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">매입 단가 (W)</label>
                     <input type="number" placeholder={canEditPrices ? "예: 25000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.purchasePrice} onChange={e => setItemForm({...itemForm, purchasePrice: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" />
@@ -448,7 +445,7 @@ function SettingsContent({
                     <input type="number" placeholder={canEditPrices ? "예: 38000" : "권한 없음"} disabled={!canEditPrices} value={itemForm.salesPrice} onChange={e => setItemForm({...itemForm, salesPrice: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" />
                   </div>
 
-                  {/* Row 6: Dates */}
+                  {/* Row 6: Dates - Expiry moved up */}
                   <div className="space-y-1.5 flex flex-col">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
                       <CalendarDays className="w-3 h-3 text-emerald-500" /> 제조일자
@@ -483,6 +480,19 @@ function SettingsContent({
                         ))}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Row 7: Storage Location */}
+                  <div className="space-y-1.5 flex flex-col">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-2">
+                       <MapPin className="w-3.5 h-3.5 text-primary" /> 보관 위치
+                    </label>
+                    <input 
+                      placeholder="예: A구역 / 냉동고-1" 
+                      value={itemForm.location} 
+                      onChange={e => setItemForm({...itemForm, location: e.target.value})} 
+                      className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" 
+                    />
                   </div>
 
                   <div className="md:col-span-2 pt-6 flex flex-col sm:flex-row gap-3">
