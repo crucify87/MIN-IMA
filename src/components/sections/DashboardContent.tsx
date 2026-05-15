@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Search, 
   CalendarDays, 
@@ -20,7 +20,22 @@ import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { ViewType, OperationType } from '../../types';
 
 function DashboardContent({ inventory, production, logistics, partners, onNavigate, canEditItems }: any) {
-  const today = new Date().toISOString().split('T')[0];
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleDateClick = () => {
+    if (dateInputRef.current) {
+      if ('showPicker' in dateInputRef.current) {
+        try {
+          (dateInputRef.current as any).showPicker();
+        } catch (e) {
+          dateInputRef.current.click();
+        }
+      } else {
+        dateInputRef.current.click();
+      }
+    }
+  };
   
   const [activeShift, setActiveShift] = useState('일간');
   const [inventoryPage, setInventoryPage] = useState(1);
@@ -66,7 +81,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     const isInRange = (dateStr: string) => {
       if (!dateStr) return false;
       const d = new Date(dateStr);
-      if (activeShift === '일간') return dateStr === today;
+      if (activeShift === '일간') return dateStr === filterDate;
       if (activeShift === '주간') return d >= startOfWeek;
       if (activeShift === '월간') return d >= startOfMonth;
       return false;
@@ -114,7 +129,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     });
 
     return combined;
-  }, [logistics, production, activeShift, today]);
+  }, [logistics, production, activeShift, filterDate]);
 
   const paginatedActivity = useMemo(() => {
     const startIndex = (activityPage - 1) * ITEMS_PER_PAGE;
@@ -227,7 +242,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     const isInRange = (dateStr: string) => {
       if (!dateStr) return false;
       const d = new Date(dateStr);
-      if (activeShift === '일간') return dateStr === today;
+      if (activeShift === '일간') return dateStr === filterDate;
       if (activeShift === '주간') return d >= startOfWeek;
       if (activeShift === '월간') return d >= startOfMonth;
       return false;
@@ -255,7 +270,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       { label: `${activeShift} 출고`, value: output, active: true },
       { label: `${activeShift} 생산`, value: productionQty },
     ];
-  }, [filteredInventory, combinedActivity, production, today, activeShift, searchQuery]);
+  }, [filteredInventory, combinedActivity, production, filterDate, activeShift, searchQuery]);
 
   return (
     <div className="space-y-10">
@@ -280,19 +295,27 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             />
           </div>
           
-          <button 
-            onClick={handleRefresh}
-            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary transition-all active:scale-95 group whitespace-nowrap"
-          >
-            <motion.div
-              animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
+          <div className="relative flex-none group">
+            <input 
+              ref={dateInputRef}
+              type="date"
+              value={filterDate}
+              onChange={(e) => {
+                setFilterDate(e.target.value);
+                setActiveShift('일간');
+              }}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+              title="날짜 선택"
+            />
+            <button 
+              onClick={handleDateClick}
+              className="flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary transition-all whitespace-nowrap"
             >
-              <CalendarDays className={`w-4 h-4 ${isRefreshing ? 'text-primary' : 'text-outline'}`} />
-            </motion.div>
-            <span className="hidden sm:inline">{isRefreshing ? '최신화 중...' : today}</span>
-            <span className="sm:hidden">{isRefreshing ? '...' : today.split('-').slice(1).join('/')}</span>
-          </button>
+              <CalendarDays className="w-4 h-4 text-outline group-hover:text-primary transition-colors" />
+              <span className="hidden sm:inline">{filterDate}</span>
+              <span className="sm:hidden">{filterDate.split('-').slice(1).join('/')}</span>
+            </button>
+          </div>
 
           <div className="flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center">
             {['일간', '주간', '월간'].map((shift) => (
@@ -348,16 +371,20 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     <table className="w-full text-left table-fixed">
                       <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
                         <tr>
-                          <th className="px-6 md:px-8 py-5 w-[35%]">품목 명칭</th>
-                          <th className="px-6 md:px-8 py-5 text-center w-[20%]">규격</th>
-                          <th className="px-6 md:px-8 py-5 w-[25%]">현재고 (KG)</th>
+                          <th className="px-6 md:px-8 py-5 text-center w-[15%]">날짜</th>
+                          <th className="px-6 md:px-8 py-5 w-[30%]">품목 명칭</th>
+                          <th className="px-6 md:px-8 py-5 text-center w-[15%]">규격</th>
+                          <th className="px-6 md:px-8 py-5 w-[20%]">현재고 (KG)</th>
                           <th className="px-6 md:px-8 py-5 text-center w-[15%] text-nowrap">상태</th>
                           <th className="px-6 md:px-8 py-5 w-[5%] tracking-normal"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-outline-variant/10">
-                        {paginatedInventory.map((item: any, i: number) => (
-                          <tr key={i} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('inventory')}>
+                        {paginatedInventory.map((item: any, k: number) => (
+                          <tr key={k} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('inventory')}>
+                            <td className="px-6 md:px-8 py-5 text-center text-[11px] font-bold text-outline tabular-nums">
+                              {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
+                            </td>
                             <td className="px-6 md:px-8 py-5 truncate">
                               <span className="font-black text-on-surface tracking-tight text-sm md:text-base truncate block" title={item.name}>{item.name}</span>
                             </td>
@@ -380,13 +407,16 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     {paginatedInventory.map((item: any, i: number) => (
                       <div key={i} className="p-4 flex items-center justify-between active:bg-slate-50 transition-colors" onClick={() => onNavigate('inventory')}>
                         <div className="flex items-center gap-3 min-w-0">
-                           <div className="text-left min-w-0">
+                            <div className="text-left min-w-0">
+                              <div className="text-[10px] font-bold text-outline mb-0.5">
+                                {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
+                              </div>
                               <div className="font-black text-[#0f172a] text-sm truncate">{item.name}</div>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <div className="text-[10px] font-bold text-emerald-600/70">{item.specs || '-'}</div>
                                 <div className="text-[10px] font-bold text-outline">{item.currentStock?.toLocaleString()} KG</div>
                               </div>
-                           </div>
+                            </div>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
                           {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
@@ -436,7 +466,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
               <table className="w-full text-center border-collapse">
                 <thead className="bg-surface-container/50 text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                   <tr>
-                    <th className="px-4 py-8">시간 (TIME)</th>
+                    <th className="px-4 py-8">날짜</th>
                     <th className="px-4 py-8">구분</th>
                     <th className="px-4 py-8">품목 (ITEM)</th>
                     <th className="px-4 py-8">재고 변동량</th>

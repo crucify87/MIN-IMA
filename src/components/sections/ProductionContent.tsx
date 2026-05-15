@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   ArrowLeft,
   Plus,
@@ -28,9 +28,11 @@ import { OperationType } from '../../types';
 function ProductionContent({ production, inventory, onNavigate, canEditItems }: any) {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   
   const [line, setLine] = useState('삼산공장');
+  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
+
   const [rows, setRows] = useState([
     { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }
   ]);
@@ -135,7 +137,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   };
 
   const addRow = () => {
-    setRows([...rows, { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
+    setRows([...rows, { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: logDate, expiryDate: '' }]);
   };
 
   const removeRow = (id: number) => {
@@ -221,7 +223,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
         alert('생산 실적 수정 완료');
         setEditingId(null);
         setShowForm(false);
-        setRows([{ id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
+        setRows([{ id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: logDate, expiryDate: '' }]);
         return;
       }
 
@@ -252,7 +254,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       }
       alert('생산 실적 등록 완료'); 
       setShowForm(false);
-      setRows([{ id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }]);
+      setRows([{ id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: logDate, expiryDate: '' }]);
     } catch (error) { 
       handleFirestoreError(error, OperationType.WRITE, 'production_batches'); 
     } finally {
@@ -263,6 +265,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   const handleEdit = (item: any) => {
     setEditingId(item.id);
     setLine(item.line || '삼산공장');
+    setLogDate(item.manufDate);
     setRows([{
       id: Date.now(),
       title: item.title,
@@ -343,13 +346,28 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-[32px] md:rounded-[48px] border border-outline-variant/30 shadow-2xl p-6 md:p-10 space-y-8 md:space-y-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
             <h2 className="text-2xl md:text-3xl font-black text-[#0f172a] tracking-tight">일지 정보 입력</h2>
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-              <span className="text-[10px] md:text-sm font-black text-outline uppercase">생산 라인:</span>
-              <select value={line} onChange={e => setLine(e.target.value)} className="h-12 md:h-14 px-6 md:px-8 bg-white border border-outline-variant rounded-2xl font-black text-xs md:text-sm shadow-sm outline-none cursor-pointer hover:border-primary transition-all w-full md:w-auto">
-                <option value="삼산공장">삼산공장</option>
-                <option value="언양공장 부속물">언양공장 부속물</option>
-                <option value="언양공장 식육가공">언양공장 식육가공</option>
-              </select>
+            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] md:text-sm font-black text-outline uppercase whitespace-nowrap">생산 일자:</span>
+                <input 
+                  type="date" 
+                  value={logDate}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    setLogDate(newDate);
+                    setRows(rows.map(r => ({ ...r, manufDate: newDate })));
+                  }}
+                  className="h-12 md:h-14 px-4 bg-white border border-outline-variant rounded-2xl font-black text-xs md:text-sm shadow-sm outline-none cursor-pointer hover:border-primary transition-all"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] md:text-sm font-black text-outline uppercase whitespace-nowrap">생산 라인:</span>
+                <select value={line} onChange={e => setLine(e.target.value)} className="h-12 md:h-14 px-6 md:px-8 bg-white border border-outline-variant rounded-2xl font-black text-xs md:text-sm shadow-sm outline-none cursor-pointer hover:border-primary transition-all w-full md:w-auto">
+                  <option value="삼산공장">삼산공장</option>
+                  <option value="언양공장 부속물">언양공장 부속물</option>
+                  <option value="언양공장 식육가공">언양공장 식육가공</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -516,55 +534,40 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
       {/* Recent Production Log */}
       <section id="production-list" className="space-y-6">
-        <section className="bg-[#e8f1ff] p-4 md:p-6 rounded-[24px] md:rounded-[32px] shadow-inner border border-primary/5">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline group-focus-within:text-primary transition-colors" />
-              <input 
-                type="text" 
-                placeholder="품목명 검색..." 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
-                className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/30 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
-              />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-2">
+          <div className="flex items-center justify-between lg:justify-start gap-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl md:text-3xl font-black text-[#0f172a] tracking-tight">생산리스트</h3>
+              <span className="md:hidden px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-outline uppercase tracking-widest">LOGS</span>
             </div>
-            
-            <div className="relative">
+          </div>
+
+          <div className="flex flex-row items-center gap-2">
+            <div className="relative lg:w-48">
               <select 
                 value={filterLine} 
                 onChange={(e) => setFilterLine(e.target.value)}
-                className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-black appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+                className="w-full h-11 px-4 bg-white border border-outline-variant rounded-xl text-[11px] font-black appearance-none focus:border-primary outline-none shadow-sm cursor-pointer pr-10"
               >
                 {['전체', '삼산공장', '언양공장 부속물', '언양공장 식육가공'].map((l) => (
                   <option key={l} value={l}>{l}</option>
                 ))}
               </select>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <ChevronDown className="w-4 h-4 text-outline" />
+                <ChevronDown className="w-3.5 h-3.5 text-outline" />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-4 h-12 bg-white border border-outline-variant/30 rounded-xl text-sm font-bold text-on-surface shadow-sm w-full">
-              <CalendarDays className="w-4 h-4 text-outline" />
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold flex-1" />
+            <div className="relative group flex-1 lg:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+              <input 
+                type="text" 
+                placeholder="품목명 검색..." 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
+              />
             </div>
-          </div>
-        </section>
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl md:text-3xl font-black text-[#0f172a] tracking-tight">생산리스트</h3>
-            <span className="md:hidden px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-outline uppercase tracking-widest">LOGS</span>
-          </div>
-          <div className="relative group w-full md:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-            <input 
-              type="text" 
-              placeholder="품목명 검색..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              className="w-full h-11 md:h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
-            />
           </div>
         </div>
 
@@ -575,7 +578,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
               <table className="w-full text-center border-collapse">
                 <thead className="bg-[#f1f4f9] text-[10px] md:text-[11px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                   <tr>
-                    <th className="px-6 py-8">SKU / 라인</th>
+                    <th className="px-6 py-8">생산일자</th>
                     <th className="px-6 py-8">품목명</th>
                     <th className="px-6 py-8">원육/브랜드</th>
                     <th className="px-6 py-8">투입량</th>
@@ -594,8 +597,8 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                       <tr key={item.id || idx} className="hover:bg-surface-container/5 transition-colors">
                         <td className="px-6 py-6">
                           <div className="flex flex-col items-center gap-1">
-                            <span className="text-xs font-bold text-primary font-mono">{itemData?.sku || 'N/A'}</span>
-                            <span className="text-[11px] font-black text-[#0f172a]">{item.line || '기본'}</span>
+                            <span className="text-sm font-black text-[#0f172a]">{item.manufDate}</span>
+                            <span className="text-[10px] font-bold text-outline uppercase tracking-tight">{item.line || '기본'} 라인</span>
                           </div>
                         </td>
                         <td className="px-6 py-6">
