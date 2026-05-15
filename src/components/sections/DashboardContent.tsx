@@ -274,8 +274,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     return [
       { label: searchQuery ? '검색 필터 재고' : '현재 총 재고', value: totalInventoryCount },
       { label: `${activeShift} 입고`, value: input },
+      { label: `${activeShift} 출고`, value: output, active: true },
       { label: `${activeShift} 생산`, value: productionQty },
-      { label: `${activeShift} 평균 수율`, value: avgYield.toFixed(1), unit: '%', active: true },
     ];
   }, [filteredInventory, combinedActivity, production, filterDate, activeShift, searchQuery]);
 
@@ -491,9 +491,16 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       <tr key={i} className="hover:bg-surface-container/10 transition-colors">
                         <td className="px-4 py-6 text-sm font-bold text-outline">{l.time}</td>
                         <td className="px-4 py-6">
-                          <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                            {l.type}
-                          </span>
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className={`px-2 py-1 rounded text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                              {l.type}
+                            </span>
+                            {l.source?.includes('생산') && (
+                              <span className="text-[9px] font-black bg-indigo-500 text-white px-2 py-0.5 rounded shadow-sm">
+                                생산
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-6">
                           <div className="font-black text-on-surface">{l.item}</div>
@@ -558,6 +565,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                          <span className={`px-2 py-0.5 rounded text-[8px] font-black ${l.type === '입고' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                             {l.type}
                           </span>
+                          {l.source?.includes('생산') && (
+                            <span className="text-[8px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded shadow-sm">
+                              생산
+                            </span>
+                          )}
                           <span className="text-[10px] font-bold text-outline">{l.time}</span>
                       </div>
                       <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
