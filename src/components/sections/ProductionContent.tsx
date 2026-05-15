@@ -179,7 +179,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             name: trimmedName,
             currentStock: diff,
             sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
-            category: isRaw ? '원부재료' : '완제품',
+            category: isRaw ? '원육' : '완제품',
             unit: 'KG',
             minStock: 0,
             location: '미지정',

@@ -348,6 +348,10 @@ function SettingsContent({
             <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-[8px] md:text-[10px] font-black">C</span>
             <span className="text-[10px] md:text-[11px] font-bold text-amber-700">소</span>
           </div>
+          <div className="flex items-center gap-2 border-l border-outline-variant/30 pl-3 md:pl-4 whitespace-nowrap">
+            <span className="px-2 py-0.5 bg-sky-50 text-sky-600 rounded text-[8px] md:text-[10px] font-black">R</span>
+            <span className="text-[10px] md:text-[11px] font-bold text-sky-500">원육</span>
+          </div>
         </div>
       </header>
 
@@ -399,7 +403,8 @@ function SettingsContent({
                         {[
                           { label: '부속물', prefix: 'O', category: '부속물' },
                           { label: '돼지고기', prefix: 'P', category: '돼지고기' },
-                          { label: '소고기', prefix: 'C', category: '소고기' }
+                          { label: '소고기', prefix: 'C', category: '소고기' },
+                          { label: '원육', prefix: 'R', category: '원육' }
                         ].map((opt) => (
                           <button
                             key={opt.prefix}
