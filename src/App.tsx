@@ -108,17 +108,24 @@ export default function App() {
             </div>
             <div className="space-y-2">
               <h1 className="text-3xl font-black text-[#0f172a] tracking-tight">{settings?.appName || "재고 관리 시스템"}</h1>
-              <p className="text-slate-500 font-bold text-sm">MIN IMA INVENTORY MANAGEMENT</p>
+              <p className="text-slate-500 font-bold text-sm tracking-[0.2em]">MIN IMA INVENTORY MANAGEMENT</p>
             </div>
           </div>
 
-          <button 
-            onClick={handleLogin} 
-            className="w-full h-16 bg-[#0f172a] text-white rounded-2xl flex items-center justify-center gap-3 font-black text-lg hover:bg-slate-800 transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10"
-          >
-            <img src="https://www.google.com/favicon.ico" className="w-6 h-6 grayscale brightness-200" alt="Google" />
-            Google 계정으로 로그인
-          </button>
+          <div className="space-y-6">
+            <div className="space-y-2 text-center">
+              <p className="text-xl font-black text-[#0f172a]">관리자 시스템 로그인이</p>
+              <p className="text-xl font-black text-[#0f172a]">필요합니다.</p>
+            </div>
+
+            <button 
+              onClick={handleLogin} 
+              className="w-full h-16 bg-[#0f172a] text-white rounded-2xl flex items-center justify-center gap-3 font-black text-lg hover:bg-slate-800 transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10"
+            >
+              <img src="https://www.google.com/favicon.ico" className="w-6 h-6 grayscale brightness-200" alt="Google" />
+              구글 계정으로 로그인
+            </button>
+          </div>
 
           <p className="text-[11px] font-bold text-slate-400">
             승인된 사용자만 접근 가능합니다.
