@@ -107,7 +107,9 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           weight: p.production,
           source: '생산(완성)',
           rawTime: p.createdAt?.seconds || 0,
-          date: p.manufDate
+          date: p.manufDate,
+          yield: p.yield,
+          loss: p.loss
         },
         {
           originalId: p.id,
@@ -260,15 +262,20 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
       
     // Production stat specifically from production records
-    const productionQty = production
-      .filter((p: any) => isInRange(p.manufDate))
+    const activeProduction = production.filter((p: any) => isInRange(p.manufDate));
+    const productionQty = activeProduction
       .reduce((acc: number, curr: any) => acc + (Number(curr.production) || 0), 0);
+    
+    // Calculate average yield
+    const avgYield = activeProduction.length > 0 
+      ? activeProduction.reduce((acc: number, curr: any) => acc + (Number(curr.yield) || 0), 0) / activeProduction.length
+      : 0;
 
     return [
       { label: searchQuery ? '검색 필터 재고' : '현재 총 재고', value: totalInventoryCount },
       { label: `${activeShift} 입고`, value: input },
-      { label: `${activeShift} 출고`, value: output, active: true },
       { label: `${activeShift} 생산`, value: productionQty },
+      { label: `${activeShift} 평균 수율`, value: avgYield.toFixed(1), unit: '%', active: true },
     ];
   }, [filteredInventory, combinedActivity, production, filterDate, activeShift, searchQuery]);
 
@@ -469,7 +476,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     <th className="px-4 py-8">날짜</th>
                     <th className="px-4 py-8">구분</th>
                     <th className="px-4 py-8">품목 (ITEM)</th>
-                    <th className="px-4 py-8">재고 변동량</th>
+                    <th className="px-4 py-8 text-nowrap">재고 변동량 / 수율</th>
                     <th className="px-4 py-8">재고 상태</th>
                     <th className="px-4 py-8">관리</th>
                   </tr>
@@ -492,8 +499,16 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                           <div className="font-black text-on-surface">{l.item}</div>
                           <div className="text-[10px] font-bold text-outline mt-0.5">{itemInfo?.specs || ''}</div>
                         </td>
-                        <td className={`px-4 py-6 font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                        <td className="px-4 py-6">
+                          <div className={`font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                          </div>
+                          {l.yield !== undefined && (
+                            <div className="flex items-center justify-center gap-2 mt-1">
+                              <span className="text-[10px] font-black text-emerald-600">수율 {l.yield?.toFixed(1)}%</span>
+                              <span className="text-[10px] font-bold text-rose-500">로스 {l.loss?.toFixed(1)}%</span>
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-6">
                           <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
@@ -559,9 +574,16 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         <span className="text-[10px] font-bold text-outline">{itemInfo?.specs || ''}</span>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                          </span>
+                          {l.yield !== undefined && (
+                            <span className="text-[9px] font-black text-emerald-600">
+                              수율 {l.yield?.toFixed(1)}% (로스 {l.loss?.toFixed(1)}%)
+                            </span>
+                          )}
+                        </div>
                         {canEditItems && (
                           <button 
                              onClick={() => handleDelete(l)} 

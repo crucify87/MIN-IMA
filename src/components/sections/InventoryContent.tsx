@@ -256,7 +256,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
               <table className="w-full text-center border-collapse">
                 <thead className="bg-[#f1f4f9] text-[10px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                   <tr>
-                    <th className="px-4 py-5">SKU / 위치 / 라인</th>
+                    <th className="px-4 py-5">날짜</th>
                     <th className="px-4 py-5 font-medium">품목 정보</th>
                     <th className="px-4 py-5 font-medium">규격</th>
                     <th className="px-4 py-5 font-medium">카테고리</th>
@@ -269,12 +269,9 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
                   {paginatedItems.length > 0 ? (
                     paginatedItems.map((item: any, i: number) => (
                       <tr key={i} className="hover:bg-surface-container/5 transition-colors">
-                        <td className="px-4 py-4">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-[10px] font-bold text-primary font-mono">{item.sku}</span>
-                          <span className="text-[9px] font-black text-outline uppercase">{item.location || '미지정'}</span>
-                        </div>
-                      </td>
+                        <td className="px-4 py-4 text-[11px] font-bold text-outline tabular-nums whitespace-nowrap">
+                          {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
+                        </td>
                       <td className="px-4 py-4 font-black text-on-surface text-base">
                         {item.name}
                       </td>
@@ -337,7 +334,9 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-1.5 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[9px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg">{item.sku}</span>
+                          <span className="text-[9px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg">
+                            {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '날짜정보없음'}
+                          </span>
                           <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[9px] font-black text-outline uppercase">{item.category}</span>
                         </div>
                         <h4 className="text-base font-black text-[#0f172a] leading-tight truncate">{item.name}</h4>
