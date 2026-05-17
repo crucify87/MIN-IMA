@@ -22,19 +22,36 @@ import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { ViewType, OperationType } from '../../types';
 
 function DashboardContent({ inventory, production, logistics, partners, onNavigate, canEditItems }: any) {
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const today = new Date().toISOString().split('T')[0];
+  const [filterStartDate, setFilterStartDate] = useState(today);
+  const [filterEndDate, setFilterEndDate] = useState(today);
+  const startDateInputRef = useRef<HTMLInputElement>(null);
+  const endDateInputRef = useRef<HTMLInputElement>(null);
   
-  const handleDateClick = () => {
-    if (dateInputRef.current) {
-      if ('showPicker' in dateInputRef.current) {
+  const handleStartDateClick = () => {
+    if (startDateInputRef.current) {
+      if ('showPicker' in startDateInputRef.current) {
         try {
-          (dateInputRef.current as any).showPicker();
+          (startDateInputRef.current as any).showPicker();
         } catch (e) {
-          dateInputRef.current.click();
+          startDateInputRef.current.click();
         }
       } else {
-        dateInputRef.current.click();
+        startDateInputRef.current.click();
+      }
+    }
+  };
+
+  const handleEndDateClick = () => {
+    if (endDateInputRef.current) {
+      if ('showPicker' in endDateInputRef.current) {
+        try {
+          (endDateInputRef.current as any).showPicker();
+        } catch (e) {
+          endDateInputRef.current.click();
+        }
+      } else {
+        endDateInputRef.current.click();
       }
     }
   };
@@ -50,7 +67,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const handleDownloadExcel = () => {
     try {
       const selectedViewLabel = activeShift;
-      const fileName = `재고현황_리포트_${filterDate}_${selectedViewLabel}.xlsx`;
+      const fileName = `재고현황_리포트_${filterStartDate}_to_${filterEndDate}_${selectedViewLabel}.xlsx`;
 
       // 1. Summary Data
       const summaryData = row1.concat(row2).map(s => ({
@@ -128,23 +145,9 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const totalInventoryPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
 
   const combinedActivity = useMemo(() => {
-    const selectedDate = new Date(filterDate);
-    const startOfWeek = new Date(selectedDate);
-    startOfWeek.setDate(selectedDate.getDate() - 7);
-    const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-
     const isInRange = (dateStr: string) => {
       if (!dateStr) return false;
-      const d = new Date(dateStr);
-      if (activeShift === '일간') return dateStr === filterDate;
-      if (activeShift === '주간') {
-        return d >= startOfWeek && d <= selectedDate;
-      }
-      if (activeShift === '월간') {
-        const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-        return d >= startOfMonth && d <= monthEnd;
-      }
-      return false;
+      return dateStr >= filterStartDate && dateStr <= filterEndDate;
     };
 
     const combined = [
@@ -191,7 +194,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     });
 
     return combined;
-  }, [logistics, production, activeShift, filterDate]);
+  }, [logistics, production, filterStartDate, filterEndDate]);
 
   const paginatedActivity = useMemo(() => {
     const startIndex = (activityPage - 1) * ITEMS_PER_PAGE;
@@ -296,24 +299,9 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   };
 
   const { row1, row2 } = useMemo(() => {
-    const selectedDate = new Date(filterDate);
-    const startOfWeek = new Date(selectedDate);
-    startOfWeek.setDate(selectedDate.getDate() - 7);
-    const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-
     const isInRange = (dateStr: string) => {
       if (!dateStr) return false;
-      const d = new Date(dateStr);
-      if (activeShift === '일간') return dateStr === filterDate;
-      if (activeShift === '주간') {
-        // From startOfWeek to selectedDate
-        return d >= startOfWeek && d <= selectedDate;
-      }
-      if (activeShift === '월간') {
-        const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-        return d >= startOfMonth && d <= monthEnd;
-      }
-      return false;
+      return dateStr >= filterStartDate && dateStr <= filterEndDate;
     };
 
     // Calculate main stats
@@ -353,9 +341,9 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
     const firstRow = [
       { label: '원육 총 재고', value: rawMeatEntry ? rawMeatEntry[1] : 0, isCategory: true },
-      { label: `${activeShift} 입고`, value: input },
-      { label: `${activeShift} 출고`, value: output, active: true },
-      { label: `${activeShift} 생산`, value: productionQty, subtitle: '완제품' },
+      { label: `${activeShift || '조회 기간'}입고`, value: input },
+      { label: `${activeShift || '조회 기간'}출고`, value: output, active: true },
+      { label: `${activeShift || '조회 기간'}생산`, value: productionQty, subtitle: '완제품' },
     ];
 
     const secondRow = otherCategories.map(([category, total]) => ({
@@ -365,7 +353,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     }));
 
     return { row1: firstRow, row2: secondRow };
-  }, [inventory, combinedActivity, production, filterDate, activeShift, filteredInventory]);
+  }, [inventory, combinedActivity, production, filterStartDate, filterEndDate, filteredInventory]);
 
   const StatCard = ({ stat, idx }: { stat: any, idx: number, key?: string }) => {
     const handleCardClick = () => {
@@ -429,38 +417,80 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             />
           </div>
           
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-none group">
-              <input 
-                ref={dateInputRef}
-                type="date"
-                value={filterDate}
-                onChange={(e) => {
-                  setFilterDate(e.target.value);
-                  setActiveShift('일간');
-                }}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
-                title="날짜 선택"
-              />
-              <button 
-                onClick={handleDateClick}
-                className="w-full flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
-              >
-                <CalendarDays className="w-4 h-4 text-primary transition-colors" />
-                <span className="hidden sm:inline font-black">{filterDate}</span>
-                <span className="sm:hidden font-black">{filterDate.split('-').slice(1).join('/')}</span>
-                <ChevronDown className="w-3 h-3 text-outline group-hover:text-primary transition-colors ml-1" />
-              </button>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+              <div className="relative group flex-1 sm:flex-none">
+                <input 
+                  ref={startDateInputRef}
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => {
+                    setFilterStartDate(e.target.value);
+                    setActiveShift('');
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                />
+                <button 
+                  onClick={handleStartDateClick}
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-black">{filterStartDate.split('-').slice(1).join('/')}</span>
+                </button>
+              </div>
+
+              <span className="text-outline font-black text-xs">~</span>
+
+              <div className="relative group flex-1 sm:flex-none">
+                <input 
+                  ref={endDateInputRef}
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => {
+                    setFilterEndDate(e.target.value);
+                    setActiveShift('');
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                />
+                <button 
+                  onClick={handleEndDateClick}
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-black">{filterEndDate.split('-').slice(1).join('/')}</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 sm:flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center">
-              {['일간', '주간', '월간'].map((shift) => (
+              {[
+                { label: '일간', action: () => {
+                  setFilterStartDate(today);
+                  setFilterEndDate(today);
+                }},
+                { label: '주간', action: () => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 7);
+                  setFilterStartDate(d.toISOString().split('T')[0]);
+                  setFilterEndDate(today);
+                }},
+                { label: '월간', action: () => {
+                  const d = new Date();
+                  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+                  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+                  setFilterStartDate(first.toISOString().split('T')[0]);
+                  setFilterEndDate(last.toISOString().split('T')[0]);
+                }}
+              ].map((shift) => (
                 <button
-                  key={shift}
-                  onClick={() => setActiveShift(shift)}
-                  className={`flex-1 sm:flex-none px-3 md:px-6 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+                  key={shift.label}
+                  onClick={() => {
+                    setActiveShift(shift.label);
+                    shift.action();
+                  }}
+                  className={`flex-1 sm:flex-none px-3 md:px-5 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift.label ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
                 >
-                  {shift}
+                  {shift.label}
                 </button>
               ))}
             </div>

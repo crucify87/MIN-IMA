@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   ArrowLeft,
   Plus,
@@ -38,6 +38,37 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [filterBrand, setFilterBrand] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
+  const handleStartDateClick = () => {
+    if (startDatePickerRef.current) {
+      if ('showPicker' in startDatePickerRef.current) {
+        try {
+          (startDatePickerRef.current as any).showPicker();
+        } catch (e) {
+          startDatePickerRef.current.click();
+        }
+      } else {
+        startDatePickerRef.current.click();
+      }
+    }
+  };
+
+  const handleEndDateClick = () => {
+    if (endDatePickerRef.current) {
+      if ('showPicker' in endDatePickerRef.current) {
+        try {
+          (endDatePickerRef.current as any).showPicker();
+        } catch (e) {
+          endDatePickerRef.current.click();
+        }
+      } else {
+        endDatePickerRef.current.click();
+      }
+    }
+  };
+
+  const startDatePickerRef = useRef<HTMLInputElement>(null);
+  const endDatePickerRef = useRef<HTMLInputElement>(null);
+
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -335,18 +366,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         
         <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full xl:w-auto">
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center flex-1 sm:flex-none shrink-0">
-              {['일간', '주간', '월간'].map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setActiveRange(range)}
-                  className={`flex-1 sm:flex-none px-4 md:px-6 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeRange === range ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}
-                >
-                  {range}
-                </button>
-              ))}
-            </div>
-
             <button
               onClick={handleDownloadExcel}
               className="flex-none flex items-center justify-center h-11 w-11 sm:w-auto sm:px-4 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
@@ -516,17 +535,17 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                <select value={form.partner} onChange={e => setForm({...form, partner: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all">
                  <option value="">거래처 선택</option>
                  {partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
-               </select>
-             </div>
+                </select>
+              </div>
 
-             <div className="lg:col-span-2 flex items-end">
-               <button type="submit" className="w-full h-12 bg-[#0f172a] text-white rounded-xl font-black uppercase shadow-lg shadow-[#0f172a]/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
-                 {editingId ? '수정 내용 저장' : '등록 완료'}
-               </button>
-             </div>
-          </form>
-        </motion.div>
-      )}
+              <div className="lg:col-span-2 flex items-end">
+                <button type="submit" className="w-full h-12 bg-[#0f172a] text-white rounded-xl font-black uppercase shadow-lg shadow-[#0f172a]/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                  {editingId ? '수정 내용 저장' : '등록 완료'}
+                </button>
+              </div>
+           </form>
+         </motion.div>
+       )}
 
       {/* Summary Stats */}
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
@@ -545,65 +564,120 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         ))}
       </section>
 
-      {/* Filter Bar */}
-      <section className="bg-primary/5 p-4 md:p-8 rounded-[24px] md:rounded-[48px] space-y-4 md:space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline group-focus-within:text-primary transition-colors" />
-            <input 
-              type="text" 
-              placeholder="품목명 필터..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm" 
-            />
-          </div>
-
-          <select 
-            value={filterCategory} 
-            onChange={e => setFilterCategory(e.target.value)}
-            className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
-          >
-            <option value="">전체 카테고리</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-
-          <select 
-            value={filterBrand} 
-            onChange={e => setFilterBrand(e.target.value)}
-            className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
-          >
-            <option value="">전체 브랜드</option>
-            {brands.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
-
-          <div className="relative group">
-            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-12 pl-10 pr-3 bg-white border border-outline-variant/30 rounded-xl text-[10px] font-bold shadow-sm outline-none focus:border-primary transition-all" />
-          </div>
-          <div className="relative group">
-            <History className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-12 pl-10 pr-3 bg-white border border-outline-variant/30 rounded-xl text-[10px] font-bold shadow-sm outline-none focus:border-primary transition-all" />
-          </div>
-        </div>
-      </section>
-
       {/* Table Area */}
       <section id="logistics-list" className="space-y-6 lg:space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1 md:px-0">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 px-1 md:px-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-xl md:text-3xl font-black text-[#0f172a] tracking-tight">물류리스트</h3>
+            <h3 className="text-xl md:text-3xl font-black text-[#0f172a] tracking-tight whitespace-nowrap">물류리스트</h3>
             <span className="md:hidden px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-outline uppercase tracking-widest mt-1">LOGISTICS LOGS</span>
           </div>
-          <div className="relative group w-full md:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-            <input 
-              type="text" 
-              placeholder="품목명, 거래처 검색..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              className="w-full h-11 md:h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
-            />
+
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full xl:w-auto flex-1">
+            <select 
+              value={filterCategory} 
+              onChange={e => setFilterCategory(e.target.value)}
+              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
+            >
+              <option value="">전체 카테고리</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <select 
+              value={filterBrand} 
+              onChange={e => setFilterBrand(e.target.value)}
+              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
+            >
+              <option value="">전체 브랜드</option>
+              {brands.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+
+            <div className="relative group flex-1 md:flex-none md:w-64">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+              <input 
+                type="text" 
+                placeholder="품목명, 거래처 검색..." 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                className="w-full h-11 md:h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+              <div className="relative group flex-1 sm:flex-none">
+                <input 
+                  ref={startDatePickerRef}
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setActiveRange('');
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                />
+                <button 
+                  onClick={handleStartDateClick}
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-black">{startDate.split('-').slice(1).join('/')}</span>
+                </button>
+              </div>
+
+              <span className="text-outline font-black text-xs">~</span>
+
+              <div className="relative group flex-1 sm:flex-none">
+                <input 
+                  ref={endDatePickerRef}
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setActiveRange('');
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                />
+                <button 
+                  onClick={handleEndDateClick}
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-black">{endDate.split('-').slice(1).join('/')}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center flex-1 sm:flex-none shrink-0">
+              {[
+                { label: '일간', action: () => {
+                  setStartDate(today);
+                  setEndDate(today);
+                }},
+                { label: '주간', action: () => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 7);
+                  setStartDate(d.toISOString().split('T')[0]);
+                  setEndDate(today);
+                }},
+                { label: '월간', action: () => {
+                  const d = new Date();
+                  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+                  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+                  setStartDate(first.toISOString().split('T')[0]);
+                  setEndDate(last.toISOString().split('T')[0]);
+                }}
+              ].map((range) => (
+                <button
+                  key={range.label}
+                  onClick={() => {
+                    setActiveRange(range.label);
+                    range.action();
+                  }}
+                  className={`flex-1 sm:flex-none px-3 md:px-4 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeRange === range.label ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

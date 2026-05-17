@@ -18,11 +18,42 @@ import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
 
 function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], initialCategory }: any) {
+  const today = new Date().toISOString().split('T')[0];
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState(initialCategory || '');
   const [filterBrand, setFilterBrand] = useState('');
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState(today);
+  const [filterEndDate, setFilterEndDate] = useState(today);
+  const startDatePickerRef = React.useRef<HTMLInputElement>(null);
+  const endDatePickerRef = React.useRef<HTMLInputElement>(null);
+
+  const handleStartDateClick = () => {
+    if (startDatePickerRef.current) {
+      if ('showPicker' in startDatePickerRef.current) {
+        try {
+          (startDatePickerRef.current as any).showPicker();
+        } catch (e) {
+          startDatePickerRef.current.click();
+        }
+      } else {
+        startDatePickerRef.current.click();
+      }
+    }
+  };
+
+  const handleEndDateClick = () => {
+    if (endDatePickerRef.current) {
+      if ('showPicker' in endDatePickerRef.current) {
+        try {
+          (endDatePickerRef.current as any).showPicker();
+        } catch (e) {
+          endDatePickerRef.current.click();
+        }
+      } else {
+        endDatePickerRef.current.click();
+      }
+    }
+  };
   const [activeShift, setActiveShift] = useState('일간');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -31,7 +62,6 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
   }, [initialCategory]);
 
   const ITEMS_PER_PAGE = 10;
-  const today = new Date().toISOString().split('T')[0];
 
   const handleDownloadExcel = () => {
     try {
@@ -203,19 +233,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
           <h1 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter">재고관리</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full xl:w-auto">
-          <div className="flex-1 sm:flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center">
-            {['일간', '주간', '월간'].map((shift) => (
-              <button
-                key={shift}
-                onClick={() => setActiveShift(shift)}
-                className={`flex-1 sm:flex-none px-4 md:px-6 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
-              >
-                {shift}
-              </button>
-            ))}
-          </div>
-
+        <div className="flex items-center gap-2 md:gap-4">
           <button
             onClick={handleDownloadExcel}
             className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
@@ -246,57 +264,121 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
         ))}
       </section>
 
-      {/* Inventory Filter Bar */}
-      <section className="bg-[#e8f1ff] p-4 md:p-6 rounded-[24px] md:rounded-[32px] space-y-4 shadow-inner border border-primary/5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-          <div className="relative">
-            <input 
-              type="text" 
-              placeholder="품목명/SKU..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
-            />
-          </div>
-          
-          <select 
-            value={filterCategory} 
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none"
-          >
-            <option value="">전체 카테고리</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-
-          <select 
-            value={filterBrand} 
-            onChange={(e) => setFilterBrand(e.target.value)}
-            className="h-12 px-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none"
-          >
-            <option value="">전체 브랜드</option>
-            {brands.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
-
-          <input 
-            type="date" 
-            value={filterStartDate} 
-            onChange={e => setFilterStartDate(e.target.value)} 
-            className="h-12 px-3 bg-white border border-outline-variant/30 rounded-xl text-[11px] font-bold outline-none focus:border-primary shadow-sm w-full"
-          />
-          <input 
-            type="date" 
-            value={filterEndDate} 
-            onChange={e => setFilterEndDate(e.target.value)} 
-            className="h-12 px-3 bg-white border border-outline-variant/30 rounded-xl text-[11px] font-bold outline-none focus:border-primary shadow-sm w-full"
-          />
-        </div>
-      </section>
-
       {/* Inventory Table */}
       <section className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-[#0f172a] tracking-tight">재고리스트</h3>
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 px-1 md:px-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-2xl font-black text-[#0f172a] tracking-tight whitespace-nowrap">재고리스트</h3>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 flex-1">
+              <select 
+                value={filterCategory} 
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="h-11 px-3 bg-white border border-outline-variant rounded-xl text-[11px] font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none min-w-[120px]"
+              >
+                <option value="">전체 카테고리</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+
+              <select 
+                value={filterBrand} 
+                onChange={(e) => setFilterBrand(e.target.value)}
+                className="h-11 px-3 bg-white border border-outline-variant rounded-xl text-[11px] font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none min-w-[100px]"
+              >
+                <option value="">전체 브랜드</option>
+                {brands.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+
+              <div className="relative flex-1 md:flex-none md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                <input 
+                  type="text" 
+                  placeholder="품목명/SKU..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-11 pl-10 pr-4 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm" 
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+                <div className="relative group flex-1 sm:flex-none">
+                  <input 
+                    ref={startDatePickerRef}
+                    type="date"
+                    value={filterStartDate}
+                    onChange={(e) => {
+                      setFilterStartDate(e.target.value);
+                      setActiveShift('');
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  />
+                  <button 
+                    onClick={handleStartDateClick}
+                    className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                    <span className="font-black">{filterStartDate.split('-').slice(1).join('/')}</span>
+                  </button>
+                </div>
+
+                <span className="text-outline font-black text-xs">~</span>
+
+                <div className="relative group flex-1 sm:flex-none">
+                  <input 
+                    ref={endDatePickerRef}
+                    type="date"
+                    value={filterEndDate}
+                    onChange={(e) => {
+                      setFilterEndDate(e.target.value);
+                      setActiveShift('');
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  />
+                  <button 
+                    onClick={handleEndDateClick}
+                    className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                    <span className="font-black">{filterEndDate.split('-').slice(1).join('/')}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 sm:flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center shrink-0">
+                {[
+                  { label: '일간', action: () => {
+                    setFilterStartDate(today);
+                    setFilterEndDate(today);
+                  }},
+                  { label: '주간', action: () => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - 7);
+                    setFilterStartDate(d.toISOString().split('T')[0]);
+                    setFilterEndDate(today);
+                  }},
+                  { label: '월간', action: () => {
+                    const d = new Date();
+                    const first = new Date(d.getFullYear(), d.getMonth(), 1);
+                    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+                    setFilterStartDate(first.toISOString().split('T')[0]);
+                    setFilterEndDate(last.toISOString().split('T')[0]);
+                  }}
+                ].map((shift) => (
+                  <button
+                    key={shift.label}
+                    onClick={() => {
+                      setActiveShift(shift.label);
+                      shift.action();
+                    }}
+                    className={`flex-1 sm:flex-none px-4 md:px-5 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift.label ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+                  >
+                    {shift.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
