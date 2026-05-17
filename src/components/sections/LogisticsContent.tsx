@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   ArrowLeft,
   Plus,
+  X,
   Search,
   CalendarDays,
   Edit,
@@ -47,13 +48,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const today = new Date().toISOString().split('T')[0];
 
   const filtered = useMemo(() => {
-    const result = logistics.filter((l: any) => {
-      const matchesSearch = l.item.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = !filterCategory || l.category === filterCategory;
-      const matchesBrand = !filterBrand || l.brand === filterBrand;
-      const matchesDate = l.date >= startDate && l.date <= endDate;
-      return matchesSearch && matchesCategory && matchesBrand && matchesDate;
-    });
+    const result = logistics
+      .filter((l: any) => l.category !== '완제품')
+      .filter((l: any) => {
+        const matchesSearch = l.item.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory = !filterCategory || l.category === filterCategory;
+        const matchesBrand = !filterBrand || l.brand === filterBrand;
+        const matchesDate = l.date >= startDate && l.date <= endDate;
+        return matchesSearch && matchesCategory && matchesBrand && matchesDate;
+      });
 
     // Sort by date then time in reverse (latest first)
     return [...result].sort((a: any, b: any) => {
@@ -188,7 +191,10 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   }, [inventory]);
 
   const brands = useMemo(() => {
-    const bnds = inventory.map((i: any) => i.brand).filter(Boolean);
+    const bnds = inventory
+      .filter((i: any) => i.category !== '완제품')
+      .map((i: any) => i.brand)
+      .filter(Boolean);
     return Array.from(new Set(bnds));
   }, [inventory]);
 
@@ -317,47 +323,55 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   return (
     <div className="space-y-10">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 md:gap-6 px-1 md:px-0">
+        <div className="flex items-center gap-3 md:gap-4">
+          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors shrink-0 active:scale-90">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">물류관리</h1>
+          <div className="space-y-0.5 md:space-y-1">
+            <h1 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter">물류관리</h1>
+          </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-          <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant shadow-sm shrink-0">
-            {['일간', '주간', '월간'].map((range) => (
-              <button
-                key={range}
-                onClick={() => setActiveRange(range)}
-                className={`px-5 py-2 rounded-lg font-black text-xs transition-all ${activeRange === range ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full xl:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center flex-1 sm:flex-none shrink-0">
+              {['일간', '주간', '월간'].map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setActiveRange(range)}
+                  className={`flex-1 sm:flex-none px-4 md:px-6 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeRange === range ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
 
-          <button
-            onClick={handleDownloadExcel}
-            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
-            title="엑셀 다운로드"
-          >
-            <FileDown className="w-4 h-4" />
-            <span className="hidden lg:inline font-black">엑셀 다운로드</span>
-          </button>
-
-          {canEditItems && (
-            <button 
-              onClick={() => setShowForm(!showForm)} 
-              className="h-12 md:h-14 px-6 md:px-8 bg-[#0f172a] text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg hover:bg-slate-800 transition-all active:scale-95 w-full md:w-auto"
+            <button
+              onClick={handleDownloadExcel}
+              className="flex-none flex items-center justify-center h-11 w-11 sm:w-auto sm:px-4 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+              title="엑셀 다운"
             >
-              <Plus className="w-5 h-5 md:w-6 md:h-6" /> 
-              {showForm ? '닫기' : '신규 입고/출고'}
+              <FileDown className="w-4 h-4" />
+              <span className="hidden sm:inline font-black ml-2">엑셀 다운</span>
             </button>
-          )}
+
+            {canEditItems && (
+              <button 
+                onClick={() => setShowForm(!showForm)} 
+                className="h-11 px-4 sm:px-6 bg-[#0f172a] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap flex-1 sm:flex-none"
+              >
+                {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                <span className="hidden sm:inline">{showForm ? '닫기' : '신규 입고/출고'}</span>
+                <span className="sm:hidden font-black">{showForm ? '닫기' : '등록'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
+
+      <div className="empty:hidden">
+      </div>
 
       {/* Form Overlay */}
       {showForm && (
@@ -532,7 +546,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       </section>
 
       {/* Filter Bar */}
-      <section className="bg-[#e8f1ff] p-4 md:p-6 rounded-[24px] md:rounded-[32px] space-y-4 shadow-inner border border-primary/5">
+      <section className="bg-primary/5 p-4 md:p-8 rounded-[24px] md:rounded-[48px] space-y-4 md:space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
           <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline group-focus-within:text-primary transition-colors" />
@@ -541,14 +555,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               placeholder="품목명 필터..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/30 rounded-xl text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
+              className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant/30 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm" 
             />
           </div>
 
           <select 
             value={filterCategory} 
             onChange={e => setFilterCategory(e.target.value)}
-            className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl font-bold text-xs appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+            className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
           >
             <option value="">전체 카테고리</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -557,14 +571,20 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           <select 
             value={filterBrand} 
             onChange={e => setFilterBrand(e.target.value)}
-            className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl font-bold text-xs appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+            className="w-full h-12 px-4 bg-white border border-outline-variant/30 rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
           >
             <option value="">전체 브랜드</option>
             {brands.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
 
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-12 px-3 bg-white border border-outline-variant/30 rounded-xl text-[11px] font-bold shadow-sm outline-none focus:border-primary transition-all" />
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 px-3 bg-white border border-outline-variant/30 rounded-xl text-[11px] font-bold shadow-sm outline-none focus:border-primary transition-all w-full" />
+          <div className="relative group">
+            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-12 pl-10 pr-3 bg-white border border-outline-variant/30 rounded-xl text-[10px] font-bold shadow-sm outline-none focus:border-primary transition-all" />
+          </div>
+          <div className="relative group">
+            <History className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-12 pl-10 pr-3 bg-white border border-outline-variant/30 rounded-xl text-[10px] font-bold shadow-sm outline-none focus:border-primary transition-all" />
+          </div>
         </div>
       </section>
 
@@ -651,42 +671,48 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3 p-1">
                 {paginatedItems.map((l: any, i: number) => (
-                  <div key={l.id || i} className="bg-white p-5 rounded-[28px] border border-outline-variant shadow-sm space-y-4 relative overflow-hidden active:bg-slate-50 transition-all">
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${l.type === '입고' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${l.type === '입고' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                     
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black tracking-widest uppercase ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase shadow-sm ${l.type === '입고' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
                             {l.type}
                           </span>
-                          <div className="text-[10px] font-black text-outline uppercase tracking-tight">{l.date} <span className="opacity-40 ml-0.5">{l.time}</span></div>
+                          <div className="text-[10px] font-bold text-outline uppercase tracking-tight font-mono">
+                            {l.date} <span className="opacity-40">{l.time}</span>
+                          </div>
                         </div>
-                        <h4 className="text-base font-black text-[#0f172a] truncate">{l.item}</h4>
+                        <h4 className="text-sm font-black text-[#0f172a] leading-snug break-all line-clamp-2">{l.item}</h4>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-bold text-outline uppercase">{l.category}</span>
-                          <span className="text-[10px] font-black text-primary/60">{l.brand}</span>
+                          <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
+                          <span className="text-[9px] font-black text-primary/60">{l.brand}</span>
                         </div>
                       </div>
                       
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                         <div className={`text-xl font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                         <div className={`text-lg font-black tracking-tighter ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
                            {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline">KG</span>
                          </div>
                          <div className="flex items-center gap-1">
-                           <button onClick={() => handleEdit(l)} className="p-3 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                           <button onClick={() => handleEdit(l)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
                              <Edit className="w-4 h-4" />
                            </button>
-                           <button onClick={() => handleDelete(l)} className="p-3 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                           <button onClick={() => handleDelete(l)} className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
                              <Trash2 className="w-4 h-4" />
                            </button>
                          </div>
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
-                       <p className="text-[10px] font-bold text-slate-400 truncate flex-1 mr-4">거래처: <span className="text-[#0f172a]">{l.partner || '-'}</span></p>
-                       <span className="text-[9px] font-black text-emerald-600/80 uppercase">{inventory?.find((i: any) => i.name === l.item)?.specs || ''}</span>
+                    <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
+                       <p className="text-[9px] font-bold text-slate-400 truncate flex-1 mr-4">
+                         거래처: <span className="text-on-surface font-black">{l.partner || '-'}</span>
+                       </p>
+                       <span className="text-[8px] font-black text-primary/70 bg-primary/5 px-2 py-0.5 rounded border border-primary/10 uppercase">
+                         {inventory?.find((i: any) => i.name === l.item)?.specs || '규격미정'}
+                       </span>
                     </div>
                   </div>
                 ))}

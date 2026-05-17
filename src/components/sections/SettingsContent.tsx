@@ -355,11 +355,11 @@ function SettingsContent({
         </div>
       </header>
 
-      <div className="flex bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth">
-        <button onClick={() => setTab('p')} className={`flex-1 md:flex-none min-w-[100px] px-4 md:px-10 py-3.5 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품</button>
-        <button onClick={() => setTab('t')} className={`flex-1 md:flex-none min-w-[100px] px-4 md:px-10 py-3.5 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처 관리</button>
-        {canManageUsers && <button onClick={() => setTab('u')} className={`flex-1 md:flex-none min-w-[100px] px-4 md:px-10 py-3.5 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>관리자 설정</button>}
-        {canManageUsers && <button onClick={() => setTab('s')} className={`flex-1 md:flex-none min-w-[100px] px-4 md:px-10 py-3.5 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 's' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>앱 설정</button>}
+      <div className="flex bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth gap-1">
+        <button onClick={() => setTab('p')} className={`flex-1 md:flex-none min-w-[80px] px-3 md:px-10 py-3 rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품</button>
+        <button onClick={() => setTab('t')} className={`flex-1 md:flex-none min-w-[80px] px-3 md:px-10 py-3 rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처</button>
+        {canManageUsers && <button onClick={() => setTab('u')} className={`flex-1 md:flex-none min-w-[80px] px-3 md:px-10 py-3 rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>권한</button>}
+        {canManageUsers && <button onClick={() => setTab('s')} className={`flex-1 md:flex-none min-w-[80px] px-3 md:px-10 py-3 rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap ${tab === 's' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>앱설정</button>}
       </div>
 
       <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
@@ -877,32 +877,32 @@ function SettingsContent({
                   </div>
 
                   {/* Mobile Card View */}
-                  <div className="md:hidden space-y-3 p-2">
+                  <div className="md:hidden space-y-3 p-1">
                     {(() => {
                       const filtered = partners.filter((p: any) => 
                         p.name.toLowerCase().includes(partnerSearch.toLowerCase())
                       );
                       if (filtered.length === 0) {
-                        return <div className="py-12 text-center opacity-30 text-sm font-black">거래처가 없습니다</div>;
+                        return <div className="py-12 text-center opacity-30 text-sm font-black italic">PARTNERS NO RESULTS</div>;
                       }
                       return filtered.slice(0, showAllPartners ? undefined : 5).map((p: any) => (
-                        <div key={p.id} className="bg-white p-5 rounded-[28px] border border-outline-variant/60 shadow-sm space-y-4">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                              <div className="text-[9px] font-black text-rose-500 uppercase tracking-widest">{p.type}</div>
-                              <h4 className="text-base font-black text-[#0f172a]">{p.name}</h4>
-                              <div className="text-[10px] font-bold text-outline">{p.phone || '연락처 없음'}</div>
+                        <div key={p.id} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] transition-all">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-0.5 flex-1 min-w-0">
+                              <div className="text-[8px] font-black text-primary uppercase tracking-wider bg-primary/5 px-1.5 py-0.5 rounded w-fit border border-primary/10">{p.type}</div>
+                              <h4 className="text-sm font-black text-[#0f172a] truncate">{p.name}</h4>
+                              <div className="text-[9px] font-black text-outline-variant flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{p.phone || '연락처 정보 없음'}</div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => handleEditPartner(p)} className="p-3 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
-                                <Edit className="w-4.5 h-4.5" />
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button onClick={() => handleEditPartner(p)} className="w-9 h-9 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                                <Edit className="w-4 h-4" />
                               </button>
-                              <button onClick={() => handleDeletePartner(p.id, p.name)} className="p-3 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
-                                <Trash2 className="w-4.5 h-4.5" />
+                              <button onClick={() => handleDeletePartner(p.id, p.name)} className="w-9 h-9 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
-                          <div className="pt-3 border-t border-slate-50 text-[10px] font-bold text-outline leading-relaxed">{p.address || '주소 정보 없음'}</div>
+                          <div className="pt-2 border-t border-slate-50 text-[9px] font-bold text-outline leading-tight truncate"><MapPin className="inline w-2.5 h-2.5 mr-1 align-baseline text-on-surface/40" />{p.address || '주소 정보 없음'}</div>
                         </div>
                       ));
                     })()}

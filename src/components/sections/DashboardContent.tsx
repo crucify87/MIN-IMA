@@ -382,12 +382,12 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     return (
       <div 
         onClick={handleCardClick}
-        className={`bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[140px] md:min-h-[200px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${stat.active ? 'border-primary shadow-xl shadow-primary/10' : 'border-outline-variant/30 shadow-sm'} ${stat.isCategory ? 'hover:border-primary/50' : 'hover:border-primary/30'}`}
+        className={`bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] border-2 transition-all flex flex-col items-center justify-center gap-1.5 md:gap-4 min-h-[120px] md:min-h-[200px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${stat.active ? 'border-primary shadow-xl shadow-primary/10' : 'border-outline-variant/30 shadow-sm'} ${stat.isCategory ? 'hover:border-primary/50' : 'hover:border-primary/30'}`}
       >
-        <div className="text-center space-y-1 md:space-y-1.5">
-          <p className={`text-[10px] md:text-xs font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'}`}>{stat.label}</p>
+        <div className="text-center space-y-0.5 md:space-y-1.5">
+          <p className={`text-[10px] md:text-xs font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'} line-clamp-1`}>{stat.label}</p>
           {stat.subtitle && (
-            <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mx-auto w-fit ${
+            <p className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mx-auto w-fit ${
               stat.subtitle === '완제품' 
                 ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-200' 
                 : 'text-outline-variant'
@@ -396,8 +396,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             </p>
           )}
         </div>
-        <div className="flex items-baseline justify-center gap-1.5 md:gap-2 w-full">
-          <span className={`text-2xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
+        <div className="flex items-baseline justify-center gap-1 md:gap-2 w-full px-2 overflow-hidden">
+          <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
             {(stat.value as number).toLocaleString()}
           </span>
           <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0">KG</span>
@@ -409,13 +409,13 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   return (
     <div className="space-y-10">
       {/* Dashboard Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 md:px-0">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 md:gap-6 px-1 md:px-0">
         <div className="space-y-1">
           <h1 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter">대시보드</h1>
         </div>
         
-        <div className="flex flex-row items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar pb-1 px-1 -mx-1">
-          <div className="relative group shrink-0 w-40 md:w-48">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <div className="relative group w-full sm:w-48 lg:w-48">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
             <input 
               type="text" 
@@ -429,49 +429,51 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             />
           </div>
           
-          <div className="relative flex-none group">
-            <input 
-              ref={dateInputRef}
-              type="date"
-              value={filterDate}
-              onChange={(e) => {
-                setFilterDate(e.target.value);
-                setActiveShift('일간');
-              }}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
-              title="날짜 선택"
-            />
-            <button 
-              onClick={handleDateClick}
-              className="flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none group">
+              <input 
+                ref={dateInputRef}
+                type="date"
+                value={filterDate}
+                onChange={(e) => {
+                  setFilterDate(e.target.value);
+                  setActiveShift('일간');
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                title="날짜 선택"
+              />
+              <button 
+                onClick={handleDateClick}
+                className="w-full flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+              >
+                <CalendarDays className="w-4 h-4 text-primary transition-colors" />
+                <span className="hidden sm:inline font-black">{filterDate}</span>
+                <span className="sm:hidden font-black">{filterDate.split('-').slice(1).join('/')}</span>
+                <ChevronDown className="w-3 h-3 text-outline group-hover:text-primary transition-colors ml-1" />
+              </button>
+            </div>
+
+            <div className="flex-1 sm:flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center">
+              {['일간', '주간', '월간'].map((shift) => (
+                <button
+                  key={shift}
+                  onClick={() => setActiveShift(shift)}
+                  className={`flex-1 sm:flex-none px-3 md:px-6 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+                >
+                  {shift}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleDownloadExcel}
+              className="flex-none flex items-center justify-center w-11 h-11 sm:w-auto sm:px-4 bg-white border border-outline-variant rounded-xl text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+              title="엑셀 다운"
             >
-              <CalendarDays className="w-4 h-4 text-primary transition-colors" />
-              <span className="hidden sm:inline font-black">{filterDate}</span>
-              <span className="sm:hidden font-black">{filterDate.split('-').slice(1).join('/')}</span>
-              <ChevronDown className="w-3 h-3 text-outline group-hover:text-primary transition-colors ml-1" />
+              <FileDown className="w-4 h-4" />
+              <span className="hidden sm:inline font-black ml-2">엑셀 다운</span>
             </button>
           </div>
-
-          <div className="flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center">
-            {['일간', '주간', '월간'].map((shift) => (
-              <button
-                key={shift}
-                onClick={() => setActiveShift(shift)}
-                className={`px-4 md:px-6 h-full rounded-lg text-[11px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
-              >
-                {shift}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={handleDownloadExcel}
-            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
-            title="엑셀 다운로드"
-          >
-            <FileDown className="w-4 h-4" />
-            <span className="hidden lg:inline">엑셀 다운로드</span>
-          </button>
         </div>
       </header>
 

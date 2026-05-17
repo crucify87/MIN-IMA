@@ -370,65 +370,68 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   return (
     <div className="space-y-10">
       {/* Header */}
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 md:gap-6 px-1 md:px-0">
+        <div className="flex items-center gap-3 md:gap-4">
+          <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors shrink-0 active:scale-90">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">생산관리</h1>
+          <h1 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter">생산관리</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 md:gap-4 self-start xl:self-auto">
-          {/* Dashboard-style Date Picker */}
-          <div className="relative group">
-            <input 
-              type="date"
-              ref={datePickerRef}
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer z-10"
-            />
-            <button 
-              onClick={() => datePickerRef.current?.showPicker()}
-              className="flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
-            >
-              <CalendarDays className="w-4 h-4 text-primary transition-colors" />
-              <span className="hidden sm:inline font-black">{filterDate}</span>
-              <span className="sm:hidden font-black">{filterDate.split('-').slice(1).join('/')}</span>
-              <ChevronDown className="w-3 h-3 text-outline group-hover:text-primary transition-colors ml-1" />
-            </button>
-          </div>
-
-          <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant overflow-x-auto no-scrollbar">
-            {['일간', '주간', '월간'].map((shift) => (
-              <button
-                key={shift}
-                onClick={() => setActiveShift(shift)}
-                className={`px-6 py-2 rounded-lg text-[11px] font-black transition-all whitespace-nowrap ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full xl:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Dashboard-style Date Picker */}
+            <div className="relative group flex-1 sm:flex-none">
+              <input 
+                type="date"
+                ref={datePickerRef}
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+              />
+              <button 
+                onClick={() => datePickerRef.current?.showPicker()}
+                className="w-full flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
               >
-                {shift}
+                <CalendarDays className="w-4 h-4 text-primary transition-colors" />
+                <span className="hidden sm:inline font-black">{filterDate}</span>
+                <span className="sm:hidden font-black">{filterDate.split('-').slice(1).join('/')}</span>
+                <ChevronDown className="w-3 h-3 text-outline group-hover:text-primary transition-colors ml-1" />
               </button>
-            ))}
-          </div>
+            </div>
 
-          <button
-            onClick={handleDownloadExcel}
-            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
-            title="엑셀 다운로드"
-          >
-            <FileDown className="w-4 h-4" />
-            <span className="hidden lg:inline font-black">엑셀 다운로드</span>
-          </button>
+            <div className="flex-1 sm:flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center">
+              {['일간', '주간', '월간'].map((shift) => (
+                <button
+                  key={shift}
+                  onClick={() => setActiveShift(shift)}
+                  className={`flex-1 sm:flex-none px-4 md:px-6 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+                >
+                  {shift}
+                </button>
+              ))}
+            </div>
 
-          {canEditItems && (
-            <button 
-              onClick={() => setShowForm(!showForm)} 
-              className="h-11 px-6 bg-[#0f172a] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap"
+            <button
+              onClick={handleDownloadExcel}
+              className="flex-none flex items-center justify-center h-11 w-11 sm:w-auto sm:px-4 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+              title="엑셀 다운"
             >
-              {showForm ? <ChevronDown className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              {showForm ? '닫기' : '생산일지 등록'}
+              <FileDown className="w-4 h-4" />
+              <span className="hidden sm:inline font-black ml-2">엑셀 다운</span>
             </button>
-          )}
+
+            {canEditItems && (
+              <button 
+                onClick={() => setShowForm(!showForm)} 
+                className="h-11 px-4 sm:px-6 bg-[#0f172a] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap flex-1 sm:flex-none"
+              >
+                {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                <span className="hidden sm:inline">{showForm ? '닫기' : '생산일지 등록'}</span>
+                <span className="sm:hidden font-black">{showForm ? '닫기' : '등록'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -611,13 +614,13 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       )}
 
       {/* Summary Stats */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-6">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all hover:shadow-md min-h-[140px] md:min-h-[200px]">
-            <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
-            <div className={`flex items-baseline justify-center gap-2 w-full ${idx === 3 ? 'text-emerald-600' : 'text-[#0f172a]'}`}>
-              <span className="text-3xl md:text-5xl font-black tabular-nums tracking-tighter leading-none">{stat.value}</span>
-              <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
+          <div key={idx} className="bg-white p-3 md:p-8 rounded-[20px] md:rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-1 md:gap-4 transition-all hover:shadow-md min-h-[100px] md:min-h-[200px]">
+            <p className="text-[9px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center truncate w-full px-1">{stat.label}</p>
+            <div className={`flex items-baseline justify-center gap-1 md:gap-2 w-full overflow-hidden ${idx === 3 ? 'text-emerald-600' : 'text-[#0f172a]'}`}>
+              <span className="text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate">{stat.value}</span>
+              <span className="text-[8px] md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
             </div>
           </div>
         ))}
@@ -724,51 +727,52 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             </div>
 
             {/* Mobile Card View */}
-            <div className="md:hidden space-y-3 p-1.5">
+            <div className="md:hidden space-y-3 p-1">
               {paginatedItems.map((item: any, idx: number) => {
                 const itemData = inventory.find((inv: any) => inv.name === item.title);
                 return (
-                  <div key={item.id || idx} className="bg-white p-5 rounded-[28px] border border-outline-variant/60 shadow-sm space-y-4 relative overflow-hidden active:bg-slate-50 transition-all">
-                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary" />
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1.5 min-w-0">
+                  <div key={item.id || idx} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg">{itemData?.sku || 'N/A'}</span>
-                          <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[9px] font-black text-outline uppercase">{item.line} 라인</span>
+                          <span className="text-[8px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded border border-primary/10">{itemData?.sku || 'SKU미정'}</span>
+                          <span className="px-2 py-0.5 bg-slate-100 rounded text-[8px] font-black text-outline uppercase">{item.line} 라인</span>
                         </div>
-                        <h4 className="text-base font-black text-[#0f172a] leading-tight truncate">{item.title}</h4>
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-outline uppercase tracking-tight truncate">
-                          {itemData?.specs} {itemData?.specs && '|'} 원육: {item.rawMaterial}
+                        <h4 className="text-sm font-black text-[#0f172a] leading-snug break-all line-clamp-2">{item.title}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap -mt-0.5">
+                          <span className="text-[8px] font-black text-outline opacity-60">{itemData?.specs || ''}</span>
+                          {item.rawMaterial && <span className="text-[8px] font-bold text-primary/70 bg-primary/5 px-1 rounded">원육: {item.rawMaterial}</span>}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => handleEdit(item)} className="p-3 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all shadow-sm">
+                        <button onClick={() => handleEdit(item)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(item.id, item.title)} className="p-3 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all shadow-sm">
+                        <button onClick={() => handleDelete(item.id, item.title)} className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-50">
-                      <div className="bg-slate-50/50 p-3 rounded-2xl">
-                        <div className="text-[8px] font-black text-outline uppercase tracking-wider mb-1">투입 / 생산</div>
-                        <div className="text-xs font-black text-[#0f172a]">
-                          {item.rawQty?.toLocaleString()} <span className="text-[10px]">→</span> {item.production?.toLocaleString()} <span className="text-[10px]">KG</span>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
+                      <div className="bg-slate-50/70 p-2 rounded-xl flex flex-col justify-center">
+                        <div className="text-[7px] font-black text-outline uppercase tracking-wider mb-0.5">생산량</div>
+                        <div className="text-xs font-black text-on-surface truncate">
+                          {item.rawQty?.toLocaleString()} <span className="text-[8px] opacity-40">→</span> {item.production?.toLocaleString()}<span className="text-[8px] ml-0.5 font-bold">KG</span>
                         </div>
                       </div>
-                      <div className="bg-emerald-50/50 p-3 rounded-2xl">
-                        <div className="text-[8px] font-black text-emerald-600 uppercase tracking-wider mb-1">수율 / 로스</div>
+                      <div className="bg-emerald-50/70 p-2 rounded-xl flex flex-col justify-center">
+                        <div className="text-[7px] font-black text-emerald-600 uppercase tracking-wider mb-0.5">수율 (로스)</div>
                         <div className="text-xs font-black text-emerald-700">
-                          {item.yield?.toFixed(1)}% <span className="text-[10px] text-rose-600 font-bold">({item.loss?.toFixed(1)}%)</span>
+                          {item.yield?.toFixed(1)}% <span className="text-[8px] text-rose-500 font-bold tracking-tighter">({item.loss?.toFixed(1)}%)</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] font-bold text-outline pt-1 opacity-70">
-                      <div>제조: <span className="text-[#0f172a] font-black">{item.manufDate}</span></div>
-                      <div>기한: <span className="text-[#0f172a] font-black">{item.expiryDate || '-'}</span></div>
+                    <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-tighter pt-1 opacity-60">
+                      <div className="flex items-center gap-1"><CalendarDays className="w-2.5 h-2.5" />제조: <span className="text-on-surface">{item.manufDate}</span></div>
+                      <div className="flex items-center gap-1"><History className="w-2.5 h-2.5" />기한: <span className="text-on-surface">{item.expiryDate || '-'}</span></div>
                     </div>
                   </div>
                 );
