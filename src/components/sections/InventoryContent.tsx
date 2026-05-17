@@ -18,7 +18,7 @@ import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
 
 function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], initialCategory }: any) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE');
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState(initialCategory || '');
   const [filterBrand, setFilterBrand] = useState('');

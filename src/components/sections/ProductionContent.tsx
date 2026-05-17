@@ -30,7 +30,7 @@ import { OperationType } from '../../types';
 function ProductionContent({ production, inventory, onNavigate, canEditItems }: any) {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE');
   const [activeShift, setActiveShift] = useState('일간');
   const [filterStartDate, setFilterStartDate] = useState(today);
   const [filterEndDate, setFilterEndDate] = useState(today);
@@ -65,10 +65,10 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
     }
   };
   const [line, setLine] = useState('삼산공장');
-  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [logDate, setLogDate] = useState(new Date().toLocaleDateString('sv-SE'));
 
   const [rows, setRows] = useState([
-    { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toISOString().split('T')[0], expiryDate: '' }
+    { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toLocaleDateString('sv-SE'), expiryDate: '' }
   ]);
 
   const [editingId, setEditingId] = useState<string | null>(null);

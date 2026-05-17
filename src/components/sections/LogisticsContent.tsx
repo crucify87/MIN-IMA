@@ -69,14 +69,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const startDatePickerRef = useRef<HTMLInputElement>(null);
   const endDatePickerRef = useRef<HTMLInputElement>(null);
 
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(new Date().toLocaleDateString('sv-SE'));
+  const [endDate, setEndDate] = useState(new Date().toLocaleDateString('sv-SE'));
 
   React.useEffect(() => {
     setCurrentPage(1);
   }, [search, filterCategory, filterBrand, startDate, endDate, activeRange]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE');
 
   const filtered = useMemo(() => {
     const result = logistics
@@ -156,8 +156,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       start.setMonth(end.getMonth() - 1);
     }
     
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
+    setStartDate(start.toLocaleDateString('sv-SE'));
+    setEndDate(end.toLocaleDateString('sv-SE'));
   }, [activeRange]);
 
   const [form, setForm] = useState({ 

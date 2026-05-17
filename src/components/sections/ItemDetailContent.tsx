@@ -134,7 +134,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
       
       if (diff !== 0) {
         await addDoc(collection(db, 'logistics'), {
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toLocaleDateString('sv-SE'),
           time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
           type: diff > 0 ? '입고' : '출고',
           item: item.name,

@@ -22,7 +22,7 @@ import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { ViewType, OperationType } from '../../types';
 
 function DashboardContent({ inventory, production, logistics, partners, onNavigate, canEditItems }: any) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE');
   const [filterStartDate, setFilterStartDate] = useState(today);
   const [filterEndDate, setFilterEndDate] = useState(today);
   const startDateInputRef = useRef<HTMLInputElement>(null);
