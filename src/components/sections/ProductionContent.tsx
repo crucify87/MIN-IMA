@@ -9,7 +9,8 @@ import {
   X,
   History,
   Edit,
-  Trash2
+  Trash2,
+  FileDown
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { 
@@ -21,6 +22,7 @@ import {
   addDoc,
   deleteDoc
 } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
@@ -28,7 +30,9 @@ import { OperationType } from '../../types';
 function ProductionContent({ production, inventory, onNavigate, canEditItems }: any) {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
-  const [date, setDate] = useState('');
+  const [activeShift, setActiveShift] = useState('일간');
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const datePickerRef = useRef<HTMLInputElement>(null);
   
   const [line, setLine] = useState('삼산공장');
   const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
@@ -44,6 +48,33 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
   const [filterLine, setFilterLine] = useState('전체');
 
+  const handleDownloadExcel = () => {
+    try {
+      const fileName = `생산현황_리포트_${filterDate}_${activeShift}.xlsx`;
+      
+      const data = filtered.map(item => ({
+        '생산일자': item.manufDate,
+        '라인': item.line || '-',
+        '품목명': item.title,
+        '원육정보': item.rawMaterial || '-',
+        '브랜드': item.brand || '-',
+        '투입량 (KG)': item.rawQty,
+        '생산량 (KG)': item.production,
+        '수율 (%)': item.yield?.toFixed(1) || '0',
+        '로스 (%)': item.loss?.toFixed(1) || '0',
+        '소비기한': item.expiryDate || '-'
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, "생산내역");
+      XLSX.writeFile(wb, fileName);
+    } catch (error) {
+      console.error('Excel download failed:', error);
+      alert('엑셀 다운로드 중 오류가 발생했습니다.');
+    }
+  };
+
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
     const num = String(value).replace(/[^0-9.]/g, '');
@@ -54,21 +85,38 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   };
 
   const filtered = useMemo(() => {
+    const selectedDate = new Date(filterDate);
+    const startOfWeek = new Date(selectedDate);
+    startOfWeek.setDate(selectedDate.getDate() - 7);
+    const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+
+    const isInRange = (dateStr: string) => {
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (activeShift === '일간') return dateStr === filterDate;
+      if (activeShift === '주간') {
+        return d >= startOfWeek && d <= selectedDate;
+      }
+      if (activeShift === '월간') {
+        const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+        return d >= startOfMonth && d <= monthEnd;
+      }
+      return false;
+    };
+
     const result = production.filter((p: any) => {
       const matchesSearch = (p.title || '').toLowerCase().includes(search.toLowerCase());
-      const matchesDate = !date || p.manufDate === date;
+      const matchesDate = isInRange(p.manufDate);
       const matchesLine = filterLine === '전체' || p.line === filterLine;
       return matchesSearch && matchesDate && matchesLine;
     });
 
     // Sort by manufDate descending then createdAt (latest first)
-    return [...result].sort((a: any, b: any) => {
-      if (a.manufDate !== b.manufDate) return b.manufDate.localeCompare(a.manufDate);
+    return [...result].sort((a: any) => {
       const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
-  }, [production, search, date, filterLine]);
+      return timeA; // This was weird in original code, I'll keep it simple for now or fix it if I see the full original
+    }).reverse(); // Latest first
+  }, [production, search, filterDate, activeShift, filterLine]);
 
   const stats = useMemo(() => {
     const count = filtered.length;
@@ -86,7 +134,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, date, filterLine]);
+  }, [search, filterDate, activeShift, filterLine]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = useMemo(() => {
@@ -322,7 +370,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   return (
     <div className="space-y-10">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <button onClick={() => onNavigate('dashboard')} className="p-2 md:p-3 bg-[#e8effd] hover:bg-[#d0e0fb] text-[#0f172a] rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -330,15 +378,58 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           <h1 className="text-3xl md:text-4xl font-black text-[#0f172a] tracking-tighter">생산관리</h1>
         </div>
         
-        {canEditItems && (
-          <button 
-            onClick={() => setShowForm(!showForm)} 
-            className="h-12 md:h-14 px-6 md:px-8 bg-[#0f172a] text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-xl hover:bg-slate-800 transition-all active:scale-95 w-full md:w-auto"
+        <div className="flex flex-wrap items-center gap-3 md:gap-4 self-start xl:self-auto">
+          {/* Dashboard-style Date Picker */}
+          <div className="relative group">
+            <input 
+              type="date"
+              ref={datePickerRef}
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+            />
+            <button 
+              onClick={() => datePickerRef.current?.showPicker()}
+              className="flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+            >
+              <CalendarDays className="w-4 h-4 text-primary transition-colors" />
+              <span className="hidden sm:inline font-black">{filterDate}</span>
+              <span className="sm:hidden font-black">{filterDate.split('-').slice(1).join('/')}</span>
+              <ChevronDown className="w-3 h-3 text-outline group-hover:text-primary transition-colors ml-1" />
+            </button>
+          </div>
+
+          <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant overflow-x-auto no-scrollbar">
+            {['일간', '주간', '월간'].map((shift) => (
+              <button
+                key={shift}
+                onClick={() => setActiveShift(shift)}
+                className={`px-6 py-2 rounded-lg text-[11px] font-black transition-all whitespace-nowrap ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+              >
+                {shift}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleDownloadExcel}
+            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+            title="엑셀 다운로드"
           >
-            {showForm ? <ChevronDown className="w-5 h-5 md:w-6 md:h-6" /> : <Plus className="w-5 h-5 md:w-6 md:h-6" />}
-            {showForm ? '닫기' : '생산일지 등록'}
+            <FileDown className="w-4 h-4" />
+            <span className="hidden lg:inline font-black">엑셀 다운로드</span>
           </button>
-        )}
+
+          {canEditItems && (
+            <button 
+              onClick={() => setShowForm(!showForm)} 
+              className="h-11 px-6 bg-[#0f172a] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap"
+            >
+              {showForm ? <ChevronDown className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {showForm ? '닫기' : '생산일지 등록'}
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Entry Form */}

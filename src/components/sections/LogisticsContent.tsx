@@ -8,7 +8,8 @@ import {
   Trash2,
   Package,
   ChevronDown,
-  History
+  History,
+  FileDown
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { 
@@ -20,6 +21,7 @@ import {
   addDoc, 
   deleteDoc 
 } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
@@ -145,6 +147,32 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     return parts.join('.');
   };
 
+  const handleDownloadExcel = () => {
+    try {
+      const fileName = `물류관리_리포트_${today}_${activeRange}.xlsx`;
+      
+      const data = filtered.map(item => ({
+        '일자': item.date,
+        '시간': item.time,
+        '구분': item.type,
+        '카테고리': item.category || '-',
+        '브랜드': item.brand || '-',
+        '품목명': item.item,
+        '중량 (KG)': item.weight,
+        '거래처': item.partner || '-',
+        '운송구분': item.freightType || '-'
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, "물류내역");
+      XLSX.writeFile(wb, fileName);
+    } catch (error) {
+      console.error('Excel download failed:', error);
+      alert('엑셀 다운로드 중 오류가 발생했습니다.');
+    }
+  };
+
   const summary = useMemo(() => {
     const totalWeight = filtered.reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
     const inputCount = filtered.filter((l: any) => l.type === '입고').length;
@@ -153,7 +181,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   }, [filtered]);
 
   const categories = useMemo(() => {
-    const cats = inventory.map((i: any) => i.category).filter(Boolean);
+    const cats = inventory
+      .map((i: any) => i.category)
+      .filter((cat: any) => cat && cat !== '완제품');
     return Array.from(new Set(cats));
   }, [inventory]);
 
@@ -307,6 +337,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               </button>
             ))}
           </div>
+
+          <button
+            onClick={handleDownloadExcel}
+            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+            title="엑셀 다운로드"
+          >
+            <FileDown className="w-4 h-4" />
+            <span className="hidden lg:inline font-black">엑셀 다운로드</span>
+          </button>
 
           {canEditItems && (
             <button 

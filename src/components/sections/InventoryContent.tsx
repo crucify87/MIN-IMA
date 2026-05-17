@@ -8,16 +8,18 @@ import {
   Package,
   ArrowLeft,
   Edit,
-  Trash2
+  Trash2,
+  FileDown
 } from 'lucide-react';
 import { doc, deleteDoc } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
 
-function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] }: any) {
+function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], initialCategory }: any) {
   const [search, setSearch] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
+  const [filterCategory, setFilterCategory] = useState(initialCategory || '');
   const [filterBrand, setFilterBrand] = useState('');
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
@@ -26,8 +28,36 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
   const ITEMS_PER_PAGE = 10;
   const today = new Date().toISOString().split('T')[0];
 
+  const handleDownloadExcel = () => {
+    try {
+      const fileName = `재고관리_리포트_${today}_${activeShift}.xlsx`;
+      
+      const data = filtered.map(item => ({
+        '날짜': item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-',
+        '품목명': item.name,
+        'SKU': item.sku || '-',
+        '카테고리': item.category || '-',
+        '규격': item.specs || '-',
+        '브랜드': item.brand || '-',
+        '현재고 (KG)': item.currentStock,
+        '안전재고 (KG)': item.safetyStock || 0,
+        '상태': item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, "재고리스트");
+      XLSX.writeFile(wb, fileName);
+    } catch (error) {
+      console.error('Excel download failed:', error);
+      alert('엑셀 다운로드 중 오류가 발생했습니다.');
+    }
+  };
+
   const categories = useMemo(() => {
-    const cats = inventory.map((i: any) => i.category).filter(Boolean);
+    const cats = inventory
+      .map((i: any) => i.category)
+      .filter((cat: any) => cat && cat !== '완제품');
     return Array.from(new Set(cats));
   }, [inventory]);
 
@@ -163,16 +193,27 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [] 
           <h1 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter">재고관리</h1>
         </div>
         
-        <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant self-start sm:self-auto overflow-x-auto no-scrollbar">
-          {['일간', '주간', '월간'].map((shift) => (
-            <button
-              key={shift}
-              onClick={() => setActiveShift(shift)}
-              className={`px-6 py-2 rounded-lg text-[11px] font-black transition-all whitespace-nowrap ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
-            >
-              {shift}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3 md:gap-4 self-start sm:self-auto">
+          <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant overflow-x-auto no-scrollbar">
+            {['일간', '주간', '월간'].map((shift) => (
+              <button
+                key={shift}
+                onClick={() => setActiveShift(shift)}
+                className={`px-6 py-2 rounded-lg text-[11px] font-black transition-all whitespace-nowrap ${activeShift === shift ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+              >
+                {shift}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleDownloadExcel}
+            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+            title="엑셀 다운로드"
+          >
+            <FileDown className="w-4 h-4" />
+            <span className="hidden lg:inline font-black">엑셀 다운로드</span>
+          </button>
         </div>
       </header>
 

@@ -5,7 +5,8 @@ import {
   ChevronDown, 
   ChevronRight, 
   Package,
-  Trash2
+  Trash2,
+  FileDown
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { 
@@ -15,6 +16,7 @@ import {
   increment, 
   serverTimestamp 
 } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { ViewType, OperationType } from '../../types';
@@ -45,6 +47,58 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(false);
 
+  const handleDownloadExcel = () => {
+    try {
+      const selectedViewLabel = activeShift;
+      const fileName = `재고현황_리포트_${filterDate}_${selectedViewLabel}.xlsx`;
+
+      // 1. Summary Data
+      const summaryData = row1.concat(row2).map(s => ({
+        '구분': s.label,
+        '수량 (KG)': s.value,
+        '비고': s.subtitle || ''
+      }));
+
+      // 2. Activity Data
+      const activityData = combinedActivity.map(l => ({
+        '일시': l.time,
+        '구분': l.type,
+        '품목명': l.item,
+        '중량 (KG)': l.weight,
+        '출처': l.source,
+        '수율 (%)': l.yield || '',
+        '로스 (%)': l.loss || ''
+      }));
+
+      // 3. Inventory Data
+      const inventoryData = filteredInventory.map(i => ({
+        '품목명': i.name,
+        '카테고리': i.category || '',
+        '규격': i.specs || '',
+        '브랜드': i.brand || '',
+        '현재고 (KG)': i.currentStock,
+        '안전재고 (KG)': i.safetyStock || 0,
+        '상태': i.currentStock < (i.safetyStock || 0) ? '부족' : '정상'
+      }));
+
+      const wb = XLSX.utils.book_new();
+      
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, wsSummary, "요약");
+
+      const wsActivity = XLSX.utils.json_to_sheet(activityData);
+      XLSX.utils.book_append_sheet(wb, wsActivity, "활동내역");
+
+      const wsInventory = XLSX.utils.json_to_sheet(inventoryData);
+      XLSX.utils.book_append_sheet(wb, wsInventory, "현재고");
+
+      XLSX.writeFile(wb, fileName);
+    } catch (error) {
+      console.error('Excel download failed:', error);
+      alert('엑셀 다운로드 중 오류가 발생했습니다.');
+    }
+  };
+
   const filteredInventory = useMemo(() => {
     let result = !searchQuery ? inventory : inventory.filter((item: any) => 
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -74,16 +128,22 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const totalInventoryPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
 
   const combinedActivity = useMemo(() => {
-    const startOfWeek = new Date();
-    startOfWeek.setDate(new Date().getDate() - 7);
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const selectedDate = new Date(filterDate);
+    const startOfWeek = new Date(selectedDate);
+    startOfWeek.setDate(selectedDate.getDate() - 7);
+    const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
 
     const isInRange = (dateStr: string) => {
       if (!dateStr) return false;
       const d = new Date(dateStr);
       if (activeShift === '일간') return dateStr === filterDate;
-      if (activeShift === '주간') return d >= startOfWeek;
-      if (activeShift === '월간') return d >= startOfMonth;
+      if (activeShift === '주간') {
+        return d >= startOfWeek && d <= selectedDate;
+      }
+      if (activeShift === '월간') {
+        const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+        return d >= startOfMonth && d <= monthEnd;
+      }
       return false;
     };
 
@@ -235,24 +295,28 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     }
   };
 
-  const stats = useMemo(() => {
-    const now = new Date();
-    const startOfWeek = new Date();
-    startOfWeek.setDate(now.getDate() - 7);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const { row1, row2 } = useMemo(() => {
+    const selectedDate = new Date(filterDate);
+    const startOfWeek = new Date(selectedDate);
+    startOfWeek.setDate(selectedDate.getDate() - 7);
+    const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
 
     const isInRange = (dateStr: string) => {
       if (!dateStr) return false;
       const d = new Date(dateStr);
       if (activeShift === '일간') return dateStr === filterDate;
-      if (activeShift === '주간') return d >= startOfWeek;
-      if (activeShift === '월간') return d >= startOfMonth;
+      if (activeShift === '주간') {
+        // From startOfWeek to selectedDate
+        return d >= startOfWeek && d <= selectedDate;
+      }
+      if (activeShift === '월간') {
+        const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+        return d >= startOfMonth && d <= monthEnd;
+      }
       return false;
     };
 
-    const totalInventoryCount = filteredInventory.reduce((acc: number, curr: any) => acc + (Number(curr.currentStock) || 0), 0);
-    
-    // Calculate stats based on combined activity (includes both Logistics and Production)
+    // Calculate main stats
     const activeActivity = combinedActivity.filter(a => isInRange(a.date));
     const input = activeActivity
       .filter((l: any) => l.type === '입고')
@@ -261,23 +325,86 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       .filter((l: any) => l.type === '출고')
       .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
       
-    // Production stat specifically from production records
     const activeProduction = production.filter((p: any) => isInRange(p.manufDate));
     const productionQty = activeProduction
       .reduce((acc: number, curr: any) => acc + (Number(curr.production) || 0), 0);
-    
-    // Calculate average yield
-    const avgYield = activeProduction.length > 0 
-      ? activeProduction.reduce((acc: number, curr: any) => acc + (Number(curr.yield) || 0), 0) / activeProduction.length
-      : 0;
 
-    return [
-      { label: searchQuery ? '검색 필터 재고' : '현재 총 재고', value: totalInventoryCount },
+    // Calculate category totals
+    const categoryTotals = filteredInventory.reduce((acc: Record<string, number>, item: any) => {
+      const cat = item.category || '기타';
+      if (cat === '완제품') return acc;
+      acc[cat] = (acc[cat] || 0) + (Number(item.currentStock) || 0);
+      return acc;
+    }, {});
+
+    const order = ['원육', '부속물', '돼지고기', '소고기', '기타'];
+    const sortedCategories = Object.entries(categoryTotals)
+      .sort(([a], [b]) => {
+        const idxA = order.indexOf(a);
+        const idxB = order.indexOf(b);
+        if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
+      });
+
+    const rawMeatEntry = sortedCategories.find(([cat]) => cat === '원육');
+    const otherCategories = sortedCategories.filter(([cat]) => cat !== '원육');
+
+    const firstRow = [
+      { label: '원육 총 재고', value: rawMeatEntry ? rawMeatEntry[1] : 0, isCategory: true },
       { label: `${activeShift} 입고`, value: input },
       { label: `${activeShift} 출고`, value: output, active: true },
-      { label: `${activeShift} 생산`, value: productionQty },
+      { label: `${activeShift} 생산`, value: productionQty, subtitle: '완제품' },
     ];
-  }, [filteredInventory, combinedActivity, production, filterDate, activeShift, searchQuery]);
+
+    const secondRow = otherCategories.map(([category, total]) => ({
+      label: category,
+      value: total,
+      isCategory: true
+    }));
+
+    return { row1: firstRow, row2: secondRow };
+  }, [inventory, combinedActivity, production, filterDate, activeShift, filteredInventory]);
+
+  const StatCard = ({ stat, idx }: { stat: any, idx: number, key?: string }) => {
+    const handleCardClick = () => {
+      if (stat.isCategory || stat.label.includes('재고')) {
+        const category = stat.label === '원육 총 재고' ? '원육' : (stat.isCategory ? stat.label : null);
+        onNavigate('inventory', category);
+      } else if (stat.label.includes('입고') || stat.label.includes('출고')) {
+        onNavigate('logistics');
+      } else if (stat.label.includes('생산')) {
+        onNavigate('production');
+      }
+    };
+
+    return (
+      <div 
+        onClick={handleCardClick}
+        className={`bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[140px] md:min-h-[200px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${stat.active ? 'border-primary shadow-xl shadow-primary/10' : 'border-outline-variant/30 shadow-sm'} ${stat.isCategory ? 'hover:border-primary/50' : 'hover:border-primary/30'}`}
+      >
+        <div className="text-center space-y-1 md:space-y-1.5">
+          <p className={`text-[10px] md:text-xs font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'}`}>{stat.label}</p>
+          {stat.subtitle && (
+            <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mx-auto w-fit ${
+              stat.subtitle === '완제품' 
+                ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-200' 
+                : 'text-outline-variant'
+            }`}>
+              {stat.subtitle}
+            </p>
+          )}
+        </div>
+        <div className="flex items-baseline justify-center gap-1.5 md:gap-2 w-full">
+          <span className={`text-2xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
+            {(stat.value as number).toLocaleString()}
+          </span>
+          <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0">KG</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-10">
@@ -316,11 +443,12 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             />
             <button 
               onClick={handleDateClick}
-              className="flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary transition-all whitespace-nowrap"
+              className="flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
             >
-              <CalendarDays className="w-4 h-4 text-outline group-hover:text-primary transition-colors" />
-              <span className="hidden sm:inline">{filterDate}</span>
-              <span className="sm:hidden">{filterDate.split('-').slice(1).join('/')}</span>
+              <CalendarDays className="w-4 h-4 text-primary transition-colors" />
+              <span className="hidden sm:inline font-black">{filterDate}</span>
+              <span className="sm:hidden font-black">{filterDate.split('-').slice(1).join('/')}</span>
+              <ChevronDown className="w-3 h-3 text-outline group-hover:text-primary transition-colors ml-1" />
             </button>
           </div>
 
@@ -335,26 +463,40 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
               </button>
             ))}
           </div>
+
+          <button
+            onClick={handleDownloadExcel}
+            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+            title="엑셀 다운로드"
+          >
+            <FileDown className="w-4 h-4" />
+            <span className="hidden lg:inline">엑셀 다운로드</span>
+          </button>
         </div>
       </header>
 
-      {/* Stat Cards */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        {stats.map((stat, idx) => (
-          <div 
-            key={idx} 
-            className={`bg-white p-5 md:p-10 rounded-[28px] md:rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-2 md:gap-4 min-h-[120px] sm:min-h-[180px] md:min-h-[220px] ${stat.active ? 'border-primary shadow-lg shadow-primary/5' : 'border-outline-variant/30 shadow-sm'}`}
-          >
-            <p className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight text-center ${stat.active ? 'text-primary' : 'text-outline'}`}>{stat.label}</p>
-            <div className="flex items-baseline justify-center gap-1.5 md:gap-2 w-full">
-              <span className={`text-2xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
-                {stat.value.toLocaleString()}
-              </span>
-              <span className="text-[9px] md:text-sm font-black text-outline uppercase shrink-0">KG</span>
+      {/* Statistics Grid */}
+      <section className="space-y-4 md:space-y-8">
+        {/* Row 1: Raw Meat + Main Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+          {row1.map((stat, idx) => (
+            <StatCard key={`row1-${idx}`} stat={stat} idx={idx} />
+          ))}
+        </div>
+
+        {/* Row 2: Remaining Categories */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+          {row2.map((stat, idx) => (
+            <StatCard key={`row2-${idx}`} stat={stat} idx={idx} />
+          ))}
+          {row2.length === 0 && (
+            <div className="col-span-full text-center py-8 bg-slate-50/50 rounded-2xl border border-dashed border-outline-variant/30">
+              <span className="text-xs font-bold text-outline uppercase tracking-widest">부속물, 돼지고기, 소고기, 기타 재고 정보가 없습니다</span>
             </div>
-          </div>
-        ))}
+          )}
+        </div>
       </section>
+
 
       {/* Current Inventory Table */}
       <section className="space-y-6">
@@ -388,7 +530,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       </thead>
                       <tbody className="divide-y divide-outline-variant/10">
                         {paginatedInventory.map((item: any, k: number) => (
-                          <tr key={k} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('inventory')}>
+                          <tr key={k} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('detail', item)}>
                             <td className="px-6 md:px-8 py-5 text-center text-[11px] font-bold text-outline tabular-nums">
                               {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
                             </td>
@@ -412,7 +554,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   {/* Mobile View Card */}
                   <div className="md:hidden divide-y divide-outline-variant/10 text-left">
                     {paginatedInventory.map((item: any, i: number) => (
-                      <div key={i} className="p-4 flex items-center justify-between active:bg-slate-50 transition-colors" onClick={() => onNavigate('inventory')}>
+                      <div key={i} className="p-4 flex items-center justify-between active:bg-slate-50 transition-colors" onClick={() => onNavigate('detail', item)}>
                         <div className="flex items-center gap-3 min-w-0">
                             <div className="text-left min-w-0">
                               <div className="text-[10px] font-bold text-outline mb-0.5">

@@ -77,7 +77,7 @@ export default function App() {
   };
 
   const handleNavigate = (view: ViewType, item?: any) => {
-    if (item) setSelectedItem(item);
+    setSelectedItem(item || null);
     setCurrentView(view);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -179,6 +179,7 @@ export default function App() {
                     logistics={logistics}
                     onNavigate={handleNavigate} 
                     canEditItems={canEditItems} 
+                    initialCategory={typeof selectedItem === 'string' ? selectedItem : null}
                   />
                 )}
                 {currentView === 'detail' && selectedItem && (
