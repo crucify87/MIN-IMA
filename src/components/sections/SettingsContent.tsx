@@ -154,10 +154,31 @@ function SettingsContent({
         alert('상품 정보가 수정되었습니다.');
         setEditingItemId(null);
       } else {
-        await addDoc(collection(db, 'inventory'), {
+        const docRef = await addDoc(collection(db, 'inventory'), {
           ...data,
           createdAt: serverTimestamp()
         });
+        
+        // Add logistics record for initial stock if > 0
+        if (data.currentStock > 0) {
+          try {
+            await addDoc(collection(db, 'logistics'), {
+              date: new Date().toLocaleDateString('sv-SE'),
+              time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+              type: '입고',
+              item: data.name,
+              weight: data.currentStock,
+              partner: '초기재고등록',
+              category: data.category,
+              brand: data.brand,
+              memo: '신규 상품 등록 초기 재고',
+              createdAt: serverTimestamp()
+            });
+          } catch (logError) {
+            console.error('Failed to create initial logistics record:', logError);
+          }
+        }
+        
         alert('상품 등록이 완료되었습니다.');
       }
       setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });

@@ -696,6 +696,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                       <th className="px-4 py-8">규격</th>
                       <th className="px-4 py-8">품목</th>
                       <th className="px-4 py-8">중량</th>
+                      <th className="px-4 py-8">거래처</th>
                       <th className="px-4 py-8 text-right pr-8">관리</th>
                     </tr>
                   </thead>
@@ -725,6 +726,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
                         <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
+                        </td>
+                        <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
+                          {l.partner || '-'}
                         </td>
                         <td className="px-4 py-6 text-right pr-8">
                           <div className="flex items-center justify-end gap-1">

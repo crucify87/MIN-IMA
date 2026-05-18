@@ -116,10 +116,19 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       let matchesDate = true;
       if (filterStartDate || filterEndDate) {
         const itemLogistics = logistics.filter((l: any) => l.item === i.name);
-        matchesDate = itemLogistics.some((l: any) => {
+        const hasMovementInRange = itemLogistics.some((l: any) => {
           const d = l.date;
           return (!filterStartDate || d >= filterStartDate) && (!filterEndDate || d <= filterEndDate);
         });
+
+        const itemUpdateDate = i.updatedAt?.seconds 
+          ? new Date(i.updatedAt.seconds * 1000).toLocaleDateString('sv-SE')
+          : today;
+        
+        const isRecentlyUpdated = (!filterStartDate || itemUpdateDate >= filterStartDate) && 
+                                  (!filterEndDate || itemUpdateDate <= filterEndDate);
+
+        matchesDate = hasMovementInRange || isRecentlyUpdated;
       }
 
       return matchesSearch && matchesCategory && matchesBrand && matchesDate;
