@@ -403,6 +403,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                     <th className="px-4 py-5 font-medium">규격</th>
                     <th className="px-4 py-5 font-medium">카테고리</th>
                     <th className="px-4 py-5 font-medium">현재 재고</th>
+                    <th className="px-4 py-5 font-medium">박스 수</th>
                     <th className="px-4 py-5 font-medium">상태</th>
                     <th className="px-4 py-5 font-medium">관리</th>
                   </tr>
@@ -427,6 +428,9 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                       </td>
                       <td className="px-4 py-4 font-black text-lg">
                         {item.currentStock?.toLocaleString()} <span className="text-[10px] text-outline font-medium">{item.unit}</span>
+                      </td>
+                      <td className="px-4 py-4 font-black text-lg text-slate-500">
+                        {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} BOX` : '-'}
                       </td>
                       <td className="px-4 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -506,6 +510,9 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                           {item.currentStock?.toLocaleString()}
                         </span>
                         <span className="text-[9px] font-bold text-outline">{item.unit}</span>
+                        {item.category === '원육' && (
+                          <span className="text-[11px] font-black text-slate-400 ml-1">/ {(item.boxes || 0).toLocaleString()} BOX</span>
+                        )}
                       </div>
                       <span className={`px-2.5 py-1 rounded-full text-[8px] font-black tracking-tighter uppercase inline-flex items-center gap-1 shadow-sm ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>
                         <Package className="w-2.5 h-2.5" />

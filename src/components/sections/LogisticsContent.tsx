@@ -168,6 +168,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     brand: '',
     category: '',
     partner: '', 
+    boxes: '',
     weight: '', 
     freightType: '선불' 
   });
@@ -192,6 +193,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         '카테고리': item.category || '-',
         '브랜드': item.brand || '-',
         '품목명': item.item,
+        '박스수': item.boxes || '-',
         '중량 (KG)': item.weight,
         '거래처': item.partner || '-',
         '운송구분': item.freightType || '-'
@@ -244,6 +246,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     try {
       const itemName = form.item.trim();
       const weightNum = Number(form.weight);
+      const boxesNum = Number(form.boxes) || 0;
       
       const updateInventoryStock = async (name: string, diff: number) => {
         const item = inventory.find((i: any) => i.name === name);
@@ -282,6 +285,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           ...form,
           item: itemName,
           weight: weightNum, 
+          boxes: boxesNum,
           updatedAt: serverTimestamp() 
         });
 
@@ -295,6 +299,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           ...form, 
           item: itemName,
           weight: weightNum, 
+          boxes: boxesNum,
           status: '완료', 
           createdAt: serverTimestamp() 
         });
@@ -313,6 +318,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         brand: '',
         category: '',
         partner: '', 
+        boxes: '',
         weight: '', 
         freightType: '선불' 
       });
@@ -329,6 +335,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       brand: l.brand || '',
       category: l.category || '',
       partner: l.partner,
+      boxes: l.boxes || '',
       weight: l.weight.toString(),
       freightType: l.freightType || '선불'
     });
@@ -531,6 +538,17 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
              </div>
 
              <div className="space-y-1">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">박스수</label>
+               <input 
+                  type="text" 
+                  value={formatWithCommas(form.boxes)} 
+                  onChange={e => setForm({...form, boxes: e.target.value.replace(/[^0-9]/g, '')})} 
+                  className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
+                  placeholder="0"
+               />
+             </div>
+
+             <div className="space-y-1">
                <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">거래처</label>
                <select value={form.partner} onChange={e => setForm({...form, partner: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all">
                  <option value="">거래처 선택</option>
@@ -538,7 +556,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                 </select>
               </div>
 
-              <div className="lg:col-span-2 flex items-end">
+              <div className="flex items-end">
                 <button type="submit" className="w-full h-12 bg-[#0f172a] text-white rounded-xl font-black uppercase shadow-lg shadow-[#0f172a]/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
                   {editingId ? '수정 내용 저장' : '등록 완료'}
                 </button>
@@ -696,6 +714,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                       <th className="px-4 py-8">규격</th>
                       <th className="px-4 py-8">품목</th>
                       <th className="px-4 py-8">중량</th>
+                      <th className="px-4 py-8">박스수</th>
                       <th className="px-4 py-8">거래처</th>
                       <th className="px-4 py-8 text-right pr-8">관리</th>
                     </tr>
@@ -726,6 +745,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
                         <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
+                        </td>
+                        <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
+                          {Number(l.boxes || 0).toLocaleString()} BOX
                         </td>
                         <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
                           {l.partner || '-'}
@@ -766,6 +788,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
                           <span className="text-[9px] font-black text-primary/60">{l.brand}</span>
+                          <span className="text-[9px] font-black text-slate-400">/ {Number(l.boxes || 0).toLocaleString()} BOX</span>
                         </div>
                       </div>
                       

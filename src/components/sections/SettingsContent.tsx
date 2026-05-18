@@ -104,7 +104,7 @@ function SettingsContent({
 
   // Item Form
   const [itemForm, setItemForm] = useState({
-    sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', currentStock: '', safetyStock: '',
+    sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', boxes: '', currentStock: '', safetyStock: '',
     purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: ''
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -144,6 +144,7 @@ function SettingsContent({
         ...itemForm,
         currentStock: Number(itemForm.currentStock) || 0,
         safetyStock: Number(itemForm.safetyStock) || 0,
+        boxes: Number(itemForm.boxes) || 0,
         purchasePrice: Number(itemForm.purchasePrice) || 0,
         salesPrice: Number(itemForm.salesPrice) || 0,
         updatedAt: serverTimestamp()
@@ -168,6 +169,7 @@ function SettingsContent({
               type: '입고',
               item: data.name,
               weight: data.currentStock,
+              boxes: data.boxes,
               partner: '초기재고등록',
               category: data.category,
               brand: data.brand,
@@ -181,7 +183,7 @@ function SettingsContent({
         
         alert('상품 등록이 완료되었습니다.');
       }
-      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
   };
 
@@ -194,6 +196,7 @@ function SettingsContent({
       brand: item.brand || '',
       specs: item.specs || '',
       unit: item.unit || 'kg',
+      boxes: String(item.boxes || 0),
       currentStock: String(item.currentStock || 0),
       safetyStock: String(item.safetyStock || 0),
       purchasePrice: String(item.purchasePrice || 0),
@@ -504,7 +507,7 @@ function SettingsContent({
                     </button>
                     {showUnitOptions && (
                       <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                        {['ea', 'kg', 'g', 'box'].map((u) => (
+                        {['ea', 'kg', 'g'].map((u) => (
                           <button
                             key={u}
                             type="button"
@@ -524,7 +527,7 @@ function SettingsContent({
 
                   {/* Row 4: Stocks */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 재고</label>
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 재고 ({itemForm.unit})</label>
                     <input 
                       type="text" 
                       value={formatWithCommas(itemForm.currentStock)} 
@@ -536,6 +539,18 @@ function SettingsContent({
                       className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
                     />
                   </div>
+                  {itemForm.category === '원육' && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 박스 수</label>
+                      <input 
+                        type="text" 
+                        value={formatWithCommas(itemForm.boxes)} 
+                        onChange={e => setItemForm({...itemForm, boxes: e.target.value.replace(/[^0-9]/g, '')})} 
+                        className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">안전 재고</label>
                     <input 
@@ -633,7 +648,7 @@ function SettingsContent({
                         type="button"
                         onClick={() => {
                           setEditingItemId(null);
-                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
                         }}
                         className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm md:text-lg shadow-sm hover:bg-rose-100 transition-all active:scale-[0.98]"
                       >
@@ -679,6 +694,7 @@ function SettingsContent({
                           <th className="px-4 py-5 text-center">카테고리</th>
                           <th className="px-4 py-5 text-center">단위</th>
                           <th className="px-4 py-5 text-center">현재고</th>
+                          <th className="px-4 py-5 text-center">현재박스</th>
                           <th className="px-4 py-5 text-center">안전재고</th>
                           <th className="px-4 py-5 text-center">위치</th>
                           <th className="px-6 py-5 text-right">관리</th>
@@ -705,6 +721,11 @@ function SettingsContent({
                               <td className="px-4 py-5 text-center">
                                 <span className={`font-black ${item.currentStock <= item.safetyStock ? 'text-rose-500' : 'text-[#0f172a]'}`}>
                                   {item.currentStock?.toLocaleString()}
+                                </span>
+                              </td>
+                              <td className="px-4 py-5 text-center">
+                                <span className="font-black text-[#0f172a]">
+                                  {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} BOX` : '-'}
                                 </span>
                               </td>
                               <td className="px-4 py-5 text-center text-xs font-bold text-outline">{item.safetyStock?.toLocaleString() || '0'}</td>
@@ -772,6 +793,11 @@ function SettingsContent({
                                   <div className={`text-base font-black ${isShortage ? 'text-rose-500' : 'text-[#0f172a]'}`}>
                                     {item.currentStock?.toLocaleString()} <span className="text-[11px] font-bold opacity-40 ml-0.5">{item.unit}</span>
                                   </div>
+                                  {item.category === '원육' && (
+                                    <div className="text-[10px] font-black text-slate-400">
+                                      {(item.boxes || 0).toLocaleString()} BOX
+                                    </div>
+                                  )}
                               </div>
                               <div className="space-y-1">
                                   <div className="text-[9px] font-black text-outline uppercase tracking-wider">보관 위치</div>
