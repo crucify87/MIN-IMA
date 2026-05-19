@@ -44,6 +44,8 @@ function SettingsContent({
 }: any) {
   const [tab, setTab] = useState<'p' | 't' | 'u' | 's'>('p');
   const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterBrand, setFilterBrand] = useState('');
   const [partnerSearch, setPartnerSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [showAllPartners, setShowAllPartners] = useState(false);
@@ -281,11 +283,20 @@ function SettingsContent({
   };
 
   const filteredItems = React.useMemo(() => {
-    const result = inventory.filter((i: any) => 
+    let result = inventory.filter((i: any) => 
       i.name.toLowerCase().includes(search.toLowerCase()) || 
       i.sku?.toLowerCase().includes(search.toLowerCase()) ||
-      i.category?.toLowerCase().includes(search.toLowerCase())
+      i.category?.toLowerCase().includes(search.toLowerCase()) ||
+      i.brand?.toLowerCase().includes(search.toLowerCase())
     );
+
+    if (filterCategory) {
+      result = result.filter((i: any) => i.category === filterCategory);
+    }
+
+    if (filterBrand) {
+      result = result.filter((i: any) => i.brand === filterBrand);
+    }
 
     // Sort by latest update first
     return [...result].sort((a: any, b: any) => {
@@ -293,7 +304,17 @@ function SettingsContent({
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
     });
-  }, [inventory, search]);
+  }, [inventory, search, filterCategory, filterBrand]);
+
+  const categories = React.useMemo(() => {
+    const cats = new Set(inventory.map((i: any) => i.category).filter(Boolean));
+    return Array.from(cats).sort() as string[];
+  }, [inventory]);
+
+  const brands = React.useMemo(() => {
+    const bnds = new Set(inventory.map((i: any) => i.brand).filter(Boolean));
+    return Array.from(bnds).sort() as string[];
+  }, [inventory]);
 
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
   const paginatedItems = React.useMemo(() => {
@@ -303,7 +324,7 @@ function SettingsContent({
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, filterCategory, filterBrand]);
 
   const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
@@ -676,9 +697,31 @@ function SettingsContent({
                   <p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">MASTER INVENTORY ITEMS</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                  <div className="relative group flex-1 sm:w-80">
+                  <select 
+                    value={filterCategory} 
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="h-12 px-4 bg-white border border-outline-variant rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
+                  >
+                    <option value="">전체 카테고리</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+
+                  <select 
+                    value={filterBrand} 
+                    onChange={(e) => setFilterBrand(e.target.value)}
+                    className="h-12 px-4 bg-white border border-outline-variant rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
+                  >
+                    <option value="">전체 브랜드</option>
+                    {brands.map(brand => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+
+                  <div className="relative group flex-1 sm:w-64">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                    <input type="text" placeholder="상품명, SKU, 카테고리 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
+                    <input type="text" placeholder="상품명, SKU 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
                   </div>
                 </div>
               </div>

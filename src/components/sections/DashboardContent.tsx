@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Search, 
   CalendarDays, 
@@ -63,6 +63,12 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const [isRefreshing, setIsRefreshing] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(false);
+
+  // Reset pages when filters change to avoid empty views
+  useEffect(() => {
+    setInventoryPage(1);
+    setActivityPage(1);
+  }, [filterStartDate, filterEndDate, searchQuery]);
 
   const handleDownloadExcel = () => {
     try {
@@ -155,8 +161,9 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         originalId: l.id,
         time: `${l.date} ${l.time}`,
         type: l.type,
-        item: l.item,
+        item: l.item || '',
         weight: l.weight,
+        boxes: l.boxes,
         source: '물류',
         rawTime: l.createdAt?.seconds || 0,
         date: l.date
@@ -166,7 +173,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           originalId: p.id,
           time: p.manufDate,
           type: '입고',
-          item: p.title,
+          item: p.title || '',
           weight: p.production,
           source: '생산(완성)',
           rawTime: p.createdAt?.seconds || 0,
@@ -178,14 +185,18 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           originalId: p.id,
           time: p.manufDate,
           type: '출고',
-          item: p.rawMaterial,
+          item: p.rawMaterial || '',
           weight: p.rawQty,
           source: '생산(투입)',
           rawTime: p.createdAt?.seconds || 0,
           date: p.manufDate
         }
       ]).filter(i => i.item)
-    ].filter(item => isInRange(item.date))
+    ].filter(item => {
+      const matchesDate = isInRange(item.date);
+      const matchesSearch = !searchQuery || item.item.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesDate && matchesSearch;
+    })
     .sort((a, b) => {
       // Sort by date then time in reverse (latest first)
       if (a.date !== b.date) return b.date.localeCompare(a.date);
@@ -209,35 +220,61 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
+  const Pagination = ({ current, total, totalItems, itemsPerPage, onChange }: { current: number; total: number; totalItems: number; itemsPerPage: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
+    
+    const startItem = (current - 1) * itemsPerPage + 1;
+    const endItem = Math.min(current * itemsPerPage, totalItems);
+
+    const getVisiblePages = () => {
+      const pages = [];
+      const delta = 1;
+      for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+          pages.push(i);
+        }
+      }
+      return pages;
+    };
+
+    const visiblePages = getVisiblePages();
+
     return (
-      <div className="flex items-center justify-center gap-2 mt-6">
-        <button 
-          disabled={current === 1}
-          onClick={() => onChange(current - 1)}
-          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
-        >
-          <ChevronRight className="w-4 h-4 rotate-180" />
-        </button>
-        <div className="flex items-center gap-1">
-          {Array.from({ length: total }, (_, i) => i + 1).map(p => (
-            <button
-              key={p}
-              onClick={() => onChange(p)}
-              className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
-            >
-              {p}
-            </button>
-          ))}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
+        <div className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest order-2 md:order-1">
+          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시 중
         </div>
-        <button 
-          disabled={current === total}
-          onClick={() => onChange(current + 1)}
-          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2 order-1 md:order-2">
+          <button 
+            disabled={current === 1}
+            onClick={() => onChange(current - 1)}
+            className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+          >
+            <ChevronRight className="w-4 h-4 rotate-180" />
+          </button>
+          <div className="flex items-center gap-1.5">
+            {visiblePages.map((p, i) => (
+              <React.Fragment key={p}>
+                {i > 0 && visiblePages[i - 1] !== p - 1 && (
+                  <span className="text-outline/40 font-black px-1">...</span>
+                )}
+                <button
+                  onClick={() => onChange(p)}
+                  className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
+                >
+                  {p}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+          <button 
+            disabled={current === total}
+            onClick={() => onChange(current + 1)}
+            className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     );
   };
@@ -552,10 +589,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     <table className="w-full text-left table-fixed">
                       <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
                         <tr>
-                          <th className="px-6 md:px-8 py-5 text-center w-[15%]">날짜</th>
-                          <th className="px-6 md:px-8 py-5 w-[30%]">품목 명칭</th>
-                          <th className="px-6 md:px-8 py-5 text-center w-[15%]">규격</th>
-                          <th className="px-6 md:px-8 py-5 w-[20%]">현재고 (KG)</th>
+                          <th className="px-6 md:px-8 py-5 text-center w-[12%]">날짜</th>
+                          <th className="px-6 md:px-8 py-5 w-[25%]">품목 명칭</th>
+                          <th className="px-6 md:px-8 py-5 text-center w-[12%]">규격</th>
+                          <th className="px-6 md:px-8 py-5 w-[18%]">현재고 (KG)</th>
+                          <th className="px-6 md:px-8 py-5 w-[13%]">박스 수</th>
                           <th className="px-6 md:px-8 py-5 text-center w-[15%] text-nowrap">상태</th>
                           <th className="px-6 md:px-8 py-5 w-[5%] tracking-normal"></th>
                         </tr>
@@ -571,6 +609,9 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                             </td>
                             <td className="px-6 md:px-8 py-5 text-center text-xs font-bold text-outline truncate" title={item.specs || ''}>{item.specs || '-'}</td>
                             <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black text-nowrap">{item.currentStock?.toLocaleString()} KG</td>
+                            <td className="px-6 md:px-8 py-5 text-base font-black text-slate-500">
+                              {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} BOX` : '-'}
+                            </td>
                             <td className="px-6 md:px-8 py-5 text-center">
                               <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
                                 {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
@@ -595,7 +636,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                               <div className="font-black text-[#0f172a] text-sm truncate">{item.name}</div>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <div className="text-[10px] font-bold text-emerald-600/70">{item.specs || '-'}</div>
-                                <div className="text-[10px] font-bold text-outline">{item.currentStock?.toLocaleString()} KG</div>
+                                <div className="text-[10px] font-bold text-outline uppercase">{item.currentStock?.toLocaleString()} {item.unit}</div>
+                                {item.category === '원육' && (
+                                  <div className="text-[10px] font-black text-slate-400">/ {(item.boxes || 0).toLocaleString()} BOX</div>
+                                )}
                               </div>
                             </div>
                         </div>
@@ -607,7 +651,13 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   </div>
                 </div>
               </div>
-              <Pagination current={inventoryPage} total={totalInventoryPages} onChange={setInventoryPage} />
+              <Pagination 
+                current={inventoryPage} 
+                total={totalInventoryPages} 
+                totalItems={filteredInventory.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onChange={setInventoryPage} 
+              />
             </>
           ) : (
             <div className="space-y-4">
@@ -650,7 +700,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     <th className="px-4 py-8">날짜</th>
                     <th className="px-4 py-8">구분</th>
                     <th className="px-4 py-8">품목 (ITEM)</th>
-                    <th className="px-4 py-8 text-nowrap">재고 변동량 / 수율</th>
+                    <th className="px-4 py-8 text-nowrap">변동량 / 수율</th>
+                    <th className="px-4 py-8">변동 박스</th>
                     <th className="px-4 py-8">재고 상태</th>
                     <th className="px-4 py-8">관리</th>
                   </tr>
@@ -690,6 +741,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                               <span className="text-[10px] font-bold text-rose-500">로스 {l.loss?.toFixed(1)}%</span>
                             </div>
                           )}
+                        </td>
+                        <td className="px-4 py-6">
+                           <div className="font-black text-base text-slate-500">
+                             {itemInfo?.category === '원육' ? `${(l.boxes || 0).toLocaleString()} BOX` : '-'}
+                           </div>
                         </td>
                         <td className="px-4 py-6">
                           <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
@@ -764,6 +820,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                           <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
                           </span>
+                          {(l.boxes !== undefined || itemInfo?.category === '원육') && (
+                            <span className="text-[10px] font-black text-slate-400">
+                              {l.type === '입고' ? '+' : '-'}{Number(l.boxes || 0).toLocaleString()} BOX
+                            </span>
+                          )}
                           {l.yield !== undefined && (
                             <span className="text-[9px] font-black text-emerald-600">
                               수율 {l.yield?.toFixed(1)}% (로스 {l.loss?.toFixed(1)}%)
@@ -790,7 +851,13 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           </div>
           
           <div className="p-4 bg-surface-container/10 border-t border-outline-variant">
-            <Pagination current={activityPage} total={totalActivityPages} onChange={setActivityPage} />
+            <Pagination 
+              current={activityPage} 
+              total={totalActivityPages} 
+              totalItems={combinedActivity.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onChange={setActivityPage} 
+            />
           </div>
         </div>
       </section>

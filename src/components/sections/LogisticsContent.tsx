@@ -32,7 +32,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeRange, setActiveRange] = useState('일간');
+  const [activeRange, setActiveRange] = useState('주간');
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -80,9 +80,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
   const filtered = useMemo(() => {
     const result = logistics
-      .filter((l: any) => l.category !== '완제품')
       .filter((l: any) => {
-        const matchesSearch = l.item.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = (l.item || '').toLowerCase().includes(search.toLowerCase()) ||
+                             (l.partner || '').toLowerCase().includes(search.toLowerCase());
         const matchesCategory = !filterCategory || l.category === filterCategory;
         const matchesBrand = !filterBrand || l.brand === filterBrand;
         const matchesDate = l.date >= startDate && l.date <= endDate;
@@ -102,44 +102,70 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filtered, currentPage]);
 
-  const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
+  const Pagination = ({ current, total, totalItems, itemsPerPage, onChange }: { current: number; total: number; totalItems: number; itemsPerPage: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
+    
+    const startItem = (current - 1) * itemsPerPage + 1;
+    const endItem = Math.min(current * itemsPerPage, totalItems);
+
+    const getVisiblePages = () => {
+      const pages = [];
+      const delta = 1;
+      for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+          pages.push(i);
+        }
+      }
+      return pages;
+    };
+
+    const visiblePages = getVisiblePages();
+
     return (
-      <div className="flex items-center justify-center gap-2 mt-8 pb-4">
-        <button 
-          disabled={current === 1}
-          onClick={() => {
-            onChange(current - 1);
-            window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
-          }}
-          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
-        >
-          <ChevronDown className="w-4 h-4 rotate-90" />
-        </button>
-        <div className="flex items-center gap-1">
-          {Array.from({ length: total }, (_, i) => i + 1).map(p => (
-            <button
-              key={p}
-              onClick={() => {
-                onChange(p);
-                window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
-              }}
-              className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
-            >
-              {p}
-            </button>
-          ))}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
+        <div className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest order-2 md:order-1">
+          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시 중
         </div>
-        <button 
-          disabled={current === total}
-          onClick={() => {
-            onChange(current + 1);
-            window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
-          }}
-          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
-        >
-          <ChevronDown className="w-4 h-4 -rotate-90" />
-        </button>
+        <div className="flex items-center gap-2 order-1 md:order-2">
+          <button 
+            disabled={current === 1}
+            onClick={() => {
+              onChange(current - 1);
+              window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+            }}
+            className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+          >
+            <ChevronDown className="w-4 h-4 rotate-90" />
+          </button>
+          <div className="flex items-center gap-1.5">
+            {visiblePages.map((p, i) => (
+              <React.Fragment key={p}>
+                {i > 0 && visiblePages[i - 1] !== p - 1 && (
+                  <span className="text-outline/40 font-black px-1">...</span>
+                )}
+                <button
+                  onClick={() => {
+                    onChange(p);
+                    window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+                  }}
+                  className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
+                >
+                  {p}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+          <button 
+            disabled={current === total}
+            onClick={() => {
+              onChange(current + 1);
+              window.scrollTo({ top: (document.getElementById('logistics-list')?.offsetTop || 0) - 100, behavior: 'smooth' });
+            }}
+            className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+          >
+            <ChevronDown className="w-4 h-4 -rotate-90" />
+          </button>
+        </div>
       </div>
     );
   };
@@ -219,13 +245,12 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const categories = useMemo(() => {
     const cats = inventory
       .map((i: any) => i.category)
-      .filter((cat: any) => cat && cat !== '완제품');
+      .filter((cat: any) => cat);
     return Array.from(new Set(cats));
   }, [inventory]);
 
   const brands = useMemo(() => {
     const bnds = inventory
-      .filter((i: any) => i.category !== '완제품')
       .map((i: any) => i.brand)
       .filter(Boolean);
     return Array.from(new Set(bnds));
@@ -829,7 +854,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               </p>
             </div>
           )}
-          <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
+          <Pagination 
+            current={currentPage} 
+            total={totalPages} 
+            totalItems={filtered.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onChange={setCurrentPage} 
+          />
         </div>
       </section>
     </div>

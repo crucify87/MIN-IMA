@@ -22,7 +22,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState(initialCategory || '');
   const [filterBrand, setFilterBrand] = useState('');
-  const [filterStartDate, setFilterStartDate] = useState(today);
+  const [filterStartDate, setFilterStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toLocaleDateString('sv-SE');
+  });
   const [filterEndDate, setFilterEndDate] = useState(today);
   const startDatePickerRef = React.useRef<HTMLInputElement>(null);
   const endDatePickerRef = React.useRef<HTMLInputElement>(null);
@@ -54,8 +58,13 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       }
     }
   };
-  const [activeShift, setActiveShift] = useState('일간');
+  const [activeShift, setActiveShift] = useState('월간');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterCategory, filterBrand, filterStartDate, filterEndDate]);
 
   React.useEffect(() => {
     if (initialCategory) setFilterCategory(initialCategory);
@@ -108,13 +117,14 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     const result = inventory
       .filter((i: any) => i.category !== '완제품')
       .filter((i: any) => {
-        const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase()) || 
-                             i.sku?.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = (i.name || '').toLowerCase().includes(search.toLowerCase()) || 
+                             (i.sku || '').toLowerCase().includes(search.toLowerCase()) ||
+                             (i.brand || '').toLowerCase().includes(search.toLowerCase());
         const matchesCategory = !filterCategory || i.category === filterCategory;
         const matchesBrand = !filterBrand || i.brand === filterBrand;
       
       let matchesDate = true;
-      if (filterStartDate || filterEndDate) {
+      if (activeShift !== '') { // Apply date filter only if a range is selected
         const itemLogistics = logistics.filter((l: any) => l.item === i.name);
         const hasMovementInRange = itemLogistics.some((l: any) => {
           const d = l.date;
@@ -154,35 +164,61 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filtered, currentPage]);
 
-  const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
+  const Pagination = ({ current, total, totalItems, itemsPerPage, onChange }: { current: number; total: number; totalItems: number; itemsPerPage: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
+    
+    const startItem = (current - 1) * itemsPerPage + 1;
+    const endItem = Math.min(current * itemsPerPage, totalItems);
+
+    const getVisiblePages = () => {
+      const pages = [];
+      const delta = 1;
+      for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+          pages.push(i);
+        }
+      }
+      return pages;
+    };
+
+    const visiblePages = getVisiblePages();
+
     return (
-      <div className="flex items-center justify-center gap-2 mt-8 pb-4">
-        <button 
-          disabled={current === 1}
-          onClick={() => onChange(current - 1)}
-          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
-        >
-          <ChevronRight className="w-4 h-4 rotate-180" />
-        </button>
-        <div className="flex items-center gap-1">
-          {Array.from({ length: total }, (_, i) => i + 1).map(p => (
-            <button
-              key={p}
-              onClick={() => onChange(p)}
-              className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
-            >
-              {p}
-            </button>
-          ))}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
+        <div className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest order-2 md:order-1">
+          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시 중
         </div>
-        <button 
-          disabled={current === total}
-          onClick={() => onChange(current + 1)}
-          className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2 order-1 md:order-2">
+          <button 
+            disabled={current === 1}
+            onClick={() => onChange(current - 1)}
+            className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+          >
+            <ChevronRight className="w-4 h-4 rotate-180" />
+          </button>
+          <div className="flex items-center gap-1.5">
+            {visiblePages.map((p, i) => (
+              <React.Fragment key={p}>
+                {i > 0 && visiblePages[i - 1] !== p - 1 && (
+                  <span className="text-outline/40 font-black px-1">...</span>
+                )}
+                <button
+                  onClick={() => onChange(p)}
+                  className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${current === p ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:border-primary hover:text-primary'}`}
+                >
+                  {p}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+          <button 
+            disabled={current === total}
+            onClick={() => onChange(current + 1)}
+            className="p-2 bg-white border border-outline-variant rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:border-primary transition-all active:scale-95"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     );
   };
@@ -529,7 +565,13 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
               )}
             </div>
           </div>
-          <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
+          <Pagination 
+            current={currentPage} 
+            total={totalPages} 
+            totalItems={filtered.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onChange={setCurrentPage} 
+          />
         </div>
     </section>
   </div>
