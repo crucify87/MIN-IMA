@@ -107,11 +107,9 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
-    const num = String(value).replace(/[^0-9.]/g, '');
+    const num = String(value).replace(/[^0-9]/g, '');
     if (!num) return '';
-    const parts = num.split('.');
-    parts[0] = parseInt(parts[0]).toLocaleString();
-    return parts.join('.');
+    return parseInt(num).toLocaleString();
   };
 
   const filtered = useMemo(() => {
@@ -475,7 +473,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                                <div className="px-2 flex items-center justify-between">
                                  <span className="text-[10px] font-black text-outline uppercase shrink-0">생산품 재고</span>
                                  <span className="text-[10px] font-black text-emerald-600">
-                                   {inventory.find((i: any) => i.name === row.title)?.currentStock?.toLocaleString() || 0} KG
+                                   {inventory.find((i: any) => i.name === row.title)?.currentStock?.toLocaleString() || '0'} KG
                                  </span>
                                </div>
                              )}
@@ -512,7 +510,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                               type="text" 
                               placeholder="0" 
                               value={formatWithCommas(row.rawQty)} 
-                              onChange={e => updateRow(row.id, 'rawQty', e.target.value.replace(/[^0-9.]/g, ''))} 
+                              onChange={e => updateRow(row.id, 'rawQty', e.target.value.replace(/[^0-9]/g, ''))} 
                               className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
                            />
                          </div>
@@ -522,7 +520,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                               type="text" 
                               placeholder="0" 
                               value={formatWithCommas(row.production)} 
-                              onChange={e => updateRow(row.id, 'production', e.target.value.replace(/[^0-9.]/g, ''))} 
+                              onChange={e => updateRow(row.id, 'production', e.target.value.replace(/[^0-9]/g, ''))} 
                               className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
                            />
                          </div>

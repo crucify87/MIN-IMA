@@ -60,11 +60,9 @@ function SettingsContent({
   
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
-    const valStr = String(value);
-    const isNegative = valStr.startsWith('-');
-    const num = valStr.replace(/[^0-9]/g, '');
-    if (!num) return isNegative ? '-' : '';
-    return (isNegative ? '-' : '') + parseInt(num).toLocaleString();
+    const num = String(value).replace(/[^0-9]/g, '');
+    if (!num) return '';
+    return parseInt(num).toLocaleString();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -751,9 +749,9 @@ function SettingsContent({
                                 <div className="flex items-center gap-3">
                                   <div>
                                     <div className="font-black text-[#0f172a]">{item.name}</div>
-                                    <div className="flex items-center gap-2">
+                                    {item.brand && <div className="text-[10px] font-black text-primary mt-0.5">{item.brand}</div>}
+                                    <div className="flex items-center gap-2 mt-0.5">
                                       <span className="text-[10px] font-bold text-outline uppercase">{item.sku || '-'}</span>
-                                      {item.brand && <span className="text-[10px] font-black text-primary/50">| {item.brand}</span>}
                                       {item.specs && <span className="text-[10px] font-black text-emerald-500/70">| {item.specs}</span>}
                                     </div>
                                   </div>

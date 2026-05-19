@@ -451,8 +451,9 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                         <td className="px-4 py-4 text-[11px] font-bold text-outline tabular-nums whitespace-nowrap">
                           {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
                         </td>
-                      <td className="px-4 py-4 font-black text-on-surface text-base">
-                        {item.name}
+                      <td className="px-4 py-4">
+                        <div className="font-black text-on-surface text-base leading-tight">{item.name}</div>
+                        {item.brand && <div className="text-[10px] font-bold text-primary mt-1">{item.brand}</div>}
                       </td>
                       <td className="px-4 py-4 text-xs font-bold text-outline">
                         {item.specs || '-'}
@@ -521,10 +522,10 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                           </span>
                           <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[8px] font-black text-outline uppercase">{item.category}</span>
                         </div>
-                        <h4 className="text-sm font-black text-[#0f172a] leading-snug break-all line-clamp-2">{item.name}</h4>
-                        <div className="flex items-center gap-2 flex-wrap opacity-70">
+                        <h4 className="text-sm font-black text-[#0f172a] leading-tight break-all">{item.name}</h4>
+                        {item.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{item.brand}</div>}
+                        <div className="flex items-center gap-2 flex-wrap opacity-70 mt-1">
                           <div className="text-[9px] font-black text-outline">{item.specs || '-'}</div>
-                          {item.brand && <div className="text-[9px] font-bold text-outline-variant italic">/ {item.brand}</div>}
                         </div>
                       </div>
                       

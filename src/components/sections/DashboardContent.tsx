@@ -606,6 +606,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                             </td>
                             <td className="px-6 md:px-8 py-5 truncate">
                               <span className="font-black text-on-surface tracking-tight text-sm md:text-base truncate block" title={item.name}>{item.name}</span>
+                              {item.brand && <span className="text-[10px] font-bold text-primary mt-1 block truncate" title={item.brand}>{item.brand}</span>}
                             </td>
                             <td className="px-6 md:px-8 py-5 text-center text-xs font-bold text-outline truncate" title={item.specs || ''}>{item.specs || '-'}</td>
                             <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black text-nowrap">{item.currentStock?.toLocaleString()} KG</td>
@@ -634,7 +635,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                                 {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
                               </div>
                               <div className="font-black text-[#0f172a] text-sm truncate">{item.name}</div>
-                              <div className="flex items-center gap-1.5 flex-wrap">
+                              {item.brand && <div className="text-[10px] font-bold text-primary truncate">{item.brand}</div>}
+                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                                 <div className="text-[10px] font-bold text-emerald-600/70">{item.specs || '-'}</div>
                                 <div className="text-[10px] font-bold text-outline uppercase">{item.currentStock?.toLocaleString()} {item.unit}</div>
                                 {item.category === '원육' && (

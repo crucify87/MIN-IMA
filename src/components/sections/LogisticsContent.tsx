@@ -201,11 +201,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
-    const num = String(value).replace(/[^0-9.]/g, ''); // Allow decimal point for weight
+    const num = String(value).replace(/[^0-9]/g, '');
     if (!num) return '';
-    const parts = num.split('.');
-    parts[0] = parseInt(parts[0]).toLocaleString();
-    return parts.join('.');
+    return parseInt(num).toLocaleString();
   };
 
   const handleDownloadExcel = () => {
@@ -557,7 +555,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                   required 
                   type="text" 
                   value={formatWithCommas(form.weight)} 
-                  onChange={e => setForm({...form, weight: e.target.value.replace(/[^0-9.]/g, '')})} 
+                  onChange={e => setForm({...form, weight: e.target.value.replace(/[^0-9]/g, '')})} 
                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
                 />
              </div>
@@ -809,10 +807,10 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                             {l.date} <span className="opacity-40">{l.time}</span>
                           </div>
                         </div>
-                        <h4 className="text-sm font-black text-[#0f172a] leading-snug break-all line-clamp-2">{l.item}</h4>
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-sm font-black text-[#0f172a] leading-tight break-all">{l.item}</h4>
+                        {l.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{l.brand}</div>}
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1">
                           <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
-                          <span className="text-[9px] font-black text-primary/60">{l.brand}</span>
                           <span className="text-[9px] font-black text-slate-400">/ {Number(l.boxes || 0).toLocaleString()} BOX</span>
                         </div>
                       </div>
