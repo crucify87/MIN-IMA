@@ -22,11 +22,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState(initialCategory || '');
   const [filterBrand, setFilterBrand] = useState('');
-  const [filterStartDate, setFilterStartDate] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    return d.toLocaleDateString('sv-SE');
-  });
+  const [filterStartDate, setFilterStartDate] = useState(today);
   const [filterEndDate, setFilterEndDate] = useState(today);
   const startDatePickerRef = React.useRef<HTMLInputElement>(null);
   const endDatePickerRef = React.useRef<HTMLInputElement>(null);
@@ -58,7 +54,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       }
     }
   };
-  const [activeShift, setActiveShift] = useState('월간');
+  const [activeShift, setActiveShift] = useState('일간');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Reset page when filters change

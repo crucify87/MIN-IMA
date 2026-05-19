@@ -110,6 +110,7 @@ function SettingsContent({
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showUnitOptions, setShowUnitOptions] = useState(false);
   const [showCategoryOptions, setShowCategoryOptions] = useState(false);
+  const [showBrandOptions, setShowBrandOptions] = useState(false);
   const [showSkuOptions, setShowSkuOptions] = useState(false);
 
   const getNextSku = (prefix: string) => {
@@ -504,9 +505,47 @@ function SettingsContent({
                       </div>
                     )}
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 relative">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">브랜드</label>
-                    <input placeholder="예: 한우관" value={itemForm.brand} onChange={e => setItemForm({...itemForm, brand: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
+                    <div className="relative">
+                      <input 
+                        placeholder="브랜드 선택 또는 입력" 
+                        value={itemForm.brand} 
+                        onChange={e => setItemForm({...itemForm, brand: e.target.value})} 
+                        onFocus={() => setShowBrandOptions(true)}
+                        className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" 
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowBrandOptions(!showBrandOptions)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showBrandOptions ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                    {showBrandOptions && (
+                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-60 overflow-y-auto">
+                        {brands.length > 0 ? (
+                          brands.map((b) => (
+                            <button
+                              key={b}
+                              type="button"
+                              onClick={() => {
+                                setItemForm({...itemForm, brand: b});
+                                setShowBrandOptions(false);
+                              }}
+                              className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.brand === b ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                            >
+                              <span>{b}</span>
+                              {itemForm.brand === b && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-5 py-4 text-xs font-bold text-outline text-center">등록된 브랜드가 없습니다</div>
+                        )}
+                        <div className="px-5 py-2 bg-slate-50 text-[10px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Row 3: Specs & Unit */}

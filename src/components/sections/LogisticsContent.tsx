@@ -32,7 +32,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeRange, setActiveRange] = useState('주간');
+  const [activeRange, setActiveRange] = useState('일간');
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
