@@ -26,6 +26,7 @@ import * as XLSX from 'xlsx';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
+import { DeleteConfirmModal } from '../common/DeleteConfirmModal';
 
 function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditItems }: any) {
   const [showForm, setShowForm] = useState(false);
@@ -33,9 +34,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const ITEMS_PER_PAGE = 10;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeRange, setActiveRange] = useState('일간');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null as any });
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+  const [filterPartner, setFilterPartner] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const handleStartDateClick = () => {
@@ -74,7 +77,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterCategory, filterBrand, startDate, endDate, activeRange]);
+  }, [search, filterCategory, filterBrand, filterPartner, startDate, endDate, activeRange]);
 
   const today = new Date().toLocaleDateString('sv-SE');
 
@@ -85,8 +88,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                              (l.partner || '').toLowerCase().includes(search.toLowerCase());
         const matchesCategory = !filterCategory || l.category === filterCategory;
         const matchesBrand = !filterBrand || l.brand === filterBrand;
+        const matchesPartner = !filterPartner || l.partner === filterPartner;
         const matchesDate = l.date >= startDate && l.date <= endDate;
-        return matchesSearch && matchesCategory && matchesBrand && matchesDate;
+        return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesDate;
       });
 
     // Sort by date then time in reverse (latest first)
@@ -94,7 +98,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       if (a.date !== b.date) return b.date.localeCompare(a.date);
       return b.time.localeCompare(a.time);
     });
-  }, [logistics, search, filterCategory, filterBrand, startDate, endDate]);
+  }, [logistics, search, filterCategory, filterBrand, filterPartner, startDate, endDate]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = useMemo(() => {
@@ -210,18 +214,22 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     try {
       const fileName = `물류관리_리포트_${today}_${activeRange}.xlsx`;
       
-      const data = filtered.map(item => ({
-        '일자': item.date,
-        '시간': item.time,
-        '구분': item.type,
-        '카테고리': item.category || '-',
-        '브랜드': item.brand || '-',
-        '품목명': item.item,
-        '박스수': item.boxes || '-',
-        '중량 (KG)': item.weight,
-        '거래처': item.partner || '-',
-        '운송구분': item.freightType || '-'
-      }));
+      const data = filtered.map(item => {
+        const invItem = inventory.find((i: any) => i.name === item.item);
+        const unit = (invItem?.unit || 'BOX').toUpperCase();
+        return {
+          '일자': item.date,
+          '시간': item.time,
+          '구분': item.type,
+          '카테고리': item.category || '-',
+          '브랜드': item.brand || '-',
+          '품목명': item.item,
+          [`수량 (${unit})`]: item.boxes || '-',
+          '중량 (KG)': item.weight,
+          '거래처': item.partner || '-',
+          '운송구분': item.freightType || '-'
+        };
+      });
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(data);
@@ -271,11 +279,12 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       const weightNum = Number(form.weight);
       const boxesNum = Number(form.boxes) || 0;
       
-      const updateInventoryStock = async (name: string, diff: number) => {
+      const updateInventoryStock = async (name: string, weightDiff: number, boxesDiff: number) => {
         const item = inventory.find((i: any) => i.name === name);
         if (item) {
           await updateDoc(doc(db, 'inventory', item.id), {
-            currentStock: increment(diff),
+            currentStock: increment(weightDiff),
+            boxes: increment(boxesDiff),
             brand: form.brand || item.brand || '',
             category: form.category || item.category || '미분류',
             updatedAt: serverTimestamp()
@@ -284,11 +293,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           // If item doesn't exist in inventory, create it
           await addDoc(collection(db, 'inventory'), {
             name: name,
-            currentStock: diff,
+            currentStock: weightDiff,
+            boxes: boxesDiff,
             brand: form.brand || '',
             category: form.category || '미분류',
+            partner: form.partner || '',
             sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
-            unit: 'KG',
+            unit: 'BOX',
             minStock: 0,
             location: '미지정',
             createdAt: serverTimestamp(),
@@ -301,7 +312,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         const oldRecord = logistics.find((l: any) => l.id === editingId);
         if (oldRecord) {
           // Revert old inventory change
-          await updateInventoryStock(oldRecord.item, oldRecord.type === '입고' ? -oldRecord.weight : oldRecord.weight);
+          await updateInventoryStock(
+            oldRecord.item, 
+            oldRecord.type === '입고' ? -oldRecord.weight : oldRecord.weight,
+            oldRecord.type === '입고' ? -Number(oldRecord.boxes || 0) : Number(oldRecord.boxes || 0)
+          );
         }
         
         await updateDoc(doc(db, 'logistics', editingId), { 
@@ -313,7 +328,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         });
 
         // Apply new inventory change
-        await updateInventoryStock(itemName, form.type === '입고' ? weightNum : -weightNum);
+        await updateInventoryStock(
+          itemName, 
+          form.type === '입고' ? weightNum : -weightNum,
+          form.type === '입고' ? boxesNum : -boxesNum
+        );
 
         alert('수정 완료');
         setEditingId(null);
@@ -327,7 +346,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           createdAt: serverTimestamp() 
         });
 
-        await updateInventoryStock(itemName, form.type === '입고' ? weightNum : -weightNum);
+        await updateInventoryStock(
+          itemName, 
+          form.type === '입고' ? weightNum : -weightNum,
+          form.type === '입고' ? boxesNum : -boxesNum
+        );
         
         alert('등록 완료');
       }
@@ -374,6 +397,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       if (item) {
         await updateDoc(doc(db, 'inventory', item.id), {
           currentStock: increment(l.type === '입고' ? -l.weight : l.weight),
+          boxes: increment(l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0)),
           updatedAt: serverTimestamp()
         });
       }
@@ -464,7 +488,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                      setForm(prev => ({
                        ...prev,
                        brand: invItem.brand || prev.brand,
-                       category: invItem.category || prev.category
+                       category: invItem.category || prev.category,
+                       partner: invItem.partner || prev.partner
                      }));
                    }
                  }} 
@@ -561,7 +586,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
              </div>
 
              <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">박스수</label>
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">
+                 {(() => {
+                   const invItem = inventory.find((it: any) => it.name === form.item);
+                   const unit = (invItem?.unit || 'BOX').toUpperCase();
+                   return unit === 'KG' || unit === 'G' ? '수량' : `${unit} 수`;
+                 })()}
+               </label>
                <input 
                   type="text" 
                   value={formatWithCommas(form.boxes)} 
@@ -585,7 +616,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                 </button>
               </div>
            </form>
-         </motion.div>
+           <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={() => handleDelete(deleteModal.item)}
+        title="물류 기록 삭제"
+        message={`${deleteModal.item?.item} (${deleteModal.item?.type}) 기록을 삭제하시겠습니까?\n\n※ 삭제 시 해당 품목의 재고가 반창 처리됩니다.`}
+      />
+    </motion.div>
        )}
 
       {/* Summary Stats */}
@@ -630,6 +668,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             >
               <option value="">전체 브랜드</option>
               {brands.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+
+            <select 
+              value={filterPartner} 
+              onChange={e => setFilterPartner(e.target.value)}
+              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
+            >
+              <option value="">전체 거래처</option>
+              {partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
             </select>
 
             <div className="relative group flex-1 md:flex-none md:w-64">
@@ -737,7 +784,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                       <th className="px-4 py-8">규격</th>
                       <th className="px-4 py-8">품목</th>
                       <th className="px-4 py-8">중량</th>
-                      <th className="px-4 py-8">박스수</th>
+                      <th className="px-4 py-8">수량(단위)</th>
                       <th className="px-4 py-8">거래처</th>
                       <th className="px-4 py-8 text-right pr-8">관리</th>
                     </tr>
@@ -769,8 +816,12 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
                         </td>
-                        <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
-                          {Number(l.boxes || 0).toLocaleString()} BOX
+                        <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
+                          {(() => {
+                            const invItem = inventory?.find((i: any) => i.name === l.item);
+                            const unit = (invItem?.unit || 'BOX').toUpperCase();
+                            return `${Number(l.boxes || 0).toLocaleString()} ${unit}`;
+                          })()}
                         </td>
                         <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
                           {l.partner || '-'}
@@ -780,7 +831,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                              <button onClick={() => handleEdit(l)} className="p-2 hover:bg-slate-100 text-slate-400 hover:text-primary rounded-xl transition-all">
                                <Edit className="w-5 h-5" />
                              </button>
-                             <button onClick={() => handleDelete(l)} className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all">
+                             <button onClick={() => setDeleteModal({ isOpen: true, item: l })} className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all">
                                <Trash2 className="w-5 h-5" />
                              </button>
                           </div>
@@ -811,7 +862,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         {l.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{l.brand}</div>}
                         <div className="flex items-center gap-1.5 flex-wrap mt-1">
                           <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
-                          <span className="text-[9px] font-black text-slate-400">/ {Number(l.boxes || 0).toLocaleString()} BOX</span>
+                          <span className="text-[9px] font-black text-slate-400 uppercase">
+                            / {Number(l.boxes || 0).toLocaleString()} {(inventory?.find((i: any) => i.name === l.item)?.unit || 'BOX').toUpperCase()}
+                          </span>
                         </div>
                       </div>
                       
@@ -823,7 +876,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                            <button onClick={() => handleEdit(l)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
                              <Edit className="w-4 h-4" />
                            </button>
-                           <button onClick={() => handleDelete(l)} className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                           <button onClick={() => setDeleteModal({ isOpen: true, item: l })} className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
                              <Trash2 className="w-4 h-4" />
                            </button>
                          </div>

@@ -25,7 +25,11 @@ import {
   serverTimestamp, 
   collection, 
   addDoc, 
-  deleteDoc 
+  deleteDoc,
+  writeBatch,
+  query,
+  where,
+  getDocs
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
@@ -104,13 +108,14 @@ function SettingsContent({
 
   // Item Form
   const [itemForm, setItemForm] = useState({
-    sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', boxes: '', currentStock: '', safetyStock: '',
-    purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: ''
+    sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'box', boxes: '', currentStock: '', safetyStock: '',
+    purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: ''
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showUnitOptions, setShowUnitOptions] = useState(false);
   const [showCategoryOptions, setShowCategoryOptions] = useState(false);
   const [showBrandOptions, setShowBrandOptions] = useState(false);
+  const [showPartnerOptions, setShowPartnerOptions] = useState(false);
   const [showSkuOptions, setShowSkuOptions] = useState(false);
 
   const getNextSku = (prefix: string) => {
@@ -152,7 +157,77 @@ function SettingsContent({
       };
 
       if (editingItemId) {
+        const oldItem = inventory.find((i: any) => i.id === editingItemId);
         await updateDoc(doc(db, 'inventory', editingItemId), data);
+
+        // If critical fields changed, update related records to maintain data consistency
+        const nameChanged = oldItem && oldItem.name !== data.name;
+        const catChanged = oldItem && oldItem.category !== data.category;
+        const brandChanged = oldItem && oldItem.brand !== data.brand;
+        const partnerChanged = oldItem && oldItem.partner !== data.partner;
+
+        if (oldItem && (nameChanged || catChanged || brandChanged || partnerChanged)) {
+          try {
+            const batch = writeBatch(db);
+            let updateCount = 0;
+
+            // 1. Update Logistics records
+            const logQuery = query(collection(db, 'logistics'), where('item', '==', oldItem.name));
+            const logSnapshot = await getDocs(logQuery);
+            logSnapshot.docs.forEach(docSnap => {
+              const u: any = {};
+              if (nameChanged) u.item = data.name;
+              if (catChanged) u.category = data.category;
+              if (brandChanged) u.brand = data.brand;
+              // Only update partner if it matches the master partner (e.g. initial stock or default partner records)
+              if (partnerChanged && docSnap.data().partner === oldItem.partner) u.partner = data.partner;
+              
+              if (Object.keys(u).length > 0) {
+                batch.update(docSnap.ref, u);
+                updateCount++;
+              }
+            });
+
+            // 2. Update Production records (Finished goods)
+            const prodQuery = query(collection(db, 'production_batches'), where('title', '==', oldItem.name));
+            const prodSnapshot = await getDocs(prodQuery);
+            prodSnapshot.docs.forEach(docSnap => {
+              const u: any = {};
+              if (nameChanged) u.title = data.name;
+              if (brandChanged) u.brand = data.brand;
+              if (partnerChanged) u.partner = data.partner;
+              
+              if (Object.keys(u).length > 0) {
+                batch.update(docSnap.ref, u);
+                updateCount++;
+              }
+            });
+
+            // 3. Update Production records (Raw materials)
+            const rawQuery = query(collection(db, 'production_batches'), where('rawMaterial', '==', oldItem.name));
+            const rawSnapshot = await getDocs(rawQuery);
+            rawSnapshot.docs.forEach(docSnap => {
+              const u: any = {};
+              if (nameChanged) u.rawMaterial = data.name;
+              // For raw material records, brand might come from the item master too
+              if (brandChanged && docSnap.data().brand === oldItem.brand) u.brand = data.brand;
+              
+              if (Object.keys(u).length > 0) {
+                batch.update(docSnap.ref, u);
+                updateCount++;
+              }
+            });
+
+            if (updateCount > 0) {
+              await batch.commit();
+              console.log(`Updated ${updateCount} related historical records.`);
+            }
+          } catch (syncError) {
+            console.error('Failed to sync historical records:', syncError);
+            // We don't block the main update alert, but log it
+          }
+        }
+
         alert('상품 정보가 수정되었습니다.');
         setEditingItemId(null);
       } else {
@@ -171,7 +246,7 @@ function SettingsContent({
               item: data.name,
               weight: data.currentStock,
               boxes: data.boxes,
-              partner: '초기재고등록',
+              partner: data.partner || '초기재고등록',
               category: data.category,
               brand: data.brand,
               memo: '신규 상품 등록 초기 재고',
@@ -184,7 +259,7 @@ function SettingsContent({
         
         alert('상품 등록이 완료되었습니다.');
       }
-      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'box', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
   };
 
@@ -205,7 +280,8 @@ function SettingsContent({
       manufDate: item.manufDate || '',
       expiryDate: item.expiryDate || '',
       location: item.location || '',
-      detailLocation: item.detailLocation || ''
+      detailLocation: item.detailLocation || '',
+      partner: item.partner || ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -412,14 +488,61 @@ function SettingsContent({
             {/* 1. Registration Form (TOP) */}
             {canEditItems ? (
               <div id="item-form" className="max-w-4xl mx-auto space-y-6 md:space-y-10">
-                <div className="text-center space-y-1">
-                  <h3 className="text-sm md:text-base font-black text-[#0f172a] tracking-tight">
-                    {editingItemId ? '상품 정보 수정' : '신규 상품 등록'}
-                  </h3>
-                  <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest">
-                    {editingItemId ? 'UPDATE MASTER ITEM INFO' : 'REGISTER NEW MASTER ITEM'}
-                  </p>
-                  <div className="w-12 h-1 bg-primary/20 mx-auto rounded-full mt-3"></div>
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-100">
+                  <div className="space-y-1">
+                    <h3 className="text-base md:text-lg font-black text-[#0f172a] tracking-tight text-left">
+                      {editingItemId ? '상품 정보 수정' : '신규 상품 등록'}
+                    </h3>
+                    <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest text-left">
+                      {editingItemId ? 'UPDATE MASTER ITEM INFO' : 'REGISTER NEW MASTER ITEM'}
+                    </p>
+                  </div>
+                  
+                  {/* Smaller Partner Selection moved to Top Right */}
+                  <div className="w-full md:w-64 space-y-1 relative">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5 text-primary" /> 주거래처
+                    </label>
+                    <div className="relative group">
+                      <input 
+                        placeholder="거래처 선택 또는 직접 입력" 
+                        value={itemForm.partner} 
+                        onChange={e => setItemForm({...itemForm, partner: e.target.value})} 
+                        onFocus={() => setShowPartnerOptions(true)}
+                        className="w-full h-11 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" 
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPartnerOptions(!showPartnerOptions)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showPartnerOptions ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                    {showPartnerOptions && (
+                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                        {partners?.length > 0 ? (
+                          partners.map((p: any) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setItemForm({...itemForm, partner: p.name});
+                                setShowPartnerOptions(false);
+                              }}
+                              className={`w-full h-11 flex items-center justify-between px-5 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.partner === p.name ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                            >
+                              <span>{p.name}</span>
+                              {itemForm.partner === p.name && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">등록된 거래처가 없습니다</div>
+                        )}
+                        <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 md:gap-x-12 gap-y-5 md:gap-y-6">
@@ -474,7 +597,7 @@ function SettingsContent({
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">품목명</label>
                     <input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
                   </div>
-                  
+
                   {/* Row 2: Category & Brand */}
                   <div className="space-y-1.5 relative">
                     <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">카테고리</label>
@@ -493,7 +616,7 @@ function SettingsContent({
                             key={c}
                             type="button"
                             onClick={() => {
-                              setItemForm({...itemForm, category: c});
+                              setItemForm({...itemForm, category: c, unit: c === '원육' ? 'box' : itemForm.unit});
                               setShowCategoryOptions(false);
                             }}
                             className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.category === c ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
@@ -565,7 +688,7 @@ function SettingsContent({
                     </button>
                     {showUnitOptions && (
                       <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                        {['ea', 'kg', 'g'].map((u) => (
+                        {['box', 'ea', 'kg', 'g'].map((u) => (
                           <button
                             key={u}
                             type="button"
@@ -706,7 +829,7 @@ function SettingsContent({
                         type="button"
                         onClick={() => {
                           setEditingItemId(null);
-                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'kg', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '' });
+                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'box', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
                         }}
                         className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm md:text-lg shadow-sm hover:bg-rose-100 transition-all active:scale-[0.98]"
                       >
@@ -772,6 +895,7 @@ function SettingsContent({
                         <tr>
                           <th className="px-6 py-5 text-left">코드/품목명</th>
                           <th className="px-4 py-5 text-center">카테고리</th>
+                          <th className="px-4 py-5 text-center">주거래처</th>
                           <th className="px-4 py-5 text-center">단위</th>
                           <th className="px-4 py-5 text-center">현재고</th>
                           <th className="px-4 py-5 text-center">현재박스</th>
@@ -797,6 +921,11 @@ function SettingsContent({
                                 </div>
                               </td>
                               <td className="px-4 py-5 text-center"><span className="px-3 py-1 bg-surface-container rounded-lg text-[10px] font-black text-outline uppercase">{item.category || '-'}</span></td>
+                              <td className="px-4 py-5 text-center">
+                                <div className="flex flex-col items-center">
+                                  <span className="text-xs font-bold text-slate-600">{item.partner || '-'}</span>
+                                </div>
+                              </td>
                               <td className="px-4 py-5 text-center text-sm font-bold">{item.unit || '-'}</td>
                               <td className="px-4 py-5 text-center">
                                 <span className={`font-black ${item.currentStock <= item.safetyStock ? 'text-rose-500' : 'text-[#0f172a]'}`}>
@@ -850,6 +979,11 @@ function SettingsContent({
                                 <h4 className="text-lg font-black text-[#0f172a] leading-tight truncate text-left">{item.name}</h4>
                                 <div className="flex items-center gap-2 flex-wrap text-left">
                                   {item.brand && <p className="text-[10px] font-bold text-outline-variant">{item.brand}</p>}
+                                  {item.partner && (
+                                    <p className="text-[10px] font-bold text-primary flex items-center gap-1">
+                                      <Users className="w-2.5 h-2.5" /> {item.partner}
+                                    </p>
+                                  )}
                                   {item.specs && <p className="text-[10px] font-black text-emerald-500/70">{item.specs}</p>}
                                 </div>
                               </div>
