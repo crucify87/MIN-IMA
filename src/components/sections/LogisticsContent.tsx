@@ -198,6 +198,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     brand: '',
     category: '',
     partner: '', 
+    unit: 'BOX',
     boxes: '',
     weight: '', 
     freightType: '선불' 
@@ -364,6 +365,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         brand: '',
         category: '',
         partner: '', 
+        unit: 'BOX',
         boxes: '',
         weight: '', 
         freightType: '선불' 
@@ -381,6 +383,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       brand: l.brand || '',
       category: l.category || '',
       partner: l.partner,
+      unit: l.unit || 'BOX',
       boxes: l.boxes || '',
       weight: l.weight.toString(),
       freightType: l.freightType || '선불'
@@ -489,7 +492,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                        ...prev,
                        brand: invItem.brand || prev.brand,
                        category: invItem.category || prev.category,
-                       partner: invItem.partner || prev.partner
+                       partner: invItem.partner || prev.partner,
+                       unit: (invItem.unit || 'BOX').toUpperCase()
                      }));
                    }
                  }} 
@@ -586,20 +590,23 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
              </div>
 
              <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">
-                 {(() => {
-                   const invItem = inventory.find((it: any) => it.name === form.item);
-                   const unit = (invItem?.unit || 'BOX').toUpperCase();
-                   return unit === 'KG' || unit === 'G' ? '수량' : `${unit} 수`;
-                 })()}
-               </label>
-               <input 
-                  type="text" 
-                  value={formatWithCommas(form.boxes)} 
-                  onChange={e => setForm({...form, boxes: e.target.value.replace(/[^0-9]/g, '')})} 
-                  className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
-                  placeholder="0"
-               />
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">수량 / 단위</label>
+               <div className="flex gap-2">
+                 <input 
+                   type="text" 
+                   value={formatWithCommas(form.boxes)} 
+                   onChange={e => setForm({...form, boxes: e.target.value.replace(/[^0-9]/g, '')})} 
+                   className="flex-1 h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
+                   placeholder="0"
+                 />
+                 <select 
+                   value={form.unit} 
+                   onChange={e => setForm({...form, unit: e.target.value})}
+                   className="w-24 h-12 px-3 bg-surface-container rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all uppercase cursor-pointer"
+                 >
+                   {['BOX', 'EA', 'KG', 'G'].map(u => <option key={u} value={u}>{u}</option>)}
+                 </select>
+               </div>
              </div>
 
              <div className="space-y-1">
@@ -817,11 +824,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
                         </td>
                         <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
-                          {(() => {
-                            const invItem = inventory?.find((i: any) => i.name === l.item);
-                            const unit = (invItem?.unit || 'BOX').toUpperCase();
-                            return `${Number(l.boxes || 0).toLocaleString()} ${unit}`;
-                          })()}
+                          {Number(l.boxes || 0).toLocaleString()} {l.unit || (inventory?.find((i: any) => i.name === l.item)?.unit || 'BOX').toUpperCase()}
                         </td>
                         <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
                           {l.partner || '-'}
@@ -863,7 +866,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         <div className="flex items-center gap-1.5 flex-wrap mt-1">
                           <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
                           <span className="text-[9px] font-black text-slate-400 uppercase">
-                            / {Number(l.boxes || 0).toLocaleString()} {(inventory?.find((i: any) => i.name === l.item)?.unit || 'BOX').toUpperCase()}
+                            / {Number(l.boxes || 0).toLocaleString()} {l.unit || (inventory?.find((i: any) => i.name === l.item)?.unit || 'BOX').toUpperCase()}
                           </span>
                         </div>
                       </div>
