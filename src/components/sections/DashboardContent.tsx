@@ -60,6 +60,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const [inventoryPage, setInventoryPage] = useState(1);
   const [activityPage, setActivityPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'shortage' | 'replenish' | 'normal'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(false);
@@ -68,7 +69,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   useEffect(() => {
     setInventoryPage(1);
     setActivityPage(1);
-  }, [filterStartDate, filterEndDate, searchQuery]);
+  }, [filterStartDate, filterEndDate, searchQuery, stockStatusFilter]);
 
   const handleDownloadExcel = () => {
     try {
@@ -135,26 +136,80 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     }
   };
 
+  const statusCounts = useMemo(() => {
+    let baseItems = !searchQuery ? inventory : inventory.filter((item: any) => 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    let shortage = 0;
+    let replenish = 0;
+    let normal = 0;
+
+    baseItems.forEach((item: any) => {
+      const current = item.currentStock || 0;
+      const safety = item.safetyStock || 0;
+      if (current < safety) {
+        shortage++;
+      } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+        replenish++;
+      } else {
+        normal++;
+      }
+    });
+
+    return {
+      all: baseItems.length,
+      shortage,
+      replenish,
+      normal
+    };
+  }, [inventory, searchQuery]);
+
   const filteredInventory = useMemo(() => {
     let result = !searchQuery ? inventory : inventory.filter((item: any) => 
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    if (stockStatusFilter !== 'all') {
+      result = result.filter((item: any) => {
+        const current = item.currentStock || 0;
+        const safety = item.safetyStock || 0;
+        const isShortage = current < safety;
+        const isReplenish = safety > 0 && current >= safety && current <= safety * 1.2;
+        
+        if (stockStatusFilter === 'shortage') return isShortage;
+        if (stockStatusFilter === 'replenish') return isReplenish;
+        if (stockStatusFilter === 'normal') return !isShortage && !isReplenish;
+        return true;
+      });
+    }
     
-    // Sort by shortage status first, then by latest update
+    // Sort by shortage/replenish/normal priority, then by latest update
     return [...result].sort((a: any, b: any) => {
-      const aShortage = a.currentStock < (a.safetyStock || 0);
-      const bShortage = b.currentStock < (b.safetyStock || 0);
-      
-      if (aShortage && !bShortage) return -1;
-      if (!aShortage && bShortage) return 1;
+      const getPriority = (item: any) => {
+        const current = item.currentStock || 0;
+        const safety = item.safetyStock || 0;
+        if (current < safety) return 1;
+        if (safety > 0 && current >= safety && current <= safety * 1.2) return 2;
+        return 3;
+      };
+
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
       
       const timeA = a.updatedAt?.seconds || 0;
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
     });
-  }, [inventory, searchQuery]);
+  }, [inventory, searchQuery, stockStatusFilter]);
 
   const paginatedInventory = useMemo(() => {
     const startIndex = (inventoryPage - 1) * ITEMS_PER_PAGE;
@@ -582,18 +637,76 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
       {/* Current Inventory Table */}
       <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-black text-on-surface tracking-tight">현재 재고 현황</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-2xl font-black text-on-surface tracking-tight">현재 재고 현황</h3>
+          </div>
           <button 
             onClick={() => onNavigate('inventory')}
-            className="flex items-center gap-1 text-sm font-bold text-outline hover:text-primary transition-colors"
+            className="flex items-center gap-1 text-sm font-bold text-outline hover:text-primary transition-colors self-end sm:self-auto"
           >
             전체 보기 <ChevronRight className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Status Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => { setStockStatusFilter('all'); setInventoryPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'all'
+                ? 'bg-primary text-white shadow-sm'
+                : 'bg-slate-100 text-[#0f172a] hover:bg-slate-200'
+            }`}
+          >
+            전체
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              {statusCounts.all}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('shortage'); setInventoryPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'shortage'
+                ? 'bg-rose-600 text-white shadow-sm'
+                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+            }`}
+          >
+            부족
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'shortage' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
+              {statusCounts.shortage}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('replenish'); setInventoryPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'replenish'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
+          >
+            보충
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'replenish' ? 'bg-white/20 text-blue-100' : 'bg-blue-100 text-blue-600'}`}>
+              {statusCounts.replenish}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('normal'); setInventoryPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'normal'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+            }`}
+          >
+            정상
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'normal' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
+              {statusCounts.normal}
+            </span>
+          </button>
+        </div>
         
         <div className="bg-surface-container/30 border border-dashed border-outline-variant/50 rounded-[40px] min-h-[240px] flex flex-col items-center justify-center p-2 md:p-12 text-center group">
-          {inventory.length > 0 ? (
+          {filteredInventory.length > 0 ? (
             <>
               <div className="w-full bg-white rounded-[32px] border border-outline-variant overflow-hidden shadow-sm">
                 <div className="w-full">
@@ -639,9 +752,29 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                               ) : '-'}
                             </td>
                             <td className="px-6 md:px-8 py-5 text-center">
-                              <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                                {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
-                              </span>
+                              {(() => {
+                                const current = item.currentStock || 0;
+                                const safety = item.safetyStock || 0;
+                                if (current < safety) {
+                                  return (
+                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-rose-100 text-rose-600">
+                                      부족
+                                    </span>
+                                  );
+                                } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+                                  return (
+                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-600">
+                                      보충
+                                    </span>
+                                  );
+                                } else {
+                                  return (
+                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">
+                                      정상
+                                    </span>
+                                  );
+                                }
+                              })()}
                             </td>
                             <td className="px-4 md:px-8 py-5 text-right"><ChevronRight className="w-5 h-5 text-outline" /></td>
                           </tr>
@@ -670,9 +803,29 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                               </div>
                             </div>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                          {item.currentStock < (item.safetyStock || 0) ? '부족' : '정상'}
-                        </span>
+                        {(() => {
+                          const current = item.currentStock || 0;
+                          const safety = item.safetyStock || 0;
+                          if (current < safety) {
+                            return (
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-rose-100 text-rose-600">
+                                부족
+                              </span>
+                            );
+                          } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+                            return (
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-blue-100 text-blue-600">
+                                보충
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-emerald-100 text-emerald-600">
+                                정상
+                              </span>
+                            );
+                          }
+                        })()}
                       </div>
                     ))}
                   </div>
