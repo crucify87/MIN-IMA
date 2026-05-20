@@ -76,33 +76,46 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       const fileName = `재고현황_리포트_${filterStartDate}_to_${filterEndDate}_${selectedViewLabel}.xlsx`;
 
       // 1. Summary Data
-      const summaryData = row1.concat(row2).map(s => ({
-        '구분': s.label,
-        '수량 (KG)': s.value,
-        '비고': s.subtitle || ''
-      }));
+      const summaryData = row1.concat(row2).map(s => {
+        const unit = s.subtitle === '완제품' ? 'BOX' : 'KG';
+        return {
+          '구분': s.label,
+          '수량': s.value || 0,
+          '단위': unit,
+          '비고': s.subtitle || ''
+        };
+      });
 
       // 2. Activity Data
-      const activityData = combinedActivity.map(l => ({
-        '일시': l.time,
-        '구분': l.type,
-        '품목명': l.item,
-        '중량 (KG)': l.weight,
-        '출처': l.source,
-        '수율 (%)': l.yield || '',
-        '로스 (%)': l.loss || ''
-      }));
+      const activityData = combinedActivity.map(l => {
+        const itemInfo = inventory.find((it: any) => it.name === l.item);
+        const unit = (itemInfo?.unit || l.unit || 'KG').toUpperCase();
+        return {
+          '일시': l.time,
+          '구분': l.type,
+          '품목명': l.item,
+          '수량/중량': l.weight || 0,
+          '단위': unit,
+          '출처': l.source,
+          '수율 (%)': l.yield || '',
+          '로스 (%)': l.loss || ''
+        };
+      });
 
       // 3. Inventory Data
-      const inventoryData = filteredInventory.map(i => ({
-        '품목명': i.name,
-        '카테고리': i.category || '',
-        '규격': i.specs || '',
-        '브랜드': i.brand || '',
-        '현재고 (KG)': i.currentStock,
-        '안전재고 (KG)': i.safetyStock || 0,
-        '상태': i.currentStock < (i.safetyStock || 0) ? '부족' : '정상'
-      }));
+      const inventoryData = filteredInventory.map(i => {
+        const unit = (i.unit || 'KG').toUpperCase();
+        return {
+          '품목명': i.name,
+          '카테고리': i.category || '',
+          '규격': i.specs || '',
+          '브랜드': i.brand || '',
+          '현재고': i.currentStock || 0,
+          '안전재고': i.safetyStock || 0,
+          '단위': unit,
+          '상태': i.currentStock < (i.safetyStock || 0) ? '부족' : '정상'
+        };
+      });
 
       const wb = XLSX.utils.book_new();
       
@@ -590,10 +603,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       <thead className="bg-surface-container border-b border-outline-variant text-[11px] font-black text-outline uppercase tracking-widest">
                         <tr>
                           <th className="px-6 md:px-8 py-5 text-center w-[12%]">날짜</th>
-                          <th className="px-6 md:px-8 py-5 w-[25%]">품목 명칭</th>
+                          <th className="px-6 md:px-8 py-5 text-left w-[25%]">품목 명칭</th>
                           <th className="px-6 md:px-8 py-5 text-center w-[12%]">규격</th>
-                          <th className="px-6 md:px-8 py-5 w-[18%]">현재고 (KG)</th>
-                          <th className="px-6 md:px-8 py-5 w-[13%]">박스 수</th>
+                          <th className="px-6 md:px-8 py-5 text-right w-[18%] pr-8">현재고</th>
+                          <th className="px-6 md:px-8 py-5 text-right w-[13%] pr-8">박스 수</th>
                           <th className="px-6 md:px-8 py-5 text-center w-[15%] text-nowrap">상태</th>
                           <th className="px-6 md:px-8 py-5 w-[5%] tracking-normal"></th>
                         </tr>
@@ -604,14 +617,26 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                             <td className="px-6 md:px-8 py-5 text-center text-[11px] font-bold text-outline tabular-nums">
                               {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
                             </td>
-                            <td className="px-6 md:px-8 py-5 truncate">
+                            <td className="px-6 md:px-8 py-5 text-left truncate">
                               <span className="font-black text-on-surface tracking-tight text-sm md:text-base truncate block" title={item.name}>{item.name}</span>
                               {item.brand && <span className="text-[10px] font-bold text-primary mt-1 block truncate" title={item.brand}>{item.brand}</span>}
                             </td>
                             <td className="px-6 md:px-8 py-5 text-center text-xs font-bold text-outline truncate" title={item.specs || ''}>{item.specs || '-'}</td>
-                            <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black text-nowrap">{item.currentStock?.toLocaleString()} KG</td>
-                            <td className="px-6 md:px-8 py-5 text-base font-black text-slate-500">
-                              {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} BOX` : '-'}
+                            <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black text-nowrap text-right pr-8">
+                              {item.currentStock?.toLocaleString()}
+                              <span className="text-[11px] font-semibold text-primary bg-primary/5 dark:bg-primary/10 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
+                                {(item.unit || 'KG').toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="px-6 md:px-8 py-5 text-base font-black text-slate-700 text-right pr-8">
+                              {item.category === '원육' ? (
+                                <span>
+                                  {(item.boxes || 0).toLocaleString()}
+                                  <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
+                                    BOX
+                                  </span>
+                                </span>
+                              ) : '-'}
                             </td>
                             <td className="px-6 md:px-8 py-5 text-center">
                               <span className={`px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-600'}`}>
@@ -735,7 +760,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         </td>
                         <td className="px-4 py-6">
                           <div className={`font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} {(itemInfo?.unit || l.unit || 'KG').toUpperCase()}
                           </div>
                           {l.yield !== undefined && (
                             <div className="flex items-center justify-center gap-2 mt-1">
@@ -820,7 +845,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                       <div className="flex items-center gap-4">
                         <div className="flex flex-col items-end">
                           <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} KG
+                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} {(itemInfo?.unit || l.unit || 'KG').toUpperCase()}
                           </span>
                           {(l.boxes !== undefined || itemInfo?.category === '원육') && (
                             <span className="text-[10px] font-black text-slate-400">

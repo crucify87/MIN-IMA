@@ -177,6 +177,7 @@ export default function App() {
                   <InventoryContent 
                     inventory={inventory} 
                     logistics={logistics}
+                    partners={partners}
                     onNavigate={handleNavigate} 
                     canEditItems={canEditItems} 
                     initialCategory={typeof selectedItem === 'string' ? selectedItem : null}

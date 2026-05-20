@@ -17,11 +17,12 @@ import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
 
-function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], initialCategory }: any) {
+function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], partners = [], initialCategory }: any) {
   const today = new Date().toLocaleDateString('sv-SE');
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState(initialCategory || '');
   const [filterBrand, setFilterBrand] = useState('');
+  const [filterPartner, setFilterPartner] = useState('');
   const [filterStartDate, setFilterStartDate] = useState(today);
   const [filterEndDate, setFilterEndDate] = useState(today);
   const startDatePickerRef = React.useRef<HTMLInputElement>(null);
@@ -60,7 +61,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
   // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterCategory, filterBrand, filterStartDate, filterEndDate]);
+  }, [search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate]);
 
   React.useEffect(() => {
     if (initialCategory) setFilterCategory(initialCategory);
@@ -72,17 +73,21 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     try {
       const fileName = `재고관리_리포트_${today}_${activeShift}.xlsx`;
       
-      const data = filtered.map(item => ({
-        '날짜': item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-',
-        '품목명': item.name,
-        'SKU': item.sku || '-',
-        '카테고리': item.category || '-',
-        '규격': item.specs || '-',
-        '브랜드': item.brand || '-',
-        '현재고 (KG)': item.currentStock,
-        '안전재고 (KG)': item.safetyStock || 0,
-        '상태': item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'
-      }));
+      const data = filtered.map(item => {
+        const unit = (item.unit || 'KG').toUpperCase();
+        return {
+          '날짜': item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-',
+          '품목명': item.name,
+          'SKU': item.sku || '-',
+          '카테고리': item.category || '-',
+          '규격': item.specs || '-',
+          '브랜드': item.brand || '-',
+          '현재고': item.currentStock || 0,
+          '안전재고': item.safetyStock || 0,
+          '단위': unit,
+          '상태': item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'
+        };
+      });
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(data);
@@ -109,6 +114,19 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     return Array.from(new Set(bnds));
   }, [inventory]);
 
+  const partnersList = useMemo(() => {
+    const pts = new Set<string>();
+    if (partners && partners.length > 0) {
+      partners.forEach((p: any) => {
+        if (p.name) pts.add(p.name);
+      });
+    }
+    inventory.forEach((i: any) => {
+      if (i.partner && i.category !== '완제품') pts.add(i.partner);
+    });
+    return Array.from(pts).sort();
+  }, [partners, inventory]);
+
   const filtered = useMemo(() => {
     const result = inventory
       .filter((i: any) => i.category !== '완제품')
@@ -118,6 +136,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                              (i.brand || '').toLowerCase().includes(search.toLowerCase());
         const matchesCategory = !filterCategory || i.category === filterCategory;
         const matchesBrand = !filterBrand || i.brand === filterBrand;
+        const matchesPartner = !filterPartner || i.partner === filterPartner;
       
       let matchesDate = true;
       if (activeShift !== '') { // Apply date filter only if a range is selected
@@ -137,7 +156,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
         matchesDate = hasMovementInRange || isRecentlyUpdated;
       }
 
-      return matchesSearch && matchesCategory && matchesBrand && matchesDate;
+      return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesDate;
     });
 
     // Sort by shortage status first, then by latest update
@@ -152,7 +171,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
     });
-  }, [inventory, search, filterCategory, filterBrand, filterStartDate, filterEndDate, logistics]);
+  }, [inventory, search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate, logistics]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = useMemo(() => {
@@ -332,6 +351,15 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                 {brands.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
 
+              <select 
+                value={filterPartner} 
+                onChange={(e) => setFilterPartner(e.target.value)}
+                className="h-11 px-3 bg-white border border-outline-variant rounded-xl text-[11px] font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none min-w-[110px]"
+              >
+                <option value="">전체 거래처</option>
+                {partnersList.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+
               <div className="relative flex-1 md:flex-none md:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                 <input 
@@ -431,11 +459,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                 <thead className="bg-[#f1f4f9] text-[10px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                   <tr>
                     <th className="px-4 py-5">날짜</th>
-                    <th className="px-4 py-5 font-medium">품목 정보</th>
+                    <th className="px-4 py-5 font-medium text-left">품목 정보</th>
                     <th className="px-4 py-5 font-medium">규격</th>
                     <th className="px-4 py-5 font-medium">카테고리</th>
-                    <th className="px-4 py-5 font-medium">현재 재고</th>
-                    <th className="px-4 py-5 font-medium">박스 수</th>
+                    <th className="px-4 py-5 font-medium text-right pr-8">현재 재고</th>
+                    <th className="px-4 py-5 font-medium text-right pr-8">박스 수</th>
                     <th className="px-4 py-5 font-medium">상태</th>
                     <th className="px-4 py-5 font-medium">관리</th>
                   </tr>
@@ -447,7 +475,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                         <td className="px-4 py-4 text-[11px] font-bold text-outline tabular-nums whitespace-nowrap">
                           {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
                         </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 text-left">
                         <div className="font-black text-on-surface text-base leading-tight">{item.name}</div>
                         {item.brand && <div className="text-[10px] font-bold text-primary mt-1">{item.brand}</div>}
                       </td>
@@ -459,11 +487,21 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                           {item.category}
                         </span>
                       </td>
-                      <td className="px-4 py-4 font-black text-lg">
-                        {item.currentStock?.toLocaleString()} <span className="text-[10px] text-outline font-medium">{item.unit}</span>
+                      <td className="px-4 py-4 font-black text-lg text-right pr-8">
+                        {item.currentStock?.toLocaleString()}
+                        <span className="text-[11px] font-semibold text-primary bg-primary/5 dark:bg-primary/10 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
+                          {(item.unit || 'KG').toUpperCase()}
+                        </span>
                       </td>
-                      <td className="px-4 py-4 font-black text-lg text-slate-500">
-                        {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} BOX` : '-'}
+                      <td className="px-4 py-4 font-black text-lg text-slate-700 text-right pr-8">
+                        {item.category === '원육' ? (
+                          <span>
+                            {(item.boxes || 0).toLocaleString()}
+                            <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
+                              BOX
+                            </span>
+                          </span>
+                        ) : '-'}
                       </td>
                       <td className="px-4 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>

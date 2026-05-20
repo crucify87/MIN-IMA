@@ -50,6 +50,7 @@ function SettingsContent({
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+  const [filterPartner, setFilterPartner] = useState('');
   const [partnerSearch, setPartnerSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [showAllPartners, setShowAllPartners] = useState(false);
@@ -373,13 +374,17 @@ function SettingsContent({
       result = result.filter((i: any) => i.brand === filterBrand);
     }
 
+    if (filterPartner) {
+      result = result.filter((i: any) => i.partner === filterPartner);
+    }
+
     // Sort by latest update first
     return [...result].sort((a: any, b: any) => {
       const timeA = a.updatedAt?.seconds || 0;
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
     });
-  }, [inventory, search, filterCategory, filterBrand]);
+  }, [inventory, search, filterCategory, filterBrand, filterPartner]);
 
   const categories = React.useMemo(() => {
     const cats = new Set(inventory.map((i: any) => i.category).filter(Boolean));
@@ -391,6 +396,19 @@ function SettingsContent({
     return Array.from(bnds).sort() as string[];
   }, [inventory]);
 
+  const itemPartners = React.useMemo(() => {
+    const pts = new Set<string>();
+    if (partners && partners.length > 0) {
+      partners.forEach((p: any) => {
+        if (p.name) pts.add(p.name);
+      });
+    }
+    inventory.forEach((i: any) => {
+      if (i.partner) pts.add(i.partner);
+    });
+    return Array.from(pts).sort();
+  }, [partners, inventory]);
+
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
   const paginatedItems = React.useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -399,7 +417,7 @@ function SettingsContent({
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterCategory, filterBrand]);
+  }, [search, filterCategory, filterBrand, filterPartner]);
 
   const Pagination = ({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
@@ -876,6 +894,17 @@ function SettingsContent({
                     <option value="">전체 브랜드</option>
                     {brands.map(brand => (
                       <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+
+                  <select 
+                    value={filterPartner} 
+                    onChange={(e) => setFilterPartner(e.target.value)}
+                    className="h-12 px-4 bg-white border border-outline-variant rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
+                  >
+                    <option value="">전체 거래처</option>
+                    {itemPartners.map(partner => (
+                      <option key={partner} value={partner}>{partner}</option>
                     ))}
                   </select>
 
