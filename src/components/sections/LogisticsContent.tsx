@@ -33,7 +33,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeRange, setActiveRange] = useState(() => sessionStorage.getItem('logistics_activeRange') || '일간');
+  const [activeRange, setActiveRange] = useState(() => sessionStorage.getItem('logistics_activeRange') || '전체');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null as any });
   const [search, setSearch] = useState(() => sessionStorage.getItem('logistics_search') || '');
   const [filterCategory, setFilterCategory] = useState(() => sessionStorage.getItem('logistics_filterCategory') || '');
@@ -127,10 +127,10 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         const matchesCategory = !filterCategory || l.category === filterCategory;
         const matchesBrand = !filterBrand || l.brand === filterBrand;
         const matchesPartner = !filterPartner || l.partner === filterPartner;
-        const matchesDate = l.date >= startDate && l.date <= endDate;
+        const matchesDate = activeRange === '전체' ? true : (l.date >= startDate && l.date <= endDate);
         return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesDate;
       });
-  }, [logistics, search, filterCategory, filterBrand, filterPartner, startDate, endDate]);
+  }, [logistics, search, filterCategory, filterBrand, filterPartner, startDate, endDate, activeRange]);
 
   const statusCounts = useMemo(() => {
     let shortage = 0;
@@ -939,6 +939,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
             <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center flex-1 sm:flex-none shrink-0">
               {[
+                { label: '전체', action: () => {
+                  // Bypass date matching, keep current date values if they ever turn back to daily/weekly
+                }},
                 { label: '일간', action: () => {
                   setStartDate(today);
                   setEndDate(today);
@@ -1049,50 +1052,68 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/10">
-                    {paginatedItems.map((l: any, i: number) => (
-                      <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
-                        <td className="px-4 py-6 text-xs font-bold text-outline text-left pl-8 whitespace-nowrap">
-                          <div className="text-on-surface">{l.date}</div>
-                          <div className="text-[10px] opacity-60">{l.time}</div>
-                        </td>
-                        <td className="px-4 py-6">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                            {l.type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-6 text-sm font-bold text-slate-500">
-                          {l.category ? (
-                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-600">
-                              {l.category}
+                    {paginatedItems.map((l: any, i: number) => {
+                      const invItem = inventory?.find((inv: any) => inv.name === l.item);
+                      const displayWeightUnit = (() => {
+                        if (invItem && invItem.unit) {
+                          const u = invItem.unit.toUpperCase();
+                          if (u === 'KG' || u === 'G') return u;
+                        }
+                        return (l.weightUnit || 'KG').toUpperCase();
+                      })();
+                      const displayQtyUnit = (() => {
+                        if (invItem && invItem.unit) {
+                          const u = invItem.unit.toUpperCase();
+                          if (u !== 'KG' && u !== 'G') return u;
+                        }
+                        return (l.unit || 'BOX').toUpperCase();
+                      })();
+
+                      return (
+                        <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
+                          <td className="px-4 py-6 text-xs font-bold text-outline text-left pl-8 whitespace-nowrap">
+                            <div className="text-on-surface">{l.date}</div>
+                            <div className="text-[10px] opacity-60">{l.time}</div>
+                          </td>
+                          <td className="px-4 py-6">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                              {l.type}
                             </span>
-                          ) : '-'}
-                        </td>
-                        <td className="px-4 py-6 text-sm font-bold text-primary">{l.brand || '-'}</td>
-                        <td className="px-4 py-6 text-xs font-bold text-outline">
-                          {inventory?.find((i: any) => i.name === l.item)?.specs || '-'}
-                        </td>
-                        <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
-                        <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} {l.weightUnit || 'KG'}
-                        </td>
-                        <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
-                          {Number(l.boxes || 0).toLocaleString()} {l.unit || 'BOX'}
-                        </td>
-                        <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
-                          {(!l.partner || l.partner === '초기재고등록') ? '' : l.partner}
-                        </td>
-                        <td className="px-4 py-6 text-right pr-8">
-                          <div className="flex items-center justify-end gap-1">
-                             <button onClick={() => handleEdit(l)} className="p-2 hover:bg-slate-100 text-slate-400 hover:text-primary rounded-xl transition-all">
-                               <Edit className="w-5 h-5" />
-                             </button>
-                             <button onClick={() => setDeleteModal({ isOpen: true, item: l })} className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all">
-                               <Trash2 className="w-5 h-5" />
-                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-4 py-6 text-sm font-bold text-slate-500">
+                            {l.category ? (
+                              <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-600">
+                                {l.category}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td className="px-4 py-6 text-sm font-bold text-primary">{l.brand || '-'}</td>
+                          <td className="px-4 py-6 text-xs font-bold text-outline">
+                            {invItem?.specs || '-'}
+                          </td>
+                          <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
+                          <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} {displayWeightUnit}
+                          </td>
+                          <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
+                            {Number(l.boxes || 0).toLocaleString()} {displayQtyUnit}
+                          </td>
+                          <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
+                            {(!l.partner || l.partner === '초기재고등록') ? '' : l.partner}
+                          </td>
+                          <td className="px-4 py-6 text-right pr-8">
+                            <div className="flex items-center justify-end gap-1">
+                               <button onClick={() => handleEdit(l)} className="p-2 hover:bg-slate-100 text-slate-400 hover:text-primary rounded-xl transition-all">
+                                 <Edit className="w-5 h-5" />
+                               </button>
+                               <button onClick={() => setDeleteModal({ isOpen: true, item: l })} className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-xl transition-all">
+                                 <Trash2 className="w-5 h-5" />
+                               </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1100,6 +1121,22 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3 p-1">
                 {paginatedItems.map((l: any, i: number) => {
+                  const invItem = inventory?.find((inv: any) => inv.name === l.item);
+                  const displayWeightUnit = (() => {
+                    if (invItem && invItem.unit) {
+                      const u = invItem.unit.toUpperCase();
+                      if (u === 'KG' || u === 'G') return u;
+                    }
+                    return (l.weightUnit || 'KG').toUpperCase();
+                  })();
+                  const displayQtyUnit = (() => {
+                    if (invItem && invItem.unit) {
+                      const u = invItem.unit.toUpperCase();
+                      if (u !== 'KG' && u !== 'G') return u;
+                    }
+                    return (l.unit || 'BOX').toUpperCase();
+                  })();
+
                   return (
                     <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${l.type === '입고' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
@@ -1119,14 +1156,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           <div className="flex items-center gap-1.5 flex-wrap mt-1">
                             <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
                             <span className="text-[9px] font-black text-slate-400 uppercase">
-                              / {Number(l.boxes || 0).toLocaleString()} {l.unit || 'BOX'}
+                              / {Number(l.boxes || 0).toLocaleString()} {displayQtyUnit}
                             </span>
                           </div>
                         </div>
                         
                         <div className="flex flex-col items-end gap-1 shrink-0">
                            <div className={`text-lg font-black tracking-tighter ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                             {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline uppercase">{l.weightUnit || 'KG'}</span>
+                             {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline uppercase">{displayWeightUnit}</span>
                            </div>
                          <div className="flex items-center gap-1">
                            <button onClick={() => handleEdit(l)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">

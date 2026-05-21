@@ -41,7 +41,7 @@ export function useAppData(user: any, isSuperAdmin: boolean) {
       setProduction(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, error => handleFirestoreError(error, OperationType.LIST, 'production_batches'));
 
-    const qLog = query(collection(db, 'logistics'), orderBy('createdAt', 'desc'), limit(100));
+    const qLog = query(collection(db, 'logistics'));
     const unsubLog = onSnapshot(qLog, (snap) => {
       setLogistics(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, error => handleFirestoreError(error, OperationType.LIST, 'logistics'));
