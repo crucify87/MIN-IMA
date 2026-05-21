@@ -42,6 +42,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const [showWeightUnitDropdown, setShowWeightUnitDropdown] = useState(false);
+  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
   const handleStartDateClick = () => {
     if (startDatePickerRef.current) {
       if ('showPicker' in startDatePickerRef.current) {
@@ -285,6 +287,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     unit: 'BOX',
     boxes: '',
     weight: '', 
+    weightUnit: 'KG',
     freightType: '선불' 
   });
 
@@ -300,14 +303,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       const fileName = `물류관리_리포트_${today}_${activeRange}.xlsx`;
       
       const data = filtered.map(item => {
-        const invItem = inventory.find((i: any) => i.name === item.item);
-        const itemUnit = (invItem?.unit || 'KG').toUpperCase();
-        const isWeightUnit = itemUnit === 'KG' || itemUnit === 'G';
-        
-        const displayWeight = isWeightUnit ? `${item.type === '입고' ? '+' : '-'}${item.weight} ${itemUnit}` : '';
-        const displayQty = isWeightUnit 
-          ? `${item.boxes || 0} ${item.unit || 'BOX'}` 
-          : `${item.type === '입고' ? '+' : '-'}${item.weight} ${itemUnit}`;
+        const displayWeight = `${item.type === '입고' ? '+' : '-'}${item.weight || 0} ${item.weightUnit || 'KG'}`;
+        const displayQty = `${item.boxes || 0} ${item.unit || 'BOX'}`;
 
         return {
           '일자': item.date,
@@ -464,6 +461,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         unit: 'BOX',
         boxes: '',
         weight: '', 
+        weightUnit: 'KG',
         freightType: '선불' 
       });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'logistics'); }
@@ -482,6 +480,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       unit: l.unit || 'BOX',
       boxes: l.boxes || '',
       weight: l.weight.toString(),
+      weightUnit: l.weightUnit || 'KG',
       freightType: l.freightType || '선불'
     });
     setShowForm(true);
@@ -707,21 +706,58 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                )}
              </div>
 
-             <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">
-                 중량/수량 ({form.item ? (inventory?.find((i: any) => i.name === form.item)?.unit || 'KG').toUpperCase() : 'KG'})
-               </label>
-               <input 
-                  required 
-                  type="text" 
-                  value={formatWithCommas(form.weight)} 
-                  onChange={e => setForm({...form, weight: e.target.value.replace(/[^0-9]/g, '')})} 
-                  className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
-                />
+             <div className="space-y-1 relative">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">중량(KG/G)</label>
+               <div className="flex gap-2">
+                 <input 
+                    required 
+                    type="text" 
+                    placeholder="0"
+                    value={formatWithCommas(form.weight)} 
+                    onChange={e => setForm({...form, weight: e.target.value.replace(/[^0-9]/g, '')})} 
+                    className="flex-1 h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
+                 />
+                 <div className="relative w-32 shrink-0">
+                   <input
+                     type="text"
+                     placeholder="단위"
+                     value={form.weightUnit}
+                     onChange={e => setForm({...form, weightUnit: e.target.value})}
+                     onFocus={() => setShowWeightUnitDropdown(true)}
+                     onBlur={() => setTimeout(() => setShowWeightUnitDropdown(false), 200)}
+                     className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-8 uppercase"
+                   />
+                   <button
+                     type="button"
+                     onClick={() => setShowWeightUnitDropdown(!showWeightUnitDropdown)}
+                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
+                   >
+                     <ChevronDown className={`w-3 h-3 transition-transform ${showWeightUnitDropdown ? 'rotate-180' : ''}`} />
+                   </button>
+                   {showWeightUnitDropdown && (
+                     <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 py-1">
+                       {['KG', 'G'].map(u => (
+                         <button
+                           key={u}
+                           type="button"
+                           onMouseDown={(e) => {
+                             e.preventDefault();
+                             setForm({...form, weightUnit: u});
+                             setShowWeightUnitDropdown(false);
+                           }}
+                           className="w-full h-9 flex items-center px-4 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                         >
+                           {u}
+                         </button>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               </div>
              </div>
 
-             <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">수량 / 단위</label>
+             <div className="space-y-1 relative">
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">수량(EA/BOX)</label>
                <div className="flex gap-2">
                  <input 
                    type="text" 
@@ -730,13 +766,42 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                    className="flex-1 h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
                    placeholder="0"
                  />
-                 <select 
-                   value={form.unit} 
-                   onChange={e => setForm({...form, unit: e.target.value})}
-                   className="w-24 h-12 px-3 bg-surface-container rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all uppercase cursor-pointer"
-                 >
-                   {['BOX', 'EA', 'KG', 'G'].map(u => <option key={u} value={u}>{u}</option>)}
-                 </select>
+                 <div className="relative w-32 shrink-0">
+                   <input
+                     type="text"
+                     placeholder="단위"
+                     value={form.unit}
+                     onChange={e => setForm({...form, unit: e.target.value})}
+                     onFocus={() => setShowUnitDropdown(true)}
+                     onBlur={() => setTimeout(() => setShowUnitDropdown(false), 200)}
+                     className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-8 uppercase"
+                   />
+                   <button
+                     type="button"
+                     onClick={() => setShowUnitDropdown(!showUnitDropdown)}
+                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
+                   >
+                     <ChevronDown className={`w-3 h-3 transition-transform ${showUnitDropdown ? 'rotate-180' : ''}`} />
+                   </button>
+                   {showUnitDropdown && (
+                     <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 py-1">
+                       {['BOX', 'EA'].map(u => (
+                         <button
+                           key={u}
+                           type="button"
+                           onMouseDown={(e) => {
+                             e.preventDefault();
+                             setForm({...form, unit: u});
+                             setShowUnitDropdown(false);
+                           }}
+                           className="w-full h-9 flex items-center px-4 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                         >
+                           {u}
+                         </button>
+                       ))}
+                     </div>
+                   )}
+                 </div>
                </div>
              </div>
 
@@ -1007,34 +1072,12 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           {inventory?.find((i: any) => i.name === l.item)?.specs || '-'}
                         </td>
                         <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
-                        {(() => {
-                          const invItem = inventory?.find((i: any) => i.name === l.item);
-                          const itemUnit = (invItem?.unit || 'KG').toUpperCase();
-                          const isWeightUnit = itemUnit === 'KG' || itemUnit === 'G';
-                          if (isWeightUnit) {
-                            return (
-                              <>
-                                <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                  {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} {itemUnit}
-                                </td>
-                                <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
-                                  {Number(l.boxes || 0).toLocaleString()} {l.unit || 'BOX'}
-                                </td>
-                              </>
-                            );
-                          } else {
-                            return (
-                              <>
-                                <td className="px-4 py-6 text-sm font-bold text-slate-300">
-                                  -
-                                </td>
-                                <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'} whitespace-nowrap uppercase`}>
-                                  {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} {itemUnit}
-                                </td>
-                              </>
-                            );
-                          }
-                        })()}
+                        <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} {l.weightUnit || 'KG'}
+                        </td>
+                        <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
+                          {Number(l.boxes || 0).toLocaleString()} {l.unit || 'BOX'}
+                        </td>
                         <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
                           {(!l.partner || l.partner === '초기재고등록') ? '' : l.partner}
                         </td>
@@ -1057,10 +1100,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3 p-1">
                 {paginatedItems.map((l: any, i: number) => {
-                  const invItem = inventory?.find((i: any) => i.name === l.item);
-                  const itemUnit = (invItem?.unit || 'KG').toUpperCase();
-                  const isWeightUnit = itemUnit === 'KG' || itemUnit === 'G';
-                  
                   return (
                     <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${l.type === '입고' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
@@ -1079,17 +1118,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           {l.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{l.brand}</div>}
                           <div className="flex items-center gap-1.5 flex-wrap mt-1">
                             <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
-                            {isWeightUnit && (
-                              <span className="text-[9px] font-black text-slate-400 uppercase">
-                                / {Number(l.boxes || 0).toLocaleString()} {l.unit || 'BOX'}
-                              </span>
-                            )}
+                            <span className="text-[9px] font-black text-slate-400 uppercase">
+                              / {Number(l.boxes || 0).toLocaleString()} {l.unit || 'BOX'}
+                            </span>
                           </div>
                         </div>
                         
                         <div className="flex flex-col items-end gap-1 shrink-0">
                            <div className={`text-lg font-black tracking-tighter ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                             {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline">{itemUnit}</span>
+                             {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline uppercase">{l.weightUnit || 'KG'}</span>
                            </div>
                          <div className="flex items-center gap-1">
                            <button onClick={() => handleEdit(l)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
