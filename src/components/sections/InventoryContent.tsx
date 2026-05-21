@@ -19,12 +19,12 @@ import { OperationType } from '../../types';
 
 function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], partners = [], initialCategory }: any) {
   const today = new Date().toLocaleDateString('sv-SE');
-  const [search, setSearch] = useState('');
-  const [filterCategory, setFilterCategory] = useState(initialCategory || '');
-  const [filterBrand, setFilterBrand] = useState('');
-  const [filterPartner, setFilterPartner] = useState('');
-  const [filterStartDate, setFilterStartDate] = useState(today);
-  const [filterEndDate, setFilterEndDate] = useState(today);
+  const [search, setSearch] = useState(() => sessionStorage.getItem('inventory_search') || '');
+  const [filterCategory, setFilterCategory] = useState(() => initialCategory || sessionStorage.getItem('inventory_filterCategory') || '');
+  const [filterBrand, setFilterBrand] = useState(() => sessionStorage.getItem('inventory_filterBrand') || '');
+  const [filterPartner, setFilterPartner] = useState(() => sessionStorage.getItem('inventory_filterPartner') || '');
+  const [filterStartDate, setFilterStartDate] = useState(() => sessionStorage.getItem('inventory_filterStartDate') || today);
+  const [filterEndDate, setFilterEndDate] = useState(() => sessionStorage.getItem('inventory_filterEndDate') || today);
   const startDatePickerRef = React.useRef<HTMLInputElement>(null);
   const endDatePickerRef = React.useRef<HTMLInputElement>(null);
 
@@ -55,17 +55,69 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       }
     }
   };
-  const [activeShift, setActiveShift] = useState('일간');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [activeShift, setActiveShift] = useState(() => sessionStorage.getItem('inventory_activeShift') || '일간');
+  const [currentPage, setCurrentPage] = useState(() => {
+    const saved = sessionStorage.getItem('inventory_currentPage');
+    return saved ? parseInt(saved, 10) : 1;
+  });
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'shortage' | 'replenish' | 'normal'>(() => {
+    return (sessionStorage.getItem('inventory_stockStatusFilter') as any) || 'all';
+  });
 
-  // Reset page when filters change
+  const isFirstRender = React.useRef(true);
+
+  // Reset page when filters change (ignoring the initial mount render)
   React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     setCurrentPage(1);
-  }, [search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate]);
+  }, [search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate, stockStatusFilter]);
 
   React.useEffect(() => {
-    if (initialCategory) setFilterCategory(initialCategory);
+    if (initialCategory) {
+      setFilterCategory(initialCategory);
+      sessionStorage.setItem('inventory_filterCategory', initialCategory);
+    }
   }, [initialCategory]);
+
+  // Sync state changes to sessionStorage
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_search', search);
+  }, [search]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_filterCategory', filterCategory);
+  }, [filterCategory]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_filterBrand', filterBrand);
+  }, [filterBrand]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_filterPartner', filterPartner);
+  }, [filterPartner]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_filterStartDate', filterStartDate);
+  }, [filterStartDate]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_filterEndDate', filterEndDate);
+  }, [filterEndDate]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_activeShift', activeShift);
+  }, [activeShift]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_stockStatusFilter', stockStatusFilter);
+  }, [stockStatusFilter]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_currentPage', String(currentPage));
+  }, [currentPage]);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -127,8 +179,8 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     return Array.from(pts).sort();
   }, [partners, inventory]);
 
-  const filtered = useMemo(() => {
-    const result = inventory
+  const baseFiltered = useMemo(() => {
+    return inventory
       .filter((i: any) => i.category !== '완제품')
       .filter((i: any) => {
         const matchesSearch = (i.name || '').toLowerCase().includes(search.toLowerCase()) || 
@@ -137,41 +189,77 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
         const matchesCategory = !filterCategory || i.category === filterCategory;
         const matchesBrand = !filterBrand || i.brand === filterBrand;
         const matchesPartner = !filterPartner || i.partner === filterPartner;
-      
-      let matchesDate = true;
-      if (activeShift !== '') { // Apply date filter only if a range is selected
-        const itemLogistics = logistics.filter((l: any) => l.item === i.name);
-        const hasMovementInRange = itemLogistics.some((l: any) => {
-          const d = l.date;
-          return (!filterStartDate || d >= filterStartDate) && (!filterEndDate || d <= filterEndDate);
-        });
+        return matchesSearch && matchesCategory && matchesBrand && matchesPartner;
+      });
+  }, [inventory, search, filterCategory, filterBrand, filterPartner]);
 
-        const itemUpdateDate = i.updatedAt?.seconds 
-          ? new Date(i.updatedAt.seconds * 1000).toLocaleDateString('sv-SE')
-          : today;
-        
-        const isRecentlyUpdated = (!filterStartDate || itemUpdateDate >= filterStartDate) && 
-                                  (!filterEndDate || itemUpdateDate <= filterEndDate);
+  const statusCounts = useMemo(() => {
+    let shortage = 0;
+    let replenish = 0;
+    let normal = 0;
 
-        matchesDate = hasMovementInRange || isRecentlyUpdated;
+    baseFiltered.forEach((item: any) => {
+      const current = item.currentStock || 0;
+      const safety = item.safetyStock || 0;
+      const isShortage = current < safety;
+      const isReplenish = safety > 0 && current >= safety && current <= safety * 1.2;
+
+      if (isShortage) {
+        shortage++;
+      } else if (isReplenish) {
+        replenish++;
+      } else {
+        normal++;
       }
-
-      return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesDate;
     });
 
-    // Sort by shortage status first, then by latest update
+    return {
+      all: baseFiltered.length,
+      shortage,
+      replenish,
+      normal
+    };
+  }, [baseFiltered]);
+
+  const filtered = useMemo(() => {
+    let result = baseFiltered;
+
+    if (stockStatusFilter !== 'all') {
+      result = result.filter((item: any) => {
+        const current = item.currentStock || 0;
+        const safety = item.safetyStock || 0;
+        const isShortage = current < safety;
+        const isReplenish = safety > 0 && current >= safety && current <= safety * 1.2;
+        
+        if (stockStatusFilter === 'shortage') return isShortage;
+        if (stockStatusFilter === 'replenish') return isReplenish;
+        if (stockStatusFilter === 'normal') return !isShortage && !isReplenish;
+        return true;
+      });
+    }
+
+    // Sort by shortage/replenish/normal priority, then by latest update
     return [...result].sort((a: any, b: any) => {
-      const aShortage = a.currentStock < (a.safetyStock || 0);
-      const bShortage = b.currentStock < (b.safetyStock || 0);
-      
-      if (aShortage && !bShortage) return -1;
-      if (!aShortage && bShortage) return 1;
+      const getPriority = (item: any) => {
+        const current = item.currentStock || 0;
+        const safety = item.safetyStock || 0;
+        if (current < safety) return 1;
+        if (safety > 0 && current >= safety && current <= safety * 1.2) return 2;
+        return 3;
+      };
+
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
       
       const timeA = a.updatedAt?.seconds || 0;
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
     });
-  }, [inventory, search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate, logistics]);
+  }, [baseFiltered, stockStatusFilter]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = useMemo(() => {
@@ -381,11 +469,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                       setFilterStartDate(e.target.value);
                       setActiveShift('');
                     }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                    className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
                   />
                   <button 
                     onClick={handleStartDateClick}
-                    className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                    className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
                   >
                     <CalendarDays className="w-3.5 h-3.5 text-primary" />
                     <span className="font-black">{filterStartDate.split('-').slice(1).join('/')}</span>
@@ -403,11 +491,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                       setFilterEndDate(e.target.value);
                       setActiveShift('');
                     }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                    className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
                   />
                   <button 
                     onClick={handleEndDateClick}
-                    className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                    className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
                   >
                     <CalendarDays className="w-3.5 h-3.5 text-primary" />
                     <span className="font-black">{filterEndDate.split('-').slice(1).join('/')}</span>
@@ -449,6 +537,62 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => { setStockStatusFilter('all'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'all'
+                ? 'bg-primary text-white shadow-sm'
+                : 'bg-slate-100 text-[#0f172a] hover:bg-slate-200'
+            }`}
+          >
+            전체
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              {statusCounts.all}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('shortage'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'shortage'
+                ? 'bg-rose-600 text-white shadow-sm'
+                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+            }`}
+          >
+            부족
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'shortage' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
+              {statusCounts.shortage}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('replenish'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'replenish'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
+          >
+            보충
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'replenish' ? 'bg-white/20 text-blue-100' : 'bg-blue-100 text-blue-600'}`}>
+              {statusCounts.replenish}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('normal'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'normal'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+            }`}
+          >
+            정상
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'normal' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
+              {statusCounts.normal}
+            </span>
+          </button>
         </div>
 
         <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">

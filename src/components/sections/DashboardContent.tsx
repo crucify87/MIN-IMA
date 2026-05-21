@@ -23,8 +23,8 @@ import { ViewType, OperationType } from '../../types';
 
 function DashboardContent({ inventory, production, logistics, partners, onNavigate, canEditItems }: any) {
   const today = new Date().toLocaleDateString('sv-SE');
-  const [filterStartDate, setFilterStartDate] = useState(today);
-  const [filterEndDate, setFilterEndDate] = useState(today);
+  const [filterStartDate, setFilterStartDate] = useState(() => sessionStorage.getItem('dashboard_filterStartDate') || today);
+  const [filterEndDate, setFilterEndDate] = useState(() => sessionStorage.getItem('dashboard_filterEndDate') || today);
   const startDateInputRef = useRef<HTMLInputElement>(null);
   const endDateInputRef = useRef<HTMLInputElement>(null);
   
@@ -56,20 +56,63 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     }
   };
   
-  const [activeShift, setActiveShift] = useState('일간');
-  const [inventoryPage, setInventoryPage] = useState(1);
-  const [activityPage, setActivityPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'shortage' | 'replenish' | 'normal'>('all');
+  const [activeShift, setActiveShift] = useState(() => sessionStorage.getItem('dashboard_activeShift') || '일간');
+  const [inventoryPage, setInventoryPage] = useState(() => {
+    const saved = sessionStorage.getItem('dashboard_inventoryPage');
+    return saved ? parseInt(saved, 10) : 1;
+  });
+  const [activityPage, setActivityPage] = useState(() => {
+    const saved = sessionStorage.getItem('dashboard_activityPage');
+    return saved ? parseInt(saved, 10) : 1;
+  });
+  const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('dashboard_searchQuery') || '');
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'shortage' | 'replenish' | 'normal'>(() => {
+    return (sessionStorage.getItem('dashboard_stockStatusFilter') as any) || 'all';
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(false);
 
+  const isFirstRender = useRef(true);
+
   // Reset pages when filters change to avoid empty views
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     setInventoryPage(1);
     setActivityPage(1);
   }, [filterStartDate, filterEndDate, searchQuery, stockStatusFilter]);
+
+  // Sync state changes to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_filterStartDate', filterStartDate);
+  }, [filterStartDate]);
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_filterEndDate', filterEndDate);
+  }, [filterEndDate]);
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_activeShift', activeShift);
+  }, [activeShift]);
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_inventoryPage', String(inventoryPage));
+  }, [inventoryPage]);
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_activityPage', String(activityPage));
+  }, [activityPage]);
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_searchQuery', searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_stockStatusFilter', stockStatusFilter);
+  }, [stockStatusFilter]);
 
   const handleDownloadExcel = () => {
     try {
@@ -533,11 +576,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     setFilterStartDate(e.target.value);
                     setActiveShift('');
                   }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
                 />
                 <button 
                   onClick={handleStartDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
                 >
                   <CalendarDays className="w-3.5 h-3.5 text-primary" />
                   <span className="font-black">{filterStartDate.split('-').slice(1).join('/')}</span>
@@ -555,11 +598,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     setFilterEndDate(e.target.value);
                     setActiveShift('');
                   }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
                 />
                 <button 
                   onClick={handleEndDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
                 >
                   <CalendarDays className="w-3.5 h-3.5 text-primary" />
                   <span className="font-black">{filterEndDate.split('-').slice(1).join('/')}</span>
@@ -637,71 +680,72 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
       {/* Current Inventory Table */}
       <section className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="text-2xl font-black text-on-surface tracking-tight">현재 재고 현황</h3>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <h3 className="text-2xl font-black text-on-surface tracking-tight whitespace-nowrap">현재 재고 현황</h3>
+            
+            {/* Status Filter Tabs */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => { setStockStatusFilter('all'); setInventoryPage(1); }}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+                  stockStatusFilter === 'all'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'bg-slate-100 text-[#0f172a] hover:bg-slate-200'
+                }`}
+              >
+                전체
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                  {statusCounts.all}
+                </span>
+              </button>
+              <button
+                onClick={() => { setStockStatusFilter('shortage'); setInventoryPage(1); }}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+                  stockStatusFilter === 'shortage'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                }`}
+              >
+                부족
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'shortage' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
+                  {statusCounts.shortage}
+                </span>
+              </button>
+              <button
+                onClick={() => { setStockStatusFilter('replenish'); setInventoryPage(1); }}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+                  stockStatusFilter === 'replenish'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                }`}
+              >
+                보충
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'replenish' ? 'bg-white/20 text-blue-100' : 'bg-blue-100 text-blue-600'}`}>
+                  {statusCounts.replenish}
+                </span>
+              </button>
+              <button
+                onClick={() => { setStockStatusFilter('normal'); setInventoryPage(1); }}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+                  stockStatusFilter === 'normal'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                }`}
+              >
+                정상
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'normal' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
+                  {statusCounts.normal}
+                </span>
+              </button>
+            </div>
           </div>
+          
           <button 
             onClick={() => onNavigate('inventory')}
-            className="flex items-center gap-1 text-sm font-bold text-outline hover:text-primary transition-colors self-end sm:self-auto"
+            className="flex items-center gap-1 text-sm font-bold text-outline hover:text-primary transition-colors whitespace-nowrap self-end lg:self-auto"
           >
             전체 보기 <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Status Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => { setStockStatusFilter('all'); setInventoryPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'all'
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-slate-100 text-[#0f172a] hover:bg-slate-200'
-            }`}
-          >
-            전체
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-              {statusCounts.all}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('shortage'); setInventoryPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'shortage'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-            }`}
-          >
-            부족
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'shortage' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
-              {statusCounts.shortage}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('replenish'); setInventoryPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'replenish'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-            }`}
-          >
-            보충
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'replenish' ? 'bg-white/20 text-blue-100' : 'bg-blue-100 text-blue-600'}`}>
-              {statusCounts.replenish}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('normal'); setInventoryPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'normal'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-            }`}
-          >
-            정상
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'normal' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
-              {statusCounts.normal}
-            </span>
           </button>
         </div>
         

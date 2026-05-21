@@ -33,14 +33,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeRange, setActiveRange] = useState('일간');
+  const [activeRange, setActiveRange] = useState(() => sessionStorage.getItem('logistics_activeRange') || '일간');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null as any });
-  const [search, setSearch] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterBrand, setFilterBrand] = useState('');
-  const [filterPartner, setFilterPartner] = useState('');
+  const [search, setSearch] = useState(() => sessionStorage.getItem('logistics_search') || '');
+  const [filterCategory, setFilterCategory] = useState(() => sessionStorage.getItem('logistics_filterCategory') || '');
+  const [filterBrand, setFilterBrand] = useState(() => sessionStorage.getItem('logistics_filterBrand') || '');
+  const [filterPartner, setFilterPartner] = useState(() => sessionStorage.getItem('logistics_filterPartner') || '');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
+  const [showItemDropdown, setShowItemDropdown] = useState(false);
   const handleStartDateClick = () => {
     if (startDatePickerRef.current) {
       if ('showPicker' in startDatePickerRef.current) {
@@ -72,17 +73,52 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const startDatePickerRef = useRef<HTMLInputElement>(null);
   const endDatePickerRef = useRef<HTMLInputElement>(null);
 
-  const [startDate, setStartDate] = useState(new Date().toLocaleDateString('sv-SE'));
-  const [endDate, setEndDate] = useState(new Date().toLocaleDateString('sv-SE'));
+  const [startDate, setStartDate] = useState(() => sessionStorage.getItem('logistics_startDate') || new Date().toLocaleDateString('sv-SE'));
+  const [endDate, setEndDate] = useState(() => sessionStorage.getItem('logistics_endDate') || new Date().toLocaleDateString('sv-SE'));
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'shortage' | 'replenish' | 'normal'>(() => {
+    return (sessionStorage.getItem('logistics_stockStatusFilter') as any) || 'all';
+  });
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_search', search);
+  }, [search]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_filterCategory', filterCategory);
+  }, [filterCategory]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_filterBrand', filterBrand);
+  }, [filterBrand]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_filterPartner', filterPartner);
+  }, [filterPartner]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_startDate', startDate);
+  }, [startDate]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_endDate', endDate);
+  }, [endDate]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_activeRange', activeRange);
+  }, [activeRange]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_stockStatusFilter', stockStatusFilter);
+  }, [stockStatusFilter]);
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterCategory, filterBrand, filterPartner, startDate, endDate, activeRange]);
+  }, [search, filterCategory, filterBrand, filterPartner, startDate, endDate, activeRange, stockStatusFilter]);
 
   const today = new Date().toLocaleDateString('sv-SE');
 
-  const filtered = useMemo(() => {
-    const result = logistics
+  const baseFiltered = useMemo(() => {
+    return logistics
       .filter((l: any) => {
         const matchesSearch = (l.item || '').toLowerCase().includes(search.toLowerCase()) ||
                              (l.partner || '').toLowerCase().includes(search.toLowerCase());
@@ -92,13 +128,61 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         const matchesDate = l.date >= startDate && l.date <= endDate;
         return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesDate;
       });
+  }, [logistics, search, filterCategory, filterBrand, filterPartner, startDate, endDate]);
+
+  const statusCounts = useMemo(() => {
+    let shortage = 0;
+    let replenish = 0;
+    let normal = 0;
+
+    baseFiltered.forEach((l: any) => {
+      const invItem = inventory?.find((i: any) => i.name === l.item);
+      const current = invItem ? (invItem.currentStock || 0) : 0;
+      const safety = invItem ? (invItem.safetyStock || 0) : 0;
+      const isShortage = current < safety;
+      const isReplenish = safety > 0 && current >= safety && current <= safety * 1.2;
+
+      if (isShortage) {
+        shortage++;
+      } else if (isReplenish) {
+        replenish++;
+      } else {
+        normal++;
+      }
+    });
+
+    return {
+      all: baseFiltered.length,
+      shortage,
+      replenish,
+      normal
+    };
+  }, [baseFiltered, inventory]);
+
+  const filtered = useMemo(() => {
+    let result = baseFiltered;
+
+    if (stockStatusFilter !== 'all') {
+      result = result.filter((l: any) => {
+        const invItem = inventory?.find((i: any) => i.name === l.item);
+        const current = invItem ? (invItem.currentStock || 0) : 0;
+        const safety = invItem ? (invItem.safetyStock || 0) : 0;
+        const isShortage = current < safety;
+        const isReplenish = safety > 0 && current >= safety && current <= safety * 1.2;
+
+        if (stockStatusFilter === 'shortage') return isShortage;
+        if (stockStatusFilter === 'replenish') return isReplenish;
+        if (stockStatusFilter === 'normal') return !isShortage && !isReplenish;
+        return true;
+      });
+    }
 
     // Sort by date then time in reverse (latest first)
     return [...result].sort((a: any, b: any) => {
       if (a.date !== b.date) return b.date.localeCompare(a.date);
       return b.time.localeCompare(a.time);
     });
-  }, [logistics, search, filterCategory, filterBrand, filterPartner, startDate, endDate]);
+  }, [baseFiltered, stockStatusFilter, inventory]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = useMemo(() => {
@@ -217,7 +301,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       
       const data = filtered.map(item => {
         const invItem = inventory.find((i: any) => i.name === item.item);
-        const unit = (invItem?.unit || 'BOX').toUpperCase();
+        const itemUnit = (invItem?.unit || 'KG').toUpperCase();
+        const isWeightUnit = itemUnit === 'KG' || itemUnit === 'G';
+        
+        const displayWeight = isWeightUnit ? `${item.type === '입고' ? '+' : '-'}${item.weight} ${itemUnit}` : '';
+        const displayQty = isWeightUnit 
+          ? `${item.boxes || 0} ${item.unit || 'BOX'}` 
+          : `${item.type === '입고' ? '+' : '-'}${item.weight} ${itemUnit}`;
+
         return {
           '일자': item.date,
           '시간': item.time,
@@ -225,9 +316,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           '카테고리': item.category || '-',
           '브랜드': item.brand || '-',
           '품목명': item.item,
-          [`수량 (${unit})`]: item.boxes || '-',
-          '중량 (KG)': item.weight,
-          '거래처': item.partner || '-',
+          '중량': displayWeight,
+          '수량(단위)': displayQty,
+          '거래처': (!item.partner || item.partner === '초기재고등록') ? '' : item.partner,
           '운송구분': item.freightType || '-'
         };
       });
@@ -267,6 +358,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     if (!form.category) return categories;
     return categories.filter(c => c.toLowerCase().includes(form.category.toLowerCase()));
   }, [categories, form.category]);
+
+  const filteredItems = useMemo(() => {
+    if (!form.item) return inventory;
+    return inventory.filter((i: any) => i.name.toLowerCase().includes(form.item.toLowerCase()));
+  }, [inventory, form.item]);
 
   const filteredBrands = useMemo(() => {
     if (!form.brand) return brands;
@@ -474,32 +570,65 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                </div>
              </div>
 
-             <div className="space-y-1">
+             <div className="space-y-1 relative">
                <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">품목명 (완제품/원물)</label>
-               <input 
-                 required 
-                 list="l-items" 
-                 placeholder="품목 선택 또는 입력"
-                 value={form.item} 
-                 onChange={e => {
-                   const val = e.target.value;
-                   setForm(prev => ({ ...prev, item: val }));
-                   
-                   // Attempt auto-fill if an inventory item is matched
-                   const invItem = inventory.find((it: any) => it.name === val);
-                   if (invItem) {
-                     setForm(prev => ({
-                       ...prev,
-                       brand: invItem.brand || prev.brand,
-                       category: invItem.category || prev.category,
-                       partner: invItem.partner || prev.partner,
-                       unit: (invItem.unit || 'BOX').toUpperCase()
-                     }));
-                   }
-                 }} 
-                 className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
-               />
-               <datalist id="l-items">{inventory.map((i: any) => <option key={i.id} value={i.name} />)}</datalist>
+               <div className="relative">
+                 <input 
+                   required
+                   placeholder="품목 선택 또는 직접 입력"
+                   value={form.item} 
+                   onChange={e => {
+                     const val = e.target.value;
+                     setForm(prev => ({ ...prev, item: val }));
+                     
+                     // Attempt auto-fill if an inventory item is matched
+                     const invItem = inventory.find((it: any) => it.name === val);
+                     if (invItem) {
+                       setForm(prev => ({
+                         ...prev,
+                         brand: invItem.brand || prev.brand,
+                         category: invItem.category || prev.category,
+                         partner: invItem.partner || prev.partner,
+                         unit: (invItem.unit || 'BOX').toUpperCase()
+                       }));
+                     }
+                   }} 
+                   onFocus={() => setShowItemDropdown(true)}
+                   onBlur={() => setTimeout(() => setShowItemDropdown(false), 205)}
+                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all pr-10" 
+                 />
+                 <button 
+                   type="button" 
+                   onClick={() => setShowItemDropdown(!showItemDropdown)}
+                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
+                 >
+                   <ChevronDown className={`w-4 h-4 transition-transform ${showItemDropdown ? 'rotate-180' : ''}`} />
+                 </button>
+               </div>
+               {showItemDropdown && filteredItems.length > 0 && (
+                 <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-48 overflow-y-auto">
+                   {filteredItems.map((i: any) => (
+                     <button
+                       key={i.id}
+                       type="button"
+                       onClick={() => {
+                         setForm(prev => ({
+                           ...prev,
+                           item: i.name,
+                           brand: i.brand || prev.brand,
+                           category: i.category || prev.category,
+                           partner: i.partner || prev.partner,
+                           unit: (i.unit || 'BOX').toUpperCase()
+                         }));
+                         setShowItemDropdown(false);
+                       }}
+                       className="w-full h-10 flex items-center px-4 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                     >
+                       {i.name}
+                     </button>
+                   ))}
+                 </div>
+               )}
              </div>
 
              <div className="space-y-1 relative">
@@ -579,7 +708,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
              </div>
 
              <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">중량 (KG)</label>
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">
+                 중량/수량 ({form.item ? (inventory?.find((i: any) => i.name === form.item)?.unit || 'KG').toUpperCase() : 'KG'})
+               </label>
                <input 
                   required 
                   type="text" 
@@ -707,11 +838,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     setStartDate(e.target.value);
                     setActiveRange('');
                   }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
                 />
                 <button 
                   onClick={handleStartDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
                 >
                   <CalendarDays className="w-3.5 h-3.5 text-primary" />
                   <span className="font-black">{startDate.split('-').slice(1).join('/')}</span>
@@ -729,11 +860,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     setEndDate(e.target.value);
                     setActiveRange('');
                   }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
                 />
                 <button 
                   onClick={handleEndDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
                 >
                   <CalendarDays className="w-3.5 h-3.5 text-primary" />
                   <span className="font-black">{endDate.split('-').slice(1).join('/')}</span>
@@ -774,6 +905,62 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => { setStockStatusFilter('all'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'all'
+                ? 'bg-primary text-white shadow-sm'
+                : 'bg-slate-100 text-[#0f172a] hover:bg-slate-200'
+            }`}
+          >
+            전체
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              {statusCounts.all}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('shortage'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'shortage'
+                ? 'bg-rose-600 text-white shadow-sm'
+                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+            }`}
+          >
+            부족
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'shortage' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
+              {statusCounts.shortage}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('replenish'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'replenish'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
+          >
+            보충
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'replenish' ? 'bg-white/20 text-blue-100' : 'bg-blue-100 text-blue-600'}`}>
+              {statusCounts.replenish}
+            </span>
+          </button>
+          <button
+            onClick={() => { setStockStatusFilter('normal'); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+              stockStatusFilter === 'normal'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+            }`}
+          >
+            정상
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'normal' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
+              {statusCounts.normal}
+            </span>
+          </button>
         </div>
 
         <div className="min-h-[400px] flex flex-col rounded-[28px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-1.5 md:p-10">
@@ -820,14 +1007,36 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           {inventory?.find((i: any) => i.name === l.item)?.specs || '-'}
                         </td>
                         <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
-                        <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} KG
-                        </td>
-                        <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
-                          {Number(l.boxes || 0).toLocaleString()} {l.unit || (inventory?.find((i: any) => i.name === l.item)?.unit || 'BOX').toUpperCase()}
-                        </td>
+                        {(() => {
+                          const invItem = inventory?.find((i: any) => i.name === l.item);
+                          const itemUnit = (invItem?.unit || 'KG').toUpperCase();
+                          const isWeightUnit = itemUnit === 'KG' || itemUnit === 'G';
+                          if (isWeightUnit) {
+                            return (
+                              <>
+                                <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} {itemUnit}
+                                </td>
+                                <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
+                                  {Number(l.boxes || 0).toLocaleString()} {l.unit || 'BOX'}
+                                </td>
+                              </>
+                            );
+                          } else {
+                            return (
+                              <>
+                                <td className="px-4 py-6 text-sm font-bold text-slate-300">
+                                  -
+                                </td>
+                                <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'} whitespace-nowrap uppercase`}>
+                                  {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} {itemUnit}
+                                </td>
+                              </>
+                            );
+                          }
+                        })()}
                         <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
-                          {l.partner || '-'}
+                          {(!l.partner || l.partner === '초기재고등록') ? '' : l.partner}
                         </td>
                         <td className="px-4 py-6 text-right pr-8">
                           <div className="flex items-center justify-end gap-1">
@@ -847,34 +1056,41 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3 p-1">
-                {paginatedItems.map((l: any, i: number) => (
-                  <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${l.type === '입고' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                    
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase shadow-sm ${l.type === '입고' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
-                            {l.type}
-                          </span>
-                          <div className="text-[10px] font-bold text-outline uppercase tracking-tight font-mono">
-                            {l.date} <span className="opacity-40">{l.time}</span>
+                {paginatedItems.map((l: any, i: number) => {
+                  const invItem = inventory?.find((i: any) => i.name === l.item);
+                  const itemUnit = (invItem?.unit || 'KG').toUpperCase();
+                  const isWeightUnit = itemUnit === 'KG' || itemUnit === 'G';
+                  
+                  return (
+                    <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${l.type === '입고' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase shadow-sm ${l.type === '입고' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+                              {l.type}
+                            </span>
+                            <div className="text-[10px] font-bold text-outline uppercase tracking-tight font-mono">
+                              {l.date} <span className="opacity-40">{l.time}</span>
+                            </div>
+                          </div>
+                          <h4 className="text-sm font-black text-[#0f172a] leading-tight break-all">{l.item}</h4>
+                          {l.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{l.brand}</div>}
+                          <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                            <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
+                            {isWeightUnit && (
+                              <span className="text-[9px] font-black text-slate-400 uppercase">
+                                / {Number(l.boxes || 0).toLocaleString()} {l.unit || 'BOX'}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <h4 className="text-sm font-black text-[#0f172a] leading-tight break-all">{l.item}</h4>
-                        {l.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{l.brand}</div>}
-                        <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                          <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
-                          <span className="text-[9px] font-black text-slate-400 uppercase">
-                            / {Number(l.boxes || 0).toLocaleString()} {l.unit || (inventory?.find((i: any) => i.name === l.item)?.unit || 'BOX').toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                         <div className={`text-lg font-black tracking-tighter ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                           {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline">KG</span>
-                         </div>
+                        
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                           <div className={`text-lg font-black tracking-tighter ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                             {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline">{itemUnit}</span>
+                           </div>
                          <div className="flex items-center gap-1">
                            <button onClick={() => handleEdit(l)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
                              <Edit className="w-4 h-4" />
@@ -888,14 +1104,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
                     <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
                        <p className="text-[9px] font-bold text-slate-400 truncate flex-1 mr-4">
-                         거래처: <span className="text-on-surface font-black">{l.partner || '-'}</span>
+                         거래처: <span className="text-on-surface font-black">{(!l.partner || l.partner === '초기재고등록') ? '' : l.partner}</span>
                        </p>
                        <span className="text-[8px] font-black text-primary/70 bg-primary/5 px-2 py-0.5 rounded border border-primary/10 uppercase">
                          {inventory?.find((i: any) => i.name === l.item)?.specs || '규격미정'}
                        </span>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
             </div>
           ) : (

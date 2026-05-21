@@ -907,11 +907,11 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                     setFilterStartDate(e.target.value);
                     setActiveShift('');
                   }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
                 />
                 <button 
                   onClick={handleStartDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
                 >
                   <CalendarDays className="w-3.5 h-3.5 text-primary" />
                   <span className="font-black">{filterStartDate.split('-').slice(1).join('/')}</span>
@@ -929,11 +929,11 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                     setFilterEndDate(e.target.value);
                     setActiveShift('');
                   }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
                 />
                 <button 
                   onClick={handleEndDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
                 >
                   <CalendarDays className="w-3.5 h-3.5 text-primary" />
                   <span className="font-black">{filterEndDate.split('-').slice(1).join('/')}</span>

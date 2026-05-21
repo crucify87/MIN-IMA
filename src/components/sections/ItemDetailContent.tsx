@@ -323,13 +323,15 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
                   
                   <div>
                     <p className="text-[9px] font-black text-outline uppercase tracking-widest mb-1">거래처/대상</p>
-                    <p className="text-base font-black text-[#0f172a] line-clamp-1 group-hover:text-primary transition-colors">{a.partner}</p>
+                    <p className="text-base font-black text-[#0f172a] line-clamp-1 group-hover:text-primary transition-colors">
+                      {(!a.partner || a.partner === '초기재고등록') ? '' : a.partner}
+                    </p>
                   </div>
 
                   <div className="pt-4 border-t border-outline-variant/30 flex items-center justify-between">
                     <p className="text-[9px] font-black text-outline uppercase">변동량</p>
                     <p className={`text-2xl font-black ${a.type === '입고' ? 'text-emerald-600' : 'text-rose-600'} tracking-tighter`}>
-                      {a.type === '입고' ? '+' : '-'}{a.weight?.toLocaleString()}<span className="text-sm ml-0.5">kg</span>
+                      {a.type === '입고' ? '+' : '-'}{a.weight?.toLocaleString()}<span className="text-sm ml-0.5">{(item.unit || 'kg').toLowerCase()}</span>
                     </p>
                   </div>
                 </div>
