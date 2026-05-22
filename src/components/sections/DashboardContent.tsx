@@ -277,7 +277,12 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         boxes: l.boxes,
         source: '물류',
         rawTime: l.createdAt?.seconds || 0,
-        date: l.date
+        date: l.date,
+        brand: l.brand || '',
+        category: l.category || '',
+        partner: l.partner || '',
+        weightUnit: l.weightUnit || 'KG',
+        unit: l.unit || 'BOX'
       })),
       ...production.flatMap((p: any) => [
         {
@@ -290,7 +295,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           rawTime: p.createdAt?.seconds || 0,
           date: p.manufDate,
           yield: p.yield,
-          loss: p.loss
+          loss: p.loss,
+          brand: p.brand || '',
+          category: '완제품',
+          partner: '생산처'
         },
         {
           originalId: p.id,
@@ -300,7 +308,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           weight: p.rawQty,
           source: '생산(투입)',
           rawTime: p.createdAt?.seconds || 0,
-          date: p.manufDate
+          date: p.manufDate,
+          brand: p.brand || '',
+          category: '원육',
+          partner: '생산라인'
         }
       ]).filter(i => i.item)
     ].filter(item => {
@@ -534,7 +545,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         </div>
         <div className="flex items-baseline justify-center gap-1 md:gap-2 w-full px-2 overflow-hidden">
           <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
-            {(stat.value as number).toLocaleString()}
+            {Math.round(stat.value as number).toLocaleString()}
           </span>
           <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0">KG</span>
         </div>
@@ -780,7 +791,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                             </td>
                             <td className="px-6 md:px-8 py-5 text-center text-xs font-bold text-outline truncate" title={item.specs || ''}>{item.specs || '-'}</td>
                             <td className="px-6 md:px-8 py-5 text-lg md:text-xl font-black text-nowrap text-right pr-8">
-                              {item.currentStock?.toLocaleString()}
+                              {Math.round(item.currentStock || 0).toLocaleString()}
                               <span className="text-[11px] font-semibold text-primary bg-primary/5 dark:bg-primary/10 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
                                 {(item.unit || 'KG').toUpperCase()}
                               </span>
@@ -840,7 +851,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                               {item.brand && <div className="text-[10px] font-bold text-primary truncate">{item.brand}</div>}
                               <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                                 <div className="text-[10px] font-bold text-emerald-600/70">{item.specs || '-'}</div>
-                                <div className="text-[10px] font-bold text-outline uppercase">{item.currentStock?.toLocaleString()} {item.unit}</div>
+                                <div className="text-[10px] font-bold text-outline uppercase">{Math.round(item.currentStock || 0).toLocaleString()} {item.unit}</div>
                                 {item.category === '원육' && (
                                   <div className="text-[10px] font-black text-slate-400">/ {(item.boxes || 0).toLocaleString()} BOX</div>
                                 )}
@@ -923,9 +934,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   <tr>
                     <th className="px-4 py-8">날짜</th>
                     <th className="px-4 py-8">구분</th>
-                    <th className="px-4 py-8">품목 (ITEM)</th>
-                    <th className="px-4 py-8 text-nowrap">변동량 / 수율</th>
-                    <th className="px-4 py-8">변동 박스</th>
+                    <th className="px-4 py-8 text-left pl-8">품목 (ITEM)</th>
+                    <th className="px-4 py-8">중량</th>
+                    <th className="px-4 py-8">수량</th>
+                    <th className="px-4 py-8">수율 / 로스</th>
                     <th className="px-4 py-8">재고 상태</th>
                     <th className="px-4 py-8">관리</th>
                   </tr>
@@ -935,6 +947,20 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                     const itemInfo = inventory.find((inv: any) => inv.name === l.item);
                     const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
                     const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
+                    const displayWeightUnit = (() => {
+                      if (itemInfo && itemInfo.unit) {
+                        const u = itemInfo.unit.toUpperCase();
+                        if (u === 'KG' || u === 'G') return u;
+                      }
+                      return (l.weightUnit || 'KG').toUpperCase();
+                    })();
+                    const displayQtyUnit = (() => {
+                      if (itemInfo && itemInfo.unit) {
+                        const u = itemInfo.unit.toUpperCase();
+                        if (u !== 'KG' && u !== 'G') return u;
+                      }
+                      return (l.unit || 'BOX').toUpperCase();
+                    })();
                     
                     return (
                       <tr key={i} className="hover:bg-surface-container/10 transition-colors">
@@ -951,25 +977,56 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-6">
-                          <div className="font-black text-on-surface">{l.item}</div>
-                          <div className="text-[10px] font-bold text-outline mt-0.5">{itemInfo?.specs || ''}</div>
-                        </td>
-                        <td className="px-4 py-6">
-                          <div className={`font-black text-xl ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} {(itemInfo?.unit || l.unit || 'KG').toUpperCase()}
+                        <td className="px-4 py-6 text-left pl-8 max-w-[220px] truncate">
+                          <div className="font-black text-on-surface text-sm md:text-base leading-tight truncate" title={l.item}>{l.item}</div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                            {l.category && (
+                              <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 uppercase">
+                                {l.category}
+                              </span>
+                            )}
+                            {l.brand && (
+                              <span className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[9px] font-black text-indigo-600">
+                                {l.brand}
+                              </span>
+                            )}
+                            {itemInfo?.specs && (
+                              <span className="text-[10px] font-bold text-outline">
+                                {itemInfo.specs}
+                              </span>
+                            )}
+                            {l.partner && (
+                              <span className="text-[9.5px] font-bold text-slate-500 bg-slate-50 px-1 py-0.5 rounded border border-slate-100">
+                                {l.partner}
+                              </span>
+                            )}
                           </div>
-                          {l.yield !== undefined && (
-                            <div className="flex items-center justify-center gap-2 mt-1">
-                              <span className="text-[10px] font-black text-emerald-600">수율 {l.yield?.toFixed(1)}%</span>
-                              <span className="text-[10px] font-bold text-rose-500">로스 {l.loss?.toFixed(1)}%</span>
-                            </div>
-                          )}
                         </td>
                         <td className="px-4 py-6">
-                           <div className="font-black text-base text-slate-500">
-                             {itemInfo?.category === '원육' ? `${(l.boxes || 0).toLocaleString()} BOX` : '-'}
-                           </div>
+                          <div className={`font-black text-lg md:text-xl whitespace-nowrap ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} {displayWeightUnit}
+                          </div>
+                        </td>
+                        <td className="px-4 py-6">
+                          <div className="font-black text-base text-slate-500 whitespace-nowrap">
+                            {l.boxes !== undefined && l.boxes > 0 ? (
+                              <span>
+                                {l.type === '입고' ? '+' : '-'}{Number(l.boxes).toLocaleString()} {displayQtyUnit}
+                              </span>
+                            ) : (
+                              <span className="text-outline-variant/30 opacity-40">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-6">
+                          {l.yield !== undefined ? (
+                            <div className="flex flex-col items-center justify-center gap-0.5 bg-emerald-50/55 rounded-xl py-1 md:py-1.5 px-2 md:px-3 border border-emerald-100/50 w-fit mx-auto">
+                              <span className="text-xs font-black text-emerald-700">수율 {l.yield?.toFixed(1)}%</span>
+                              <span className="text-[9.5px] font-bold text-rose-500">로스 {l.loss?.toFixed(1)}%</span>
+                            </div>
+                          ) : (
+                            <span className="text-outline-variant/30 opacity-40">-</span>
+                          )}
                         </td>
                         <td className="px-4 py-6">
                           <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
@@ -996,7 +1053,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   })}
                   {paginatedActivity.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-24 text-center">
+                      <td colSpan={8} className="py-24 text-center">
                         <p className="text-xl font-black text-outline/40 tracking-tight">활동 내역이 없습니다</p>
                       </td>
                     </tr>
@@ -1011,6 +1068,20 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                 const itemInfo = inventory.find((inv: any) => inv.name === l.item);
                 const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
                 const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
+                const displayWeightUnit = (() => {
+                  if (itemInfo && itemInfo.unit) {
+                    const u = itemInfo.unit.toUpperCase();
+                    if (u === 'KG' || u === 'G') return u;
+                  }
+                  return (l.weightUnit || 'KG').toUpperCase();
+                })();
+                const displayQtyUnit = (() => {
+                  if (itemInfo && itemInfo.unit) {
+                    const u = itemInfo.unit.toUpperCase();
+                    if (u !== 'KG' && u !== 'G') return u;
+                  }
+                  return (l.unit || 'BOX').toUpperCase();
+                })();
 
                 return (
                   <div key={i} className="p-4 space-y-3">
@@ -1034,23 +1105,44 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                             {status}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-black text-[#0f172a]">{l.item}</span>
-                        <span className="text-[10px] font-bold text-outline">{itemInfo?.specs || ''}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-black text-[#0f172a] truncate">{l.item}</span>
+                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                          {l.category && (
+                            <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[9.5px] font-black text-slate-500 uppercase">
+                              {l.category}
+                            </span>
+                          )}
+                          {l.brand && (
+                            <span className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[9.5px] font-black text-indigo-600">
+                              {l.brand}
+                            </span>
+                          )}
+                          {itemInfo?.specs && (
+                            <span className="text-[10px] font-bold text-outline">
+                              {itemInfo.specs}
+                            </span>
+                          )}
+                        </div>
+                        {l.partner && (
+                          <div className="text-[10px] font-semibold text-slate-500 mt-1">
+                            거래처: {l.partner}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 shrink-0">
                         <div className="flex flex-col items-end">
                           <span className={`text-base font-black ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {l.type === '입고' ? '+' : '-'}{Number(l.weight)?.toLocaleString()} {(itemInfo?.unit || l.unit || 'KG').toUpperCase()}
+                            {l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} {displayWeightUnit}
                           </span>
-                          {(l.boxes !== undefined || itemInfo?.category === '원육') && (
-                            <span className="text-[10px] font-black text-slate-400">
-                              {l.type === '입고' ? '+' : '-'}{Number(l.boxes || 0).toLocaleString()} BOX
+                          {l.boxes !== undefined && l.boxes > 0 && (
+                            <span className="text-[11px] font-black text-slate-400">
+                              {l.type === '입고' ? '+' : '-'}{Number(l.boxes).toLocaleString()} {displayQtyUnit}
                             </span>
                           )}
                           {l.yield !== undefined && (
-                            <span className="text-[9px] font-black text-emerald-600">
+                            <span className="text-[9.5px] font-black text-emerald-600 mt-0.5">
                               수율 {l.yield?.toFixed(1)}% (로스 {l.loss?.toFixed(1)}%)
                             </span>
                           )}

@@ -151,9 +151,24 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
 
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
-    const num = String(value).replace(/[^0-9]/g, '');
-    if (!num) return '';
-    return parseInt(num).toLocaleString();
+    let str = String(value).replace(/[^0-9.-]/g, '');
+    const parts = str.split('.');
+    if (parts.length > 2) {
+      str = parts[0] + '.' + parts.slice(1).join('');
+    }
+    const dotIndex = str.indexOf('.');
+    if (dotIndex !== -1) {
+      const integerPart = str.substring(0, dotIndex);
+      let decimalPart = str.substring(dotIndex + 1);
+      decimalPart = decimalPart.substring(0, 2);
+      const parsedInt = parseInt(integerPart.replace(/[^0-9-]/g, ''));
+      const formattedInt = isNaN(parsedInt) ? (integerPart.startsWith('-') ? '-' : '') : parsedInt.toLocaleString();
+      return formattedInt + '.' + decimalPart;
+    } else {
+      const parsed = parseInt(str.replace(/[^0-9-]/g, ''));
+      if (isNaN(parsed)) return str.startsWith('-') ? '-' : '';
+      return parsed.toLocaleString();
+    }
   };
 
   return (
@@ -186,13 +201,13 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
             {/* 3. Current Stock */}
             <div className="space-y-1 pb-4 border-b border-outline-variant/30">
               <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1 text-primary">현재 재고</p>
-              <p className="text-4xl font-black text-primary tracking-tighter">{item.currentStock?.toLocaleString()} <span className="text-lg">{item.unit}</span></p>
+              <p className="text-4xl font-black text-primary tracking-tighter">{Math.round(item.currentStock || 0).toLocaleString()} <span className="text-lg">{item.unit}</span></p>
             </div>
 
             {/* 4. Safety Stock */}
             <div className="space-y-1 pb-4 border-b border-outline-variant/30">
               <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">안전 재고</p>
-              <p className="text-xl font-black text-on-surface">{item.safetyStock?.toLocaleString()} {item.unit}</p>
+              <p className="text-xl font-black text-on-surface">{Math.round(item.safetyStock || 0).toLocaleString()} {item.unit}</p>
             </div>
 
             {/* 5 & 6. Prices */}
@@ -250,13 +265,13 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
                 <div className="space-y-1 pb-4 border-b border-outline-variant/30">
                   <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">재고 자산 가치 (매입가 기준)</p>
                   <p className="text-xl font-black text-on-surface">
-                    {(item.currentStock * Number(priceForm.purchasePrice)).toLocaleString()} 원
+                    {Math.round(item.currentStock * Number(priceForm.purchasePrice)).toLocaleString()} 원
                   </p>
                 </div>
                 <div className="space-y-1 pb-4 border-b border-outline-variant/30">
                   <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">총 예상 매출 (재고 기준)</p>
                   <p className="text-xl font-black text-on-surface">
-                    {(item.currentStock * Number(priceForm.salesPrice)).toLocaleString()} 원
+                    {Math.round(item.currentStock * Number(priceForm.salesPrice)).toLocaleString()} 원
                   </p>
                 </div>
               </>
@@ -276,7 +291,19 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
                   <input 
                     type="text" 
                     value={formatWithCommas(stock)} 
-                    onChange={e => setStock(e.target.value.replace(/[^0-9]/g, ''))} 
+                    onChange={e => setStock((() => {
+                      const val = e.target.value;
+                      let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                      const parts = cleaned.split('.');
+                      if (parts.length > 2) {
+                        cleaned = parts[0] + '.' + parts.slice(1).join('');
+                      }
+                      const dotIndex = cleaned.indexOf('.');
+                      if (dotIndex !== -1) {
+                        cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                      }
+                      return cleaned;
+                    })())} 
                     className="h-12 px-6 bg-surface-container border-2 border-outline-variant rounded-xl outline-none font-black text-xl w-full sm:w-40 focus:border-primary transition-all shadow-inner" 
                   />
                   <button 
@@ -331,7 +358,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
                   <div className="pt-4 border-t border-outline-variant/30 flex items-center justify-between">
                     <p className="text-[9px] font-black text-outline uppercase">변동량</p>
                     <p className={`text-2xl font-black ${a.type === '입고' ? 'text-emerald-600' : 'text-rose-600'} tracking-tighter`}>
-                      {a.type === '입고' ? '+' : '-'}{a.weight?.toLocaleString()}<span className="text-sm ml-0.5">{(item.unit || 'kg').toLowerCase()}</span>
+                      {a.type === '입고' ? '+' : '-'}{Math.round(a.weight || 0).toLocaleString()}<span className="text-sm ml-0.5">{(item.unit || 'kg').toLowerCase()}</span>
                     </p>
                   </div>
                 </div>

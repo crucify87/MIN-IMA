@@ -404,7 +404,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
             <p className="text-[8px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center truncate w-full px-1">{stat.label}</p>
             <div className="flex items-baseline justify-center gap-1 md:gap-2 w-full overflow-hidden">
               <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
-                {stat.value.toLocaleString()}
+                {Math.round(stat.value).toLocaleString()}
               </span>
               <span className="text-[8px] md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
             </div>
@@ -632,7 +632,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                         </span>
                       </td>
                       <td className="px-4 py-4 font-black text-lg text-right pr-8">
-                        {item.currentStock?.toLocaleString()}
+                        {Math.round(item.currentStock || 0).toLocaleString()}
                         <span className="text-[11px] font-semibold text-primary bg-primary/5 dark:bg-primary/10 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
                           {(item.unit || 'KG').toUpperCase()}
                         </span>
@@ -722,7 +722,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                     <div className="flex items-center justify-between pt-3 border-t border-slate-50">
                       <div className="flex items-baseline gap-1.5">
                         <span className={`text-lg font-black tracking-tight ${item.currentStock < (item.safetyStock || 0) ? 'text-rose-600' : 'text-[#0f172a]'}`}>
-                          {item.currentStock?.toLocaleString()}
+                          {Math.round(item.currentStock || 0).toLocaleString()}
                         </span>
                         <span className="text-[9px] font-bold text-outline">{item.unit}</span>
                         {item.category === '원육' && (

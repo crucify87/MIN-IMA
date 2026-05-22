@@ -151,7 +151,7 @@ export default function App() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 lg:ml-80 min-h-screen flex flex-col items-center">
+      <div className="flex-1 lg:ml-80 min-h-screen flex flex-col items-center min-w-0 w-full overflow-x-hidden">
         {/* Content Body */}
         <main className="w-full max-w-screen-2xl p-4 md:p-10 lg:p-12 mb-24 lg:mb-0">
           <div className="w-full">

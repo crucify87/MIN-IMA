@@ -65,9 +65,24 @@ function SettingsContent({
   
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
-    const num = String(value).replace(/[^0-9]/g, '');
-    if (!num) return '';
-    return parseInt(num).toLocaleString();
+    let str = String(value).replace(/[^0-9.-]/g, '');
+    const parts = str.split('.');
+    if (parts.length > 2) {
+      str = parts[0] + '.' + parts.slice(1).join('');
+    }
+    const dotIndex = str.indexOf('.');
+    if (dotIndex !== -1) {
+      const integerPart = str.substring(0, dotIndex);
+      let decimalPart = str.substring(dotIndex + 1);
+      decimalPart = decimalPart.substring(0, 2);
+      const parsedInt = parseInt(integerPart.replace(/[^0-9-]/g, ''));
+      const formattedInt = isNaN(parsedInt) ? (integerPart.startsWith('-') ? '-' : '') : parsedInt.toLocaleString();
+      return formattedInt + '.' + decimalPart;
+    } else {
+      const parsed = parseInt(str.replace(/[^0-9-]/g, ''));
+      if (isNaN(parsed)) return str.startsWith('-') ? '-' : '';
+      return parsed.toLocaleString();
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -493,33 +508,33 @@ function SettingsContent({
         </div>
       </header>
 
-      <div className="flex bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth gap-1">
-        <button onClick={() => setTab('p')} className={`flex-1 md:flex-none min-w-[80px] px-3 md:px-10 py-3 rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품</button>
-        <button onClick={() => setTab('t')} className={`flex-1 md:flex-none min-w-[80px] px-3 md:px-10 py-3 rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처</button>
-        {canManageUsers && <button onClick={() => setTab('u')} className={`flex-1 md:flex-none min-w-[80px] px-3 md:px-10 py-3 rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>권한</button>}
-        {canManageUsers && <button onClick={() => setTab('s')} className={`flex-1 md:flex-none min-w-[80px] px-3 md:px-10 py-3 rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap ${tab === 's' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>앱설정</button>}
+      <div className="flex flex-nowrap bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth gap-1">
+        <button onClick={() => setTab('p')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 'p' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>상품</button>
+        <button onClick={() => setTab('t')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처</button>
+        {canManageUsers && <button onClick={() => setTab('u')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>권한</button>}
+        {canManageUsers && <button onClick={() => setTab('s')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 's' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>앱설정</button>}
       </div>
 
-      <div className="bg-white rounded-[32px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
+      <div className="bg-white rounded-[24px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
         {tab === 'p' && (
-          <div className="p-4 md:p-10 space-y-10 md:space-y-12">
+          <div className="p-3 md:p-10 space-y-6 md:space-y-12">
             {/* 1. Registration Form (TOP) */}
             {canEditItems ? (
-              <div id="item-form" className="max-w-4xl mx-auto space-y-6 md:space-y-10">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-100">
-                  <div className="space-y-1">
-                    <h3 className="text-base md:text-lg font-black text-[#0f172a] tracking-tight text-left">
+              <div id="item-form" className="max-w-2xl mx-auto space-y-4 md:space-y-10">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm md:text-lg font-black text-[#0f172a] tracking-tight text-left">
                       {editingItemId ? '상품 정보 수정' : '신규 상품 등록'}
                     </h3>
-                    <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest text-left">
+                    <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest text-left">
                       {editingItemId ? 'UPDATE MASTER ITEM INFO' : 'REGISTER NEW MASTER ITEM'}
                     </p>
                   </div>
                   
                   {/* Smaller Partner Selection moved to Top Right */}
                   <div className="w-full md:w-64 space-y-1 relative">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-primary" /> 주거래처
+                    <label className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
+                      <Users className="w-3 h-3 text-primary" /> 주거래처
                     </label>
                     <div className="relative group">
                       <input 
@@ -527,7 +542,7 @@ function SettingsContent({
                         value={itemForm.partner} 
                         onChange={e => setItemForm({...itemForm, partner: e.target.value})} 
                         onFocus={() => setShowPartnerOptions(true)}
-                        className="w-full h-11 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" 
+                        className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" 
                       />
                       <button 
                         type="button"
@@ -563,28 +578,28 @@ function SettingsContent({
                   </div>
                 </div>
                 
-                <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 md:gap-x-12 gap-y-5 md:gap-y-6">
+                <form onSubmit={handleRegisterItem} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 md:gap-x-12 gap-y-3 md:gap-y-6">
                   {/* Row 1: SKU & Name */}
-                  <div className="space-y-1.5 relative">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">SKU 번호</label>
+                  <div className="space-y-1 relative">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">SKU 번호</label>
                     <div className="relative group">
                       <input 
                         placeholder="예: P-001" 
                         value={itemForm.sku} 
                         onChange={e => setItemForm({...itemForm, sku: e.target.value.toUpperCase()})} 
-                        className="w-full h-12 md:h-14 px-5 md:px-6 pr-12 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" 
+                        className="w-full h-10 md:h-12 px-3.5 md:px-5 pr-10 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" 
                       />
                       <button 
                         type="button"
                         onClick={() => setShowSkuOptions(!showSkuOptions)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-outline hover:text-primary transition-colors"
                       >
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showSkuOptions ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showSkuOptions ? 'rotate-180' : ''}`} />
                       </button>
                     </div>
                     {showSkuOptions && (
-                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="px-5 py-3 bg-[#f8fafc] text-[10px] font-black text-outline uppercase tracking-widest">자동 번호 부여</div>
+                      <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="px-4 py-2 bg-[#f8fafc] text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest">자동 번호 부여</div>
                         {[
                           { label: '부속물', prefix: 'O', category: '부속물' },
                           { label: '돼지고기', prefix: 'P', category: '돼지고기' },
@@ -599,36 +614,36 @@ function SettingsContent({
                               setItemForm({ ...itemForm, sku: newSku, category: opt.category });
                               setShowSkuOptions(false);
                             }}
-                            className="w-full h-12 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors text-slate-600"
+                            className="w-full h-9 md:h-11 flex items-center justify-between px-4 text-xs font-bold hover:bg-[#f1f4f9] transition-colors text-slate-600"
                           >
-                            <div className="flex items-center gap-3">
-                              <span className="w-10 text-left font-black text-primary">{opt.prefix}-</span>
+                            <div className="flex items-center gap-2">
+                              <span className="w-8 text-left font-black text-primary">{opt.prefix}-</span>
                               <span>{opt.label}</span>
                             </div>
-                            <div className="text-[10px] font-black text-outline/50">{getNextSku(opt.prefix)} 예정</div>
+                            <div className="text-[8px] md:text-[10px] font-black text-outline/50">{getNextSku(opt.prefix)} 예정</div>
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">품목명</label>
-                    <input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">품목명</label>
+                    <input placeholder="예: 프리미엄 티본" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} className="w-full h-10 md:h-12 px-3.5 md:px-5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" />
                   </div>
 
                   {/* Row 2: Category & Brand */}
-                  <div className="space-y-1.5 relative">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">카테고리</label>
+                  <div className="space-y-1 relative">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">카테고리</label>
                     <button 
                       type="button"
                       onClick={() => setShowCategoryOptions(!showCategoryOptions)}
-                      className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold flex items-center justify-between outline-none focus:border-primary focus:bg-white transition-all group shadow-sm"
+                      className="w-full h-10 md:h-12 px-3.5 md:px-5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold flex items-center justify-between outline-none focus:border-primary focus:bg-white transition-all group shadow-sm text-xs"
                     >
-                      <span className="text-primary text-sm">{itemForm.category || '선택'}</span>
-                      <ChevronDown className={`w-4 h-4 text-outline group-hover:text-primary transition-transform ${showCategoryOptions ? 'rotate-180' : ''}`} />
+                      <span className="text-primary text-xs">{itemForm.category || '선택'}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-outline group-hover:text-primary transition-transform ${showCategoryOptions ? 'rotate-180' : ''}`} />
                     </button>
                     {showCategoryOptions && (
-                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-xl md:rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
                         {['원육', '돼지고기', '소고기', '부속물', '기타'].map((c) => (
                           <button
                             key={c}
@@ -637,7 +652,7 @@ function SettingsContent({
                               setItemForm({...itemForm, category: c, unit: c === '원육' ? 'box' : itemForm.unit});
                               setShowCategoryOptions(false);
                             }}
-                            className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.category === c ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                            className={`w-full h-10 md:h-11 flex items-center justify-between px-4 text-xs md:text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.category === c ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
                           >
                             <span>{c}</span>
                             {itemForm.category === c && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
@@ -646,26 +661,26 @@ function SettingsContent({
                       </div>
                     )}
                   </div>
-                  <div className="space-y-1.5 relative">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">브랜드</label>
+                  <div className="space-y-1 relative">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">브랜드</label>
                     <div className="relative">
                       <input 
                         placeholder="브랜드 선택 또는 입력" 
                         value={itemForm.brand} 
                         onChange={e => setItemForm({...itemForm, brand: e.target.value})} 
                         onFocus={() => setShowBrandOptions(true)}
-                        className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" 
+                        className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" 
                       />
                       <button 
                         type="button"
                         onClick={() => setShowBrandOptions(!showBrandOptions)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-outline hover:text-primary transition-colors"
                       >
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showBrandOptions ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showBrandOptions ? 'rotate-180' : ''}`} />
                       </button>
                     </div>
                     {showBrandOptions && (
-                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-60 overflow-y-auto">
+                      <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-48 overflow-y-auto">
                         {brands.length > 0 ? (
                           brands.map((b) => (
                             <button
@@ -675,37 +690,37 @@ function SettingsContent({
                                 setItemForm({...itemForm, brand: b});
                                 setShowBrandOptions(false);
                               }}
-                              className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.brand === b ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                              className={`w-full h-10 flex items-center justify-between px-4 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.brand === b ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
                             >
                               <span>{b}</span>
                               {itemForm.brand === b && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
                             </button>
                           ))
                         ) : (
-                          <div className="px-5 py-4 text-xs font-bold text-outline text-center">등록된 브랜드가 없습니다</div>
+                          <div className="px-4 py-3 text-xs font-bold text-outline text-center">등록된 브랜드가 없습니다</div>
                         )}
-                        <div className="px-5 py-2 bg-slate-50 text-[10px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                        <div className="px-4 py-1.5 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
                       </div>
                     )}
                   </div>
 
                   {/* Row 3: Specs & Unit */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">규격 (Specs)</label>
-                    <input placeholder="예: 250g/팩, 10kg/박스" value={itemForm.specs} onChange={e => setItemForm({...itemForm, specs: e.target.value})} className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" />
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">규격 (Specs)</label>
+                    <input placeholder="예: 250g/팩, 10kg/박스" value={itemForm.specs} onChange={e => setItemForm({...itemForm, specs: e.target.value})} className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" />
                   </div>
-                  <div className="space-y-1.5 relative">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">단위</label>
+                  <div className="space-y-1 relative">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">단위</label>
                     <button 
                       type="button"
                       onClick={() => setShowUnitOptions(!showUnitOptions)}
-                      className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold flex items-center justify-between outline-none focus:border-primary focus:bg-white transition-all group shadow-sm"
+                      className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold flex items-center justify-between outline-none focus:border-primary focus:bg-white transition-all group shadow-sm text-xs"
                     >
-                      <span className="text-primary text-sm">{itemForm.unit}</span>
-                      <ChevronDown className={`w-4 h-4 text-outline group-hover:text-primary transition-transform ${showUnitOptions ? 'rotate-180' : ''}`} />
+                      <span className="text-primary text-xs">{itemForm.unit}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-outline group-hover:text-primary transition-transform ${showUnitOptions ? 'rotate-180' : ''}`} />
                     </button>
                     {showUnitOptions && (
-                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
                         {['box', 'ea', 'kg', 'g'].map((u) => (
                           <button
                             key={u}
@@ -714,7 +729,7 @@ function SettingsContent({
                               setItemForm({...itemForm, unit: u});
                               setShowUnitOptions(false);
                             }}
-                            className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.unit === u ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                            className={`w-full h-10 flex items-center justify-between px-4 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.unit === u ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
                           >
                             <span>{u}</span>
                             {itemForm.unit === u && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
@@ -725,83 +740,99 @@ function SettingsContent({
                   </div>
 
                   {/* Row 4: Stocks */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 재고 ({itemForm.unit})</label>
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 재고 ({itemForm.unit})</label>
                     <input 
                       type="text" 
                       value={formatWithCommas(itemForm.currentStock)} 
                       onChange={e => {
                         const val = e.target.value;
-                        const cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9-]/g, '');
+                        let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                        const parts = cleaned.split('.');
+                        if (parts.length > 2) {
+                          cleaned = parts[0] + '.' + parts.slice(1).join('');
+                        }
+                        const dotIndex = cleaned.indexOf('.');
+                        if (dotIndex !== -1) {
+                          cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                        }
                         setItemForm({...itemForm, currentStock: cleaned});
                       }} 
-                      className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
+                      className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-xs shadow-sm" 
                     />
                   </div>
                   {itemForm.category === '원육' && (
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 박스 수</label>
+                    <div className="space-y-1 font-bold text-xs">
+                      <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 박스 수</label>
                       <input 
                         type="text" 
                         value={formatWithCommas(itemForm.boxes)} 
                         onChange={e => setItemForm({...itemForm, boxes: e.target.value.replace(/[^0-9]/g, '')})} 
-                        className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
+                        className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-xs shadow-sm" 
                         placeholder="0"
                       />
                     </div>
                   )}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">안전 재고</label>
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">안전 재고</label>
                     <input 
                       type="text" 
                       value={formatWithCommas(itemForm.safetyStock)} 
                       onChange={e => {
                         const val = e.target.value;
-                        const cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9-]/g, '');
+                        let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                        const parts = cleaned.split('.');
+                        if (parts.length > 2) {
+                          cleaned = parts[0] + '.' + parts.slice(1).join('');
+                        }
+                        const dotIndex = cleaned.indexOf('.');
+                        if (dotIndex !== -1) {
+                          cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                        }
                         setItemForm({...itemForm, safetyStock: cleaned});
                       }} 
-                      className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" 
+                      className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-xs shadow-sm" 
                     />
                   </div>
 
                   {/* Row 5: Prices - Sales Price moved up */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">매입 단가 (원)</label>
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">매입 단가 (원)</label>
                     <input 
                       type="text" 
                       placeholder={canEditPrices ? "예: 25,000" : "권한 없음"} 
                       disabled={!canEditPrices} 
                       value={formatWithCommas(itemForm.purchasePrice)} 
                       onChange={e => setItemForm({...itemForm, purchasePrice: e.target.value.replace(/[^0-9]/g, '')})} 
-                      className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" 
+                      className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-xs shadow-sm" 
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">판매 단가 (원)</label>
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">판매 단가 (원)</label>
                     <input 
                       type="text" 
                       placeholder={canEditPrices ? "예: 38,000" : "권한 없음"} 
                       disabled={!canEditPrices} 
                       value={formatWithCommas(itemForm.salesPrice)} 
                       onChange={e => setItemForm({...itemForm, salesPrice: e.target.value.replace(/[^0-9]/g, '')})} 
-                      className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-sm shadow-sm" 
+                      className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 disabled:bg-slate-100/50 text-xs shadow-sm" 
                     />
                   </div>
 
                   {/* Row 6: Dates - Expiry moved up */}
-                  <div className="space-y-1.5 flex flex-col">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
-                      <CalendarDays className="w-3 h-3 text-emerald-500" /> 제조일자
+                  <div className="space-y-1 flex flex-col">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
+                      <CalendarDays className="w-3.5 h-3.5 text-emerald-500" /> 제조일자
                     </label>
-                    <input type="date" value={itemForm.manufDate} onChange={e => setItemForm({...itemForm, manufDate: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
+                    <input type="date" value={itemForm.manufDate} onChange={e => setItemForm({...itemForm, manufDate: e.target.value})} className="w-full h-10 md:h-12 px-3 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-xs shadow-sm" />
                   </div>
-                  <div className="space-y-1.5 flex flex-col">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-rose-500" /> 소비기한
+                  <div className="space-y-1 flex flex-col">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-rose-500" /> 소비기한
                     </label>
-                    <div className="space-y-2">
-                      <input type="date" value={itemForm.expiryDate} onChange={e => setItemForm({...itemForm, expiryDate: e.target.value})} className="w-full h-12 md:h-14 px-5 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-sm shadow-sm" />
-                      <div className="flex flex-wrap gap-1.5 px-1">
+                    <div className="space-y-1.5">
+                      <input type="date" value={itemForm.expiryDate} onChange={e => setItemForm({...itemForm, expiryDate: e.target.value})} className="w-full h-10 md:h-12 px-3 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all text-xs shadow-sm" />
+                      <div className="flex flex-wrap gap-1 px-1">
                         {[1, 3, 6, 12, 24].map((m) => (
                           <button
                             key={m}
@@ -809,14 +840,14 @@ function SettingsContent({
                             onClick={() => {
                               if (!itemForm.manufDate) {
                                 alert('먼저 제조일자를 선택해주세요.');
-                                return;
+                                  return;
                               }
                               const date = new Date(itemForm.manufDate);
                               date.setMonth(date.getMonth() + m);
                               date.setDate(date.getDate() - 1);
                               setItemForm({ ...itemForm, expiryDate: date.toISOString().split('T')[0] });
                             }}
-                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-white border border-transparent hover:border-outline-variant/30 text-slate-500 hover:text-primary rounded-lg text-[10px] font-black transition-all active:scale-[0.95]"
+                            className="px-2 py-0.5 bg-slate-100 hover:bg-white border border-transparent hover:border-outline-variant/30 text-slate-500 hover:text-primary rounded-md text-[9px] font-black transition-all active:scale-[0.95]"
                           >
                             {m >= 12 ? `${m / 12}년` : `${m}개월`}
                           </button>
@@ -826,20 +857,20 @@ function SettingsContent({
                   </div>
 
                   {/* Row 7: Storage Location */}
-                  <div className="space-y-1.5 flex flex-col">
-                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-2">
+                  <div className="space-y-1 flex flex-col">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1.5">
                        <MapPin className="w-3.5 h-3.5 text-primary" /> 보관 위치
                     </label>
                     <input 
                       placeholder="예: A구역 / 냉동고-1" 
                       value={itemForm.location} 
                       onChange={e => setItemForm({...itemForm, location: e.target.value})} 
-                      className="w-full h-12 md:h-14 px-5 md:px-6 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-sm shadow-sm" 
+                      className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" 
                     />
                   </div>
 
-                  <div className="md:col-span-2 pt-6 flex flex-col sm:flex-row gap-3">
-                    <button type="submit" className="flex-1 h-14 md:h-16 bg-[#0f172a] text-white rounded-2xl font-black text-sm md:text-lg tracking-tight shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                  <div className="md:col-span-2 pt-2 flex flex-col sm:flex-row gap-2">
+                    <button type="submit" className="flex-1 h-11 md:h-12 bg-[#0f172a] text-white rounded-xl font-black text-xs md:text-sm tracking-tight shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]">
                       {editingItemId ? '정보 수정 완료' : '상품등록'}
                     </button>
                     {editingItemId && (
@@ -849,7 +880,7 @@ function SettingsContent({
                           setEditingItemId(null);
                           setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'box', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
                         }}
-                        className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm md:text-lg shadow-sm hover:bg-rose-100 transition-all active:scale-[0.98]"
+                        className="w-full sm:w-36 h-11 md:h-12 bg-rose-50 text-rose-600 rounded-xl font-black text-xs md:text-sm shadow-sm hover:bg-rose-100 transition-all active:scale-[0.98]"
                       >
                         취소
                       </button>
@@ -1080,41 +1111,41 @@ function SettingsContent({
           </div>
         )}
         {tab === 't' && (
-          <div className="p-4 md:p-10 space-y-10 md:space-y-12">
-             <div className="bg-white border border-outline-variant/30 rounded-[32px] md:rounded-[48px] shadow-sm p-5 md:p-12 space-y-8 md:space-y-10">
-                <div className="text-center space-y-1">
+          <div className="p-3 md:p-10 space-y-6 md:space-y-12">
+             <div className="max-w-2xl mx-auto w-full bg-white border border-outline-variant/30 rounded-2xl md:rounded-[32px] shadow-sm p-3.5 md:p-10 space-y-4 md:space-y-8">
+                <div className="text-center space-y-0.5">
                   <h3 className="text-sm md:text-xl font-black text-[#0f172a] tracking-tight">{editingPartnerId ? '거래처 정보 수정' : '신규 거래처 등록'}</h3>
-                  <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest">{editingPartnerId ? 'UPDATE PARTNER INFO' : 'REGISTER NEW PARTNER'}</p>
-                  <div className="w-12 h-1 bg-blue-100 mx-auto rounded-full mt-3"></div>
+                  <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest">{editingPartnerId ? 'UPDATE PARTNER INFO' : 'REGISTER NEW PARTNER'}</p>
+                  <div className="w-10 h-1 bg-blue-100 mx-auto rounded-full mt-1.5 md:mt-3"></div>
                 </div>
 
-                <form onSubmit={handleRegisterPartner} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-5 md:gap-y-8">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">거래처명</label>
-                    <input placeholder="예: (주)한울미트" value={partnerForm.name} onChange={e => setPartnerForm({...partnerForm, name: e.target.value})} className="w-full h-12 md:h-16 px-5 md:px-8 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 shadow-sm text-sm" />
+                <form onSubmit={handleRegisterPartner} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 md:gap-y-6">
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">거래처명</label>
+                    <input placeholder="예: (주)한울미트" value={partnerForm.name} onChange={e => setPartnerForm({...partnerForm, name: e.target.value})} className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 shadow-sm text-xs" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">유형</label>
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">유형</label>
                     <div className="relative">
-                      <select value={partnerForm.type} onChange={e => setPartnerForm({...partnerForm, type: e.target.value})} className="w-full h-12 md:h-16 px-5 md:px-8 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all shadow-sm cursor-pointer appearance-none text-sm">
+                      <select value={partnerForm.type} onChange={e => setPartnerForm({...partnerForm, type: e.target.value})} className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all shadow-sm cursor-pointer appearance-none text-xs">
                         <option value="공급사">공급사</option>
                         <option value="고객사">고객사</option>
                         <option value="운송사">운송사</option>
                       </select>
-                      <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">연락처</label>
-                    <input placeholder="예: 010-1234-5678" value={partnerForm.phone} onChange={e => setPartnerForm({...partnerForm, phone: e.target.value})} className="w-full h-12 md:h-16 px-5 md:px-8 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 shadow-sm text-sm" />
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">연락처</label>
+                    <input placeholder="예: 010-1234-5678" value={partnerForm.phone} onChange={e => setPartnerForm({...partnerForm, phone: e.target.value})} className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 shadow-sm text-xs" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">주소</label>
-                    <input placeholder="예: 경기도 안양시..." value={partnerForm.address} onChange={e => setPartnerForm({...partnerForm, address: e.target.value})} className="w-full h-12 md:h-16 px-5 md:px-8 bg-slate-50/50 border border-outline-variant/60 rounded-2xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 shadow-sm text-sm" />
+                  <div className="space-y-1">
+                    <label className="text-[9px] md:text-[11px] font-black text-[#0f172a] uppercase tracking-widest ml-1">주소</label>
+                    <input placeholder="예: 경기도 안양시..." value={partnerForm.address} onChange={e => setPartnerForm({...partnerForm, address: e.target.value})} className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 shadow-sm text-xs" />
                   </div>
-                  <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 pt-4">
-                    <button type="submit" className="flex-1 h-14 md:h-16 bg-[#3b82f6] text-white rounded-2xl font-black text-sm md:text-lg tracking-tight shadow-xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-95">{editingPartnerId ? '수정 완료' : '거래처 등록하기'}</button>
-                    {editingPartnerId && <button type="button" onClick={() => { setEditingPartnerId(null); setPartnerForm({ name: '', type: '공급사', phone: '', address: '' }); }} className="w-full sm:w-40 h-14 md:h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm md:text-lg shadow-sm hover:bg-rose-100 transition-all">취소</button>}
+                  <div className="md:col-span-2 flex flex-col sm:flex-row gap-2 pt-2">
+                    <button type="submit" className="flex-1 h-11 md:h-12 bg-primary text-white rounded-xl font-black text-xs md:text-sm tracking-tight shadow-xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-95">{editingPartnerId ? '수정 완료' : '거래처 등록하기'}</button>
+                    {editingPartnerId && <button type="button" onClick={() => { setEditingPartnerId(null); setPartnerForm({ name: '', type: '공급사', phone: '', address: '' }); }} className="w-full sm:w-36 h-11 md:h-12 bg-rose-50 text-rose-600 rounded-xl font-black text-xs md:text-sm shadow-sm hover:bg-rose-100 transition-all">취소</button>}
                   </div>
                 </form>
              </div>
@@ -1203,36 +1234,36 @@ function SettingsContent({
         </div>
         )}
         {tab === 'u' && (
-          <div className="p-4 md:p-10 space-y-10 md:space-y-12">
-             <div className="bg-[#f8fafc] p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-outline-variant space-y-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="p-3 md:p-10 space-y-6 md:space-y-12">
+             <div className="max-w-2xl mx-auto w-full bg-[#f8fafc] p-3.5 md:p-8 rounded-2xl md:rounded-[32px] border border-outline-variant space-y-3 md:space-y-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div className="text-center lg:text-left">
-                    <h3 className="text-base md:text-lg font-black text-[#0f172a] tracking-tight">신규 관리자 등록</h3>
-                    <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-1">REGISTER NEW ADMINISTRATOR EMAIL</p>
+                    <h3 className="text-sm md:text-lg font-black text-[#0f172a] tracking-tight">신규 관리자 등록</h3>
+                    <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-0.5">REGISTER NEW ADMINISTRATOR EMAIL</p>
                   </div>
-                  <form onSubmit={handleRegisterAdmin} className="flex-1 w-full max-w-2xl flex flex-col sm:flex-row gap-3">
+                  <form onSubmit={handleRegisterAdmin} className="flex-1 w-full max-w-2xl flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                      <input type="email" placeholder="등록할 관리자 이메일을 입력하세요" value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} className="w-full h-12 md:h-14 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm text-xs md:text-sm" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                      <input type="email" placeholder="등록할 관리자 이메일을 입력하세요" value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} className="w-full h-10 md:h-12 pl-10 pr-4 bg-white border border-outline-variant rounded-xl font-bold outline-none focus:border-primary transition-all shadow-sm text-xs" />
                     </div>
-                    <button type="submit" className="h-12 md:h-14 px-8 bg-[#0f172a] text-white rounded-2xl font-black text-xs md:text-sm hover:bg-slate-800 transition-all shadow-lg active:scale-95 whitespace-nowrap">
+                    <button type="submit" className="h-10 md:h-12 px-6 bg-[#0f172a] text-white rounded-xl font-black text-xs hover:bg-slate-800 transition-all shadow-lg active:scale-95 whitespace-nowrap">
                       등록하기
                     </button>
                   </form>
                 </div>
              </div>
              
-             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-outline-variant pb-6 md:pb-8">
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant pb-4 md:pb-8">
                <div>
-                 <h3 className="text-lg md:text-2xl font-black text-[#0f172a] tracking-tight flex items-center gap-2">계정 권한 관리</h3>
-                 <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-1">USER ACCESS CONTROL</p>
+                 <h3 className="text-sm md:text-2xl font-black text-[#0f172a] tracking-tight flex items-center gap-2">계정 권한 관리</h3>
+                 <p className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-0.5">USER ACCESS CONTROL</p>
                </div>
                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="relative group w-full sm:w-80">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                    <input type="text" placeholder="이름 또는 이메일 검색..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
+                    <input type="text" placeholder="이름 또는 이메일 검색..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="w-full h-10 md:h-12 pl-10 pr-4 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
                   </div>
-                  <button onClick={() => setShowAllUsers(!showAllUsers)} className="flex items-center justify-center gap-2 px-6 h-12 bg-white border border-outline-variant rounded-2xl text-xs md:text-sm font-black text-[#0f172a] hover:bg-surface-container transition-all shadow-sm">
+                  <button onClick={() => setShowAllUsers(!showAllUsers)} className="flex items-center justify-center gap-2 px-6 h-10 md:h-12 bg-white border border-outline-variant rounded-xl text-xs font-black text-[#0f172a] hover:bg-[#f1f4f9] transition-all shadow-sm">
                     {showAllUsers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     {showAllUsers ? '접기' : '더보기'}
                   </button>
@@ -1241,7 +1272,7 @@ function SettingsContent({
 
              <div className="grid grid-cols-1 md:gap-6 space-y-3 md:space-y-0">
                {allUsers.filter((u: any) => u.displayName?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())).slice(0, showAllUsers ? undefined : 6).map((u: any) => (
-                  <div key={u.id} className="bg-white md:bg-[#f8fafc] p-4 md:p-8 rounded-[28px] md:rounded-[32px] border border-outline-variant/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8 hover:bg-white hover:border-primary transition-all shadow-sm md:shadow-none">
+                  <div key={u.id} className="bg-white md:bg-[#f8fafc] p-3 md:p-6 rounded-[20px] md:rounded-[32px] border border-outline-variant/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-8 hover:bg-white hover:border-primary transition-all shadow-sm md:shadow-none">
                     <div className="flex items-center gap-4 md:gap-6 w-full">
                       <div className="relative shrink-0">
                         <img src={u.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200'} className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-3xl border-2 border-white shadow-md object-cover" alt="" />
@@ -1300,31 +1331,31 @@ function SettingsContent({
           </div>
         )}
         {tab === 's' && (
-          <div className="p-4 md:p-10 space-y-10 md:space-y-12">
-            <div className="max-w-xl mx-auto space-y-10">
+          <div className="p-4 md:p-10 space-y-8 md:space-y-12">
+            <div className="max-w-xl mx-auto space-y-8">
               <div className="text-center space-y-1">
-                <h3 className="text-base md:text-xl font-black text-[#0f172a] tracking-tight">앱 로고 및 정보 변경</h3>
+                <h3 className="text-sm md:text-xl font-black text-[#0f172a] tracking-tight">앱 로고 및 정보 변경</h3>
                 <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest">APPLICATION BRANDING & SETTINGS</p>
-                <div className="w-12 h-1 bg-primary/20 mx-auto rounded-full mt-3"></div>
+                <div className="w-10 h-1 bg-primary/20 mx-auto rounded-full mt-2"></div>
               </div>
 
-              <form onSubmit={handleSaveAppSettings} className="space-y-8">
+              <form onSubmit={handleSaveAppSettings} className="space-y-6">
                 {/* Logo Preview */}
-                <div className="flex flex-col items-center gap-6 p-8 bg-slate-50/50 rounded-[32px] border border-outline-variant/40">
-                  <div className="text-[10px] font-black text-outline uppercase tracking-widest">로고 미리보기 (PREVIEW)</div>
-                  <div className="w-32 h-32 bg-white rounded-3xl p-6 flex items-center justify-center shadow-xl border border-slate-100">
+                <div className="flex flex-col items-center gap-4 p-4 md:p-8 bg-slate-50/50 rounded-2xl md:rounded-[32px] border border-outline-variant/40">
+                  <div className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest">로고 미리보기 (PREVIEW)</div>
+                  <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-2xl p-4 flex items-center justify-center shadow-md border border-slate-100">
                     <img src={logoUrl || "/IMA512.png"} className="max-w-full max-h-full object-contain" alt="Logo Preview" />
                   </div>
-                  <div className="text-center space-y-1">
-                    <p className="text-[11px] font-bold text-slate-500">200x200 이상 PNG/JPG 권장</p>
-                    <p className="text-[10px] text-primary/60 font-black">브라우저 아이콘도 함께 변경됩니다</p>
+                  <div className="text-center space-y-0.5">
+                    <p className="text-[10px] md:text-[11px] font-bold text-slate-500">200x200 이상 PNG/JPG 권장</p>
+                    <p className="text-[9px] md:text-[10px] text-primary/60 font-black">브라우저 아이콘도 함께 변경됩니다</p>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-2">
-                      <Upload className="w-3 h-3 text-primary" /> 로고 이미지 첨부
+                <div className="space-y-5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-2">
+                      <Upload className="w-3.5 h-3.5 text-primary" /> 로고 이미지 첨부
                     </label>
                     <div className="relative">
                       <input 
@@ -1336,28 +1367,28 @@ function SettingsContent({
                       />
                       <label 
                         htmlFor="logo-upload"
-                        className="w-full h-14 px-6 bg-white border border-outline-variant/60 rounded-2xl font-bold flex items-center justify-between cursor-pointer hover:border-primary hover:bg-slate-50 transition-all shadow-sm group"
+                        className="w-full h-11 md:h-14 px-4 md:px-6 bg-white border border-outline-variant/60 rounded-xl md:rounded-2xl font-bold flex items-center justify-between cursor-pointer hover:border-primary hover:bg-slate-50 transition-all shadow-sm group text-xs md:text-sm"
                       >
-                        <span className="text-sm text-slate-600 truncate mr-4">
+                        <span className="text-xs text-slate-600 truncate mr-4">
                           {logoUrl.startsWith('data:') ? '새 이미지 분석됨' : (logoUrl ? '현재 사용 중인 이미지' : '이미지 선택...')}
                         </span>
-                        <div className="shrink-0 flex items-center gap-2 text-primary font-black text-[11px] uppercase tracking-wider">
-                          <ImageIcon className="w-4 h-4" />
+                        <div className="shrink-0 flex items-center gap-1 text-primary font-black text-[10px] md:text-[11px] uppercase tracking-wider">
+                          <ImageIcon className="w-3.5 h-3.5" />
                           <span>파일 선택</span>
                         </div>
                       </label>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-2">
-                      <Settings className="w-3 h-3 text-primary" /> 시스템 명칭
+                  <div className="space-y-1">
+                    <label className="text-[10px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1.5">
+                      <Settings className="w-3.5 h-3.5 text-primary" /> 시스템 명칭
                     </label>
                     <input 
                       placeholder="재고 관리 시스템" 
                       value={appName} 
                       onChange={e => setAppName(e.target.value)} 
-                      className="w-full h-14 px-6 bg-white border border-outline-variant/60 rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/30 text-sm shadow-sm" 
+                      className="w-full h-11 md:h-14 px-4 md:px-6 bg-white border border-outline-variant/60 rounded-xl md:rounded-2xl font-bold focus:border-primary outline-none transition-all placeholder:text-outline-variant/30 text-xs md:text-sm shadow-sm" 
                     />
                   </div>
                 </div>
@@ -1365,10 +1396,10 @@ function SettingsContent({
                 <button 
                   type="submit" 
                   disabled={savingSettings}
-                  className="w-full h-16 bg-[#0f172a] text-white rounded-2xl font-black text-lg shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full h-12 md:h-14 bg-[#0f172a] text-white rounded-xl md:rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {savingSettings ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : '설정 저장하기'}
                 </button>
               </form>

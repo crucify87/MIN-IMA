@@ -112,9 +112,24 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
-    const num = String(value).replace(/[^0-9]/g, '');
-    if (!num) return '';
-    return parseInt(num).toLocaleString();
+    let str = String(value).replace(/[^0-9.-]/g, '');
+    const parts = str.split('.');
+    if (parts.length > 2) {
+      str = parts[0] + '.' + parts.slice(1).join('');
+    }
+    const dotIndex = str.indexOf('.');
+    if (dotIndex !== -1) {
+      const integerPart = str.substring(0, dotIndex);
+      let decimalPart = str.substring(dotIndex + 1);
+      decimalPart = decimalPart.substring(0, 2);
+      const parsedInt = parseInt(integerPart.replace(/[^0-9-]/g, ''));
+      const formattedInt = isNaN(parsedInt) ? (integerPart.startsWith('-') ? '-' : '') : parsedInt.toLocaleString();
+      return formattedInt + '.' + decimalPart;
+    } else {
+      const parsed = parseInt(str.replace(/[^0-9-]/g, ''));
+      if (isNaN(parsed)) return str.startsWith('-') ? '-' : '';
+      return parsed.toLocaleString();
+    }
   };
 
   const brands = useMemo(() => {
@@ -158,8 +173,8 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
     
     return [
       { label: '생산 건수', value: count, unit: '건' },
-      { label: '총 투입량', value: totalInput.toLocaleString(), unit: 'KG' },
-      { label: '총 생산량', value: totalOutput.toLocaleString(), unit: 'KG' },
+      { label: '총 투입량', value: Math.round(totalInput).toLocaleString(), unit: 'KG' },
+      { label: '총 생산량', value: Math.round(totalOutput).toLocaleString(), unit: 'KG' },
       { label: '총 수율', value: yieldRate.toFixed(1), unit: '%' },
     ];
   }, [filtered]);
@@ -215,6 +230,54 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       </div>
     );
   };
+
+  const formStatistics = useMemo(() => {
+    let totalRaw = 0;
+    let totalProd = 0;
+    const rawGroups: { [key: string]: { rawQty: number; production: number; items: { name: string; brand: string }[] } } = {};
+
+    rows.forEach(r => {
+      const rawNum = Number(r.rawQty) || 0;
+      const prodNum = Number(r.production) || 0;
+      totalRaw += rawNum;
+      totalProd += prodNum;
+
+      const key = (r.rawMaterial || '').trim() || '미지정 원육';
+      if (!rawGroups[key]) {
+        rawGroups[key] = { rawQty: 0, production: 0, items: [] };
+      }
+      rawGroups[key].rawQty += rawNum;
+      rawGroups[key].production += prodNum;
+      if (r.title && !rawGroups[key].items.some(item => item.name === r.title)) {
+        rawGroups[key].items.push({ name: r.title, brand: r.brand || '' });
+      }
+    });
+
+    const overallYield = totalRaw > 0 ? (totalProd / totalRaw) * 100 : 0;
+    const overallLoss = totalRaw > 0 ? ((totalRaw - totalProd) / totalRaw) * 100 : 0;
+
+    const groupCalculations = Object.entries(rawGroups).map(([rawMat, g]) => {
+      const yld = g.rawQty > 0 ? (g.production / g.rawQty) * 100 : 0;
+      const loss = g.rawQty > 0 ? ((g.rawQty - g.production) / g.rawQty) * 100 : 0;
+      return {
+        rawMaterial: rawMat,
+        rawQty: g.rawQty,
+        production: g.production,
+        yieldRate: yld,
+        lossRate: loss,
+        items: g.items
+      };
+    });
+
+    return {
+      totalRaw,
+      totalProd,
+      overallYield,
+      overallLoss,
+      groupCalculations,
+      hasMultiple: rows.length > 1
+    };
+  }, [rows]);
 
   const addRow = () => {
     setRows([...rows, { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: logDate, expiryDate: '' }]);
@@ -656,90 +719,96 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                              </button>
                              {activeRawDropdown === row.id && (
                                <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                                 {rawMaterials.length > 0 ? (
-                                   rawMaterials.map((item: any) => (
-                                     <button
-                                       key={item.id}
-                                       type="button"
-                                       onMouseDown={(e) => {
-                                         e.preventDefault();
-                                         updateRow(row.id, 'rawMaterial', item.name);
-                                         if (item.brand) updateRow(row.id, 'brand', item.brand);
-                                         setActiveRawDropdown(null);
-                                       }}
-                                       className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${row.rawMaterial === item.name ? 'bg-primary/5' : ''}`}
-                                     >
-                                       <div className="flex items-center justify-between">
-                                         <span className={`text-sm font-bold ${row.rawMaterial === item.name ? 'text-primary' : 'text-slate-600'}`}>{item.name}</span>
-                                         {row.rawMaterial === item.name && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
-                                       </div>
-                                       <div className="flex items-center gap-2">
-                                         <span className="text-[10px] font-black text-outline-variant">{item.brand || '브랜드 없음'}</span>
-                                         <span className="text-[10px] font-black text-primary/50">| {item.currentStock?.toLocaleString()} KG</span>
-                                       </div>
-                                     </button>
-                                   ))
-                                 ) : (
-                                   <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">등록된 원육 품목이 없습니다</div>
-                                 )}
-                                 <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
-                               </div>
-                             )}
-                             {row.rawMaterial && (
-                               <div className="px-2 flex items-center justify-between mt-1">
-                                 <span className="text-[10px] font-black text-outline uppercase shrink-0">원육 재고</span>
                                  {(() => {
-                                   const inv = inventory.find((i: any) => i.name === row.rawMaterial);
-                                   const stock = inv?.currentStock || 0;
-                                   const isLow = stock < (Number(row.rawQty) || 0);
-                                   return (
-                                     <span className={`text-[10px] font-black ${isLow ? 'text-rose-600' : 'text-blue-600'}`}>
-                                       {stock.toLocaleString()} KG
-                                     </span>
-                                   );
-                                 })()}
-                               </div>
-                             )}
-                           </div>
-                         </div>
-                         <div className="md:col-span-2 space-y-1 relative">
-                            <label className="md:hidden text-[10px] font-black text-outline">브랜드</label>
-                            <div className="relative">
-                              <input 
-                                placeholder="브랜드" 
-                                value={row.brand} 
-                                onChange={e => updateRow(row.id, 'brand', e.target.value)} 
-                                onFocus={() => setActiveBrandDropdown(row.id)}
-                                className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" 
-                              />
-                              <button 
-                                type="button"
-                                onClick={() => setActiveBrandDropdown(activeBrandDropdown === row.id ? null : row.id)}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
-                              >
-                                <ChevronDown className={`w-4 h-4 transition-transform ${activeBrandDropdown === row.id ? 'rotate-180' : ''}`} />
-                              </button>
-                              {activeBrandDropdown === row.id && (
-                                <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                                  {brands.length > 0 ? (
-                                    brands.map((b) => (
-                                      <button
-                                        key={b}
-                                        type="button"
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                          updateRow(row.id, 'brand', b);
-                                          setActiveBrandDropdown(null);
-                                        }}
-                                        className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${row.brand === b ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
-                                      >
-                                        <span>{b}</span>
-                                        {row.brand === b && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
-                                      </button>
-                                    ))
-                                  ) : (
-                                    <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">등록된 브랜드가 없습니다</div>
-                                  )}
+                                   const filteredRaw = rawMaterials.filter(item => item.name.toLowerCase().includes((row.rawMaterial || '').toLowerCase()));
+                                    return filteredRaw.length > 0 ? (
+                                      filteredRaw.map((item: any) => (
+                                        <button
+                                          key={item.id}
+                                          type="button"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            updateRow(row.id, 'rawMaterial', item.name);
+                                            if (item.brand) updateRow(row.id, 'brand', item.brand);
+                                            setActiveRawDropdown(null);
+                                          }}
+                                          className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${row.rawMaterial === item.name ? 'bg-primary/5' : ''}`}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className={`text-sm font-bold ${row.rawMaterial === item.name ? 'text-primary' : 'text-slate-600'}`}>{item.name}</span>
+                                            {row.rawMaterial === item.name && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black text-outline-variant">{item.brand || '브랜드 없음'}</span>
+                                            <span className="text-[10px] font-black text-primary/50">| {Math.round(item.currentStock || 0).toLocaleString()} KG</span>
+                                          </div>
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">검색 결과가 없습니다</div>
+                                    );
+                                  })()}
+                                  <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                                </div>
+                              )}
+                              {row.rawMaterial && (
+                                <div className="px-2 flex items-center justify-between mt-1">
+                                  <span className="text-[10px] font-black text-outline uppercase shrink-0">원육 재고</span>
+                                  {(() => {
+                                    const inv = inventory.find((i: any) => i.name === row.rawMaterial);
+                                    const stock = inv?.currentStock || 0;
+                                    const isLow = stock < (Number(row.rawQty) || 0);
+                                    return (
+                                      <span className={`text-[10px] font-black ${isLow ? 'text-rose-600' : 'text-blue-600'}`}>
+                                        {Math.round(stock).toLocaleString()} KG
+                                      </span>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="md:col-span-2 space-y-1 relative">
+                             <label className="md:hidden text-[10px] font-black text-outline">브랜드</label>
+                             <div className="relative">
+                               <input 
+                                 placeholder="브랜드" 
+                                 value={row.brand} 
+                                 onChange={e => updateRow(row.id, 'brand', e.target.value)} 
+                                 onFocus={() => setActiveBrandDropdown(row.id)}
+                                 className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" 
+                               />
+                               <button 
+                                 type="button"
+                                 onClick={() => setActiveBrandDropdown(activeBrandDropdown === row.id ? null : row.id)}
+                                 className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                               >
+                                 <ChevronDown className={`w-4 h-4 transition-transform ${activeBrandDropdown === row.id ? 'rotate-180' : ''}`} />
+                               </button>
+                               {activeBrandDropdown === row.id && (
+                                 <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                                   {(() => {
+                                     const filteredBrands = brands.filter(b => b.toLowerCase().includes((row.brand || '').toLowerCase()));
+                                    return filteredBrands.length > 0 ? (
+                                      filteredBrands.map((b) => (
+                                        <button
+                                          key={b}
+                                          type="button"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            updateRow(row.id, 'brand', b);
+                                            setActiveBrandDropdown(null);
+                                          }}
+                                          className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${row.brand === b ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                                        >
+                                          <span>{b}</span>
+                                          {row.brand === b && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">검색 결과가 없습니다</div>
+                                    );
+                                  })()}
                                   <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
                                 </div>
                               )}
@@ -748,12 +817,24 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                          <div className="md:col-span-2 space-y-1">
                            <label className="md:hidden text-[10px] font-black text-outline">투입량 (KG)</label>
                            <input 
-                               type="text" 
-                               placeholder="0" 
-                               value={formatWithCommas(row.rawQty)} 
-                               onChange={e => updateRow(row.id, 'rawQty', e.target.value.replace(/[^0-9]/g, ''))} 
-                               className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
-                           />
+                                type="text" 
+                                placeholder="0" 
+                                value={formatWithCommas(row.rawQty)} 
+                                onChange={e => updateRow(row.id, 'rawQty', (() => {
+                                  const val = e.target.value;
+                                  let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                                  const parts = cleaned.split('.');
+                                  if (parts.length > 2) {
+                                    cleaned = parts[0] + '.' + parts.slice(1).join('');
+                                  }
+                                  const dotIndex = cleaned.indexOf('.');
+                                  if (dotIndex !== -1) {
+                                    cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                                  }
+                                  return cleaned;
+                                })())} 
+                                className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
+                            />
                          </div>
                          <div className="md:col-span-2 space-y-1">
                            <label className="md:hidden text-[10px] font-black text-outline">생산량 (KG)</label>
@@ -761,24 +842,36 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                                type="text" 
                                placeholder="0" 
                                value={formatWithCommas(row.production)} 
-                               onChange={e => updateRow(row.id, 'production', e.target.value.replace(/[^0-9]/g, ''))} 
+                               onChange={e => updateRow(row.id, 'production', (() => {
+                                  const val = e.target.value;
+                                  let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                                  const parts = cleaned.split('.');
+                                  if (parts.length > 2) {
+                                    cleaned = parts[0] + '.' + parts.slice(1).join('');
+                                  }
+                                  const dotIndex = cleaned.indexOf('.');
+                                  if (dotIndex !== -1) {
+                                    cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                                  }
+                                  return cleaned;
+                                })())} 
                                className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
                            />
                          </div>
                       </div>
-
+ 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="grid grid-cols-2 col-span-1 sm:col-span-2 gap-4">
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-emerald-700 uppercase ml-1">생산 수율 (%)</label>
                             <div className="h-14 md:h-16 flex items-center justify-center bg-emerald-50 rounded-2xl font-black text-xl md:text-3xl text-emerald-600 border border-emerald-100 shadow-sm">
-                              {yieldRate.toFixed(1)}%
+                              {`${yieldRate.toFixed(1)}%`}
                             </div>
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-rose-700 uppercase ml-1">로스 비율 (%)</label>
                             <div className="h-14 md:h-16 flex items-center justify-center bg-rose-50 rounded-2xl font-black text-xl md:text-3xl text-rose-600 border border-rose-100 shadow-sm">
-                              {lossRate.toFixed(1)}%
+                              {`${lossRate.toFixed(1)}%`}
                             </div>
                           </div>
                         </div>
@@ -812,6 +905,79 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                 );
              })}
           </div>
+
+          {/* Integrated Yield and Loss Summary Card */}
+          {formStatistics.totalRaw > 0 && (
+            <div className="bg-[#f8fafc] border border-slate-200/80 rounded-[24px] p-6 space-y-5 shadow-sm animate-in fade-in duration-300">
+              <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
+                  <h4 className="text-sm font-black text-slate-900">통합 생산 분석 리포트</h4>
+                </div>
+                <span className="text-[10px] font-black text-outline bg-slate-100 px-2 py-1 rounded">실시간 계산</span>
+              </div>
+
+              {/* Summary Stats Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-slate-100/80 shadow-2xs">
+                  <p className="text-[10px] font-bold text-outline uppercase tracking-tight">통합 원육 투입량</p>
+                  <p className="text-lg font-black text-slate-800 mt-1">{formStatistics.totalRaw.toLocaleString()} <span className="text-xs font-bold text-outline">KG</span></p>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-slate-100/80 shadow-2xs">
+                  <p className="text-[10px] font-bold text-outline uppercase tracking-tight">통합 완제품 생산량</p>
+                  <p className="text-lg font-black text-slate-800 mt-1">{formStatistics.totalProd.toLocaleString()} <span className="text-xs font-bold text-outline">KG</span></p>
+                </div>
+                <div className="bg-emerald-50/40 p-4 rounded-xl border border-emerald-100/50 shadow-2xs">
+                  <p className="text-[10px] font-black text-emerald-800 uppercase tracking-tight">통합 생산 수율</p>
+                  <p className="text-2xl font-black text-emerald-600 mt-1">{formStatistics.overallYield.toFixed(1)} <span className="text-xs font-bold text-emerald-500">%</span></p>
+                </div>
+                <div className="bg-rose-50/40 p-4 rounded-xl border border-rose-100/50 shadow-2xs">
+                  <p className="text-[10px] font-black text-rose-800 uppercase tracking-tight">통합 로스 비율</p>
+                  <p className="text-2xl font-black text-rose-600 mt-1">{formStatistics.overallLoss.toFixed(1)} <span className="text-xs font-bold text-rose-500">%</span></p>
+                </div>
+              </div>
+
+              {/* Grouped Raw Material Analysis */}
+              {formStatistics.groupCalculations.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-wider">원육별 통합 수율 분석</h5>
+                  <div className="divide-y divide-slate-100 bg-white border border-slate-100 rounded-xl overflow-hidden">
+                    {formStatistics.groupCalculations.map((g, idx) => (
+                      <div key={idx} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50/30 transition-colors">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-slate-800">{g.rawMaterial}</span>
+                            <span className="text-[9px] font-bold text-primary bg-[#e8effd] px-1.5 py-0.5 rounded border border-primary/10">
+                              생산 품목: {g.items.length}개
+                            </span>
+                          </div>
+                          {g.items.length > 0 && (
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">
+                              생산물 명단: {g.items.map(it => `${it.name}${it.brand ? ` (${it.brand})` : ''}`).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-right flex-wrap">
+                          <div className="text-center md:text-right">
+                            <span className="block text-[8px] font-bold text-outline uppercase tracking-wider">투입 ➔ 생산</span>
+                            <span className="text-[11px] font-bold text-slate-700">
+                              {g.rawQty.toLocaleString()} KG ➔ {g.production.toLocaleString()} KG
+                            </span>
+                          </div>
+                          <div className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-xs font-black min-w-[75px] text-center">
+                            수율 {g.yieldRate.toFixed(1)}%
+                          </div>
+                          <div className="bg-rose-50 text-rose-600 px-3 py-1 rounded-lg text-xs font-black min-w-[75px] text-center">
+                            로스 {g.lossRate.toFixed(1)}%
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-col md:flex-row gap-6 pt-4">
              {!editingId && (
@@ -1019,8 +1185,8 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                             <span className="text-[10px] text-outline-variant">{item.brand || '-'}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-6 font-bold text-outline-variant">{item.rawQty?.toLocaleString()} KG</td>
-                        <td className="px-6 py-6 font-black text-[#0f172a]">{item.production?.toLocaleString()} KG</td>
+                        <td className="px-6 py-6 font-bold text-outline-variant">{Math.round(item.rawQty || 0).toLocaleString()} KG</td>
+                        <td className="px-6 py-6 font-black text-[#0f172a]">{Math.round(item.production || 0).toLocaleString()} KG</td>
                         <td className="px-6 py-6"><span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg font-black text-xs">{item.yield?.toFixed(1) || 0}%</span></td>
                         <td className="px-6 py-6"><span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg font-black text-xs">{item.loss?.toFixed(1) || 0}%</span></td>
                         <td className="px-6 py-6 text-sm font-bold text-outline">{item.manufDate}</td>
@@ -1074,12 +1240,12 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                       <div className="bg-slate-50/70 p-2 rounded-xl flex flex-col justify-center">
                         <div className="text-[7px] font-black text-outline uppercase tracking-wider mb-0.5">생산량</div>
                         <div className="text-xs font-black text-on-surface truncate">
-                          {item.rawQty?.toLocaleString()} <span className="text-[8px] opacity-40">→</span> {item.production?.toLocaleString()}<span className="text-[8px] ml-0.5 font-bold">KG</span>
+                          {Math.round(item.rawQty || 0).toLocaleString()} <span className="text-[8px] opacity-40">→</span> {Math.round(item.production || 0).toLocaleString()}<span className="text-[8px] ml-0.5 font-bold">KG</span>
                         </div>
                       </div>
                       <div className="bg-emerald-50/70 p-2 rounded-xl flex flex-col justify-center">
                         <div className="text-[7px] font-black text-emerald-600 uppercase tracking-wider mb-0.5">수율 (로스)</div>
-                        <div className="text-xs font-black text-emerald-700">
+                        <div className="text-xs font-black text-emerald-700 font-black">
                           {item.yield?.toFixed(1)}% <span className="text-[8px] text-rose-500 font-bold tracking-tighter">({item.loss?.toFixed(1)}%)</span>
                         </div>
                       </div>

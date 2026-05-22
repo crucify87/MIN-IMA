@@ -293,9 +293,24 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
-    const num = String(value).replace(/[^0-9]/g, '');
-    if (!num) return '';
-    return parseInt(num).toLocaleString();
+    let str = String(value).replace(/[^0-9.-]/g, '');
+    const parts = str.split('.');
+    if (parts.length > 2) {
+      str = parts[0] + '.' + parts.slice(1).join('');
+    }
+    const dotIndex = str.indexOf('.');
+    if (dotIndex !== -1) {
+      const integerPart = str.substring(0, dotIndex);
+      let decimalPart = str.substring(dotIndex + 1);
+      decimalPart = decimalPart.substring(0, 2);
+      const parsedInt = parseInt(integerPart.replace(/[^0-9-]/g, ''));
+      const formattedInt = isNaN(parsedInt) ? (integerPart.startsWith('-') ? '-' : '') : parsedInt.toLocaleString();
+      return formattedInt + '.' + decimalPart;
+    } else {
+      const parsed = parseInt(str.replace(/[^0-9-]/g, ''));
+      if (isNaN(parsed)) return str.startsWith('-') ? '-' : '';
+      return parsed.toLocaleString();
+    }
   };
 
   const handleDownloadExcel = () => {
@@ -714,7 +729,19 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     type="text" 
                     placeholder="0"
                     value={formatWithCommas(form.weight)} 
-                    onChange={e => setForm({...form, weight: e.target.value.replace(/[^0-9]/g, '')})} 
+                    onChange={e => setForm({...form, weight: (() => {
+                       const val = e.target.value;
+                       let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                       const parts = cleaned.split('.');
+                       if (parts.length > 2) {
+                         cleaned = parts[0] + '.' + parts.slice(1).join('');
+                       }
+                       const dotIndex = cleaned.indexOf('.');
+                       if (dotIndex !== -1) {
+                         cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                       }
+                       return cleaned;
+                     })()})} 
                     className="flex-1 h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
                  />
                  <div className="relative w-32 shrink-0">
@@ -839,7 +866,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           <div key={idx} className="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[40px] shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all hover:shadow-md min-h-[140px] sm:min-h-[180px] md:min-h-[220px]">
             <p className="text-[10px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center">{stat.label}</p>
             <div className="flex items-baseline justify-center gap-2 text-[#0f172a] w-full">
-              <span className="text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none">{stat.value.toLocaleString()}</span>
+              <span className="text-4xl md:text-5xl font-black tabular-nums tracking-tighter leading-none">{Math.round(stat.value).toLocaleString()}</span>
               <span className="text-xs md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>
             </div>
           </div>
@@ -1093,7 +1120,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           </td>
                           <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
                           <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} {displayWeightUnit}
+                            {l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} {displayWeightUnit}
                           </td>
                           <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
                             {Number(l.boxes || 0).toLocaleString()} {displayQtyUnit}
@@ -1163,7 +1190,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         
                         <div className="flex flex-col items-end gap-1 shrink-0">
                            <div className={`text-lg font-black tracking-tighter ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                             {l.type === '입고' ? '+' : '-'}{Number(l.weight || 0).toLocaleString()} <span className="text-[10px] font-bold text-outline uppercase">{displayWeightUnit}</span>
+                             {l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} <span className="text-[10px] font-bold text-outline uppercase">{displayWeightUnit}</span>
                            </div>
                          <div className="flex items-center gap-1">
                            <button onClick={() => handleEdit(l)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
