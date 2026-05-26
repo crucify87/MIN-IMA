@@ -55,6 +55,7 @@ function SettingsContent({
   const [userSearch, setUserSearch] = useState('');
   const [showAllPartners, setShowAllPartners] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isItemsListExpanded, setIsItemsListExpanded] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const [showAllUsers, setShowAllUsers] = useState(false);
 
@@ -899,214 +900,254 @@ function SettingsContent({
             <hr className="border-outline-variant/30" />
 
             {/* 2. Registered Product List (BOTTOM) */}
-            <div id="items-list" className="space-y-8 md:space-y-12">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div id="items-list" className="space-y-6 md:space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/30">
                 <div>
-                  <h3 className="text-lg md:text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2">등록된 상품</h3>
-                  <p className="text-[10px] font-black text-outline uppercase tracking-widest mt-1">MASTER INVENTORY ITEMS</p>
+                  <h3 className="text-base md:text-xl font-black text-[#0f172a] tracking-tight flex items-center gap-2">
+                    등록된 상품
+                    <span className="text-[11px] font-black bg-primary/10 text-primary px-2.5 py-0.5 rounded-full">
+                      {filteredItems.length}개
+                    </span>
+                  </h3>
+                  <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-0.5">MASTER INVENTORY ITEMS</p>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                  <select 
-                    value={filterCategory} 
-                    onChange={(e) => setFilterCategory(e.target.value)}
-                    className="h-12 px-4 bg-white border border-outline-variant rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
-                  >
-                    <option value="">전체 카테고리</option>
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-
-                  <select 
-                    value={filterBrand} 
-                    onChange={(e) => setFilterBrand(e.target.value)}
-                    className="h-12 px-4 bg-white border border-outline-variant rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
-                  >
-                    <option value="">전체 브랜드</option>
-                    {brands.map(brand => (
-                      <option key={brand} value={brand}>{brand}</option>
-                    ))}
-                  </select>
-
-                  <select 
-                    value={filterPartner} 
-                    onChange={(e) => setFilterPartner(e.target.value)}
-                    className="h-12 px-4 bg-white border border-outline-variant rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
-                  >
-                    <option value="">전체 거래처</option>
-                    {itemPartners.map(partner => (
-                      <option key={partner} value={partner}>{partner}</option>
-                    ))}
-                  </select>
-
-                  <div className="relative group flex-1 sm:w-64">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                    <input type="text" placeholder="상품명, SKU 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
-                  </div>
-                </div>
+                
+                <button
+                  onClick={() => setIsItemsListExpanded(!isItemsListExpanded)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl font-black text-xs transition-colors active:scale-[0.98]"
+                >
+                  {isItemsListExpanded ? (
+                    <>
+                      <span>상품 목록 접기</span>
+                      <ChevronDown className="w-3.5 h-3.5 rotate-180 transition-transform duration-300" />
+                    </>
+                  ) : (
+                    <>
+                      <span>등록된 상품 펼쳐보기</span>
+                      <ChevronDown className="w-3.5 h-3.5 transition-transform duration-300" />
+                    </>
+                  )}
+                </button>
               </div>
 
-              <div className="bg-white rounded-[24px] md:rounded-[32px] border border-outline-variant overflow-hidden shadow-sm p-2 md:p-0">
-                <div className="w-full">
-                  {/* Desktop View Table */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead className="bg-[#f0f4f8] text-[11px] font-black text-[#0f172a]/60 uppercase tracking-widest border-b border-outline-variant/50">
-                        <tr>
-                          <th className="px-6 py-5 text-left">코드/품목명</th>
-                          <th className="px-4 py-5 text-center">카테고리</th>
-                          <th className="px-4 py-5 text-center">주거래처</th>
-                          <th className="px-4 py-5 text-center">단위</th>
-                          <th className="px-4 py-5 text-center">현재고</th>
-                          <th className="px-4 py-5 text-center">현재박스</th>
-                          <th className="px-4 py-5 text-center">안전재고</th>
-                          <th className="px-4 py-5 text-center">위치</th>
-                          <th className="px-6 py-5 text-right">관리</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-outline-variant/10">
-                        {paginatedItems.length > 0 ? (
-                          paginatedItems.map((item: any) => (
-                            <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-5">
-                                <div className="flex items-center gap-3">
-                                  <div>
-                                    <div className="font-black text-[#0f172a]">{item.name}</div>
-                                    {item.brand && <div className="text-[10px] font-black text-primary mt-0.5">{item.brand}</div>}
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                      <span className="text-[10px] font-bold text-outline uppercase">{item.sku || '-'}</span>
-                                      {item.specs && <span className="text-[10px] font-black text-emerald-500/70">| {item.specs}</span>}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-5 text-center"><span className="px-3 py-1 bg-surface-container rounded-lg text-[10px] font-black text-outline uppercase">{item.category || '-'}</span></td>
-                              <td className="px-4 py-5 text-center">
-                                <div className="flex flex-col items-center">
-                                  <span className="text-xs font-bold text-slate-600">{item.partner || '-'}</span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-5 text-center text-sm font-bold">{item.unit || '-'}</td>
-                              <td className="px-4 py-5 text-center">
-                                <span className={`font-black ${item.currentStock <= item.safetyStock ? 'text-rose-500' : 'text-[#0f172a]'}`}>
-                                  {item.currentStock?.toLocaleString()}
-                                </span>
-                              </td>
-                              <td className="px-4 py-5 text-center">
-                                <span className="font-black text-[#0f172a]">
-                                  {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} BOX` : '-'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-5 text-center text-xs font-bold text-outline">{item.safetyStock?.toLocaleString() || '0'}</td>
-                              <td className="px-4 py-5 text-center">
-                                <div className="text-xs font-bold text-on-surface/70">{item.location || '-'}</div>
-                                <div className="text-[10px] text-outline">{item.detailLocation}</div>
-                              </td>
-                              <td className="px-6 py-5 text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  {canEditItems && (
-                                    <>
-                                      <button onClick={() => handleEditItem(item)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition-all" title="수정"><Edit className="w-4 h-4" /></button>
-                                      <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="삭제"><Trash2 className="w-4 h-4" /></button>
-                                    </>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr><td colSpan={7} className="py-20 text-center opacity-40"><p className="font-black text-xl">등록된 상품이 없습니다.</p></td></tr>
-                        )}
-                      </tbody>
-                    </table>
+              {isItemsListExpanded ? (
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <select 
+                      value={filterCategory} 
+                      onChange={(e) => setFilterCategory(e.target.value)}
+                      className="h-10 px-3 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
+                    >
+                      <option value="">전체 카테고리</option>
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      value={filterBrand} 
+                      onChange={(e) => setFilterBrand(e.target.value)}
+                      className="h-10 px-3 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
+                    >
+                      <option value="">전체 브랜드</option>
+                      {brands.map(brand => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      value={filterPartner} 
+                      onChange={(e) => setFilterPartner(e.target.value)}
+                      className="h-10 px-3 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:border-primary transition-all shadow-sm"
+                    >
+                      <option value="">전체 거래처</option>
+                      {itemPartners.map(partner => (
+                        <option key={partner} value={partner}>{partner}</option>
+                      ))}
+                    </select>
+
+                    <div className="relative group flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-outline" />
+                      <input type="text" placeholder="상품명, SKU 검색..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 pl-9 pr-3 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
+                    </div>
                   </div>
 
-                  {/* Mobile Card View */}
-                  <div className="md:hidden space-y-4 p-2">
-                    {paginatedItems.length > 0 ? (
-                      paginatedItems.map((item: any) => {
-                        const isShortage = item.currentStock <= (item.safetyStock || 0);
-                        return (
-                          <div key={item.id} className={`bg-white p-5 rounded-[28px] border ${isShortage ? 'border-rose-200 bg-rose-50/20' : 'border-outline-variant/60'} shadow-sm space-y-4 relative overflow-hidden group transition-all active:bg-slate-50`}>
-                            {isShortage && <div className="absolute top-0 right-0 px-3 py-1 bg-rose-500 text-white text-[8px] font-black rounded-bl-xl uppercase tracking-widest animate-pulse shadow-sm">Low Stock</div>}
-                            
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="space-y-1.5 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap text-left">
-                                  <span className="text-[10px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg">{item.sku || 'NO-SKU'}</span>
-                                  <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[9px] font-black text-outline uppercase">{item.category}</span>
+                  <div className="bg-white rounded-2xl md:rounded-[24px] border border-outline-variant overflow-hidden shadow-sm p-2 md:p-0">
+                    <div className="w-full">
+                      {/* Desktop View Table */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead className="bg-[#f0f4f8] text-[11px] font-black text-[#0f172a]/60 uppercase tracking-widest border-b border-outline-variant/50">
+                            <tr>
+                              <th className="px-6 py-5 text-left">코드/품목명</th>
+                              <th className="px-4 py-5 text-center">카테고리</th>
+                              <th className="px-4 py-5 text-center">주거래처</th>
+                              <th className="px-4 py-5 text-center">단위</th>
+                              <th className="px-4 py-5 text-center">현재고</th>
+                              <th className="px-4 py-5 text-center">현재박스</th>
+                              <th className="px-4 py-5 text-center">안전재고</th>
+                              <th className="px-4 py-5 text-center">위치</th>
+                              <th className="px-6 py-5 text-right">관리</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-outline-variant/10">
+                            {paginatedItems.length > 0 ? (
+                              paginatedItems.map((item: any) => (
+                                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                                  <td className="px-6 py-5">
+                                    <div className="flex items-center gap-3">
+                                      <div>
+                                        <div className="font-black text-[#0f172a]">{item.name}</div>
+                                        {item.brand && <div className="text-[10px] font-black text-primary mt-0.5">{item.brand}</div>}
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                          <span className="text-[10px] font-bold text-outline uppercase">{item.sku || '-'}</span>
+                                          {item.specs && <span className="text-[10px] font-black text-emerald-500/70">| {item.specs}</span>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-5 text-center"><span className="px-3 py-1 bg-surface-container rounded-lg text-[10px] font-black text-outline uppercase">{item.category || '-'}</span></td>
+                                  <td className="px-4 py-5 text-center">
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-xs font-bold text-slate-600">{item.partner || '-'}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-5 text-center text-sm font-bold">{item.unit || '-'}</td>
+                                  <td className="px-4 py-5 text-center">
+                                    <span className={`font-black ${item.currentStock <= item.safetyStock ? 'text-rose-500' : 'text-[#0f172a]'}`}>
+                                      {item.currentStock?.toLocaleString()}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-5 text-center">
+                                    <span className="font-black text-[#0f172a]">
+                                      {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} BOX` : '-'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-5 text-center text-xs font-bold text-outline">{item.safetyStock?.toLocaleString() || '0'}</td>
+                                  <td className="px-4 py-5 text-center">
+                                    <div className="text-xs font-bold text-on-surface/70">{item.location || '-'}</div>
+                                    <div className="text-[10px] text-outline">{item.detailLocation}</div>
+                                  </td>
+                                  <td className="px-6 py-5 text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                      {canEditItems && (
+                                        <>
+                                          <button onClick={() => handleEditItem(item)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition-all" title="수정"><Edit className="w-4 h-4" /></button>
+                                          <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="삭제"><Trash2 className="w-4 h-4" /></button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr><td colSpan={7} className="py-20 text-center opacity-40"><p className="font-black text-xl">등록된 상품이 없습니다.</p></td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile Card View */}
+                      <div className="md:hidden space-y-4 p-2">
+                        {paginatedItems.length > 0 ? (
+                          paginatedItems.map((item: any) => {
+                            const isShortage = item.currentStock <= (item.safetyStock || 0);
+                            return (
+                              <div key={item.id} className={`bg-white p-5 rounded-[28px] border ${isShortage ? 'border-rose-200 bg-rose-50/20' : 'border-outline-variant/60'} shadow-sm space-y-4 relative overflow-hidden group transition-all active:bg-slate-50`}>
+                                {isShortage && <div className="absolute top-0 right-0 px-3 py-1 bg-rose-500 text-white text-[8px] font-black rounded-bl-xl uppercase tracking-widest animate-pulse shadow-sm">Low Stock</div>}
+                                
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="space-y-1.5 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap text-left">
+                                      <span className="text-[10px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg">{item.sku || 'NO-SKU'}</span>
+                                      <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[9px] font-black text-outline uppercase">{item.category}</span>
+                                    </div>
+                                    <h4 className="text-lg font-black text-[#0f172a] leading-tight truncate text-left">{item.name}</h4>
+                                    <div className="flex items-center gap-2 flex-wrap text-left">
+                                      {item.brand && <p className="text-[10px] font-bold text-outline-variant">{item.brand}</p>}
+                                      {item.partner && (
+                                        <p className="text-[10px] font-bold text-primary flex items-center gap-1">
+                                          <Users className="w-2.5 h-2.5" /> {item.partner}
+                                        </p>
+                                      )}
+                                      {item.specs && <p className="text-[10px] font-black text-emerald-500/70">{item.specs}</p>}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {canEditItems && (
+                                      <>
+                                        <button onClick={() => handleEditItem(item)} className="p-3 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all shadow-sm">
+                                          <Edit className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-3 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all shadow-sm">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
-                                <h4 className="text-lg font-black text-[#0f172a] leading-tight truncate text-left">{item.name}</h4>
-                                <div className="flex items-center gap-2 flex-wrap text-left">
-                                  {item.brand && <p className="text-[10px] font-bold text-outline-variant">{item.brand}</p>}
-                                  {item.partner && (
-                                    <p className="text-[10px] font-bold text-primary flex items-center gap-1">
-                                      <Users className="w-2.5 h-2.5" /> {item.partner}
-                                    </p>
-                                  )}
-                                  {item.specs && <p className="text-[10px] font-black text-emerald-500/70">{item.specs}</p>}
+                                
+                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100/60 text-left">
+                                  <div className="space-y-1">
+                                      <div className="text-[9px] font-black text-outline uppercase tracking-wider">현재 재고</div>
+                                      <div className={`text-base font-black ${isShortage ? 'text-rose-500' : 'text-[#0f172a]'}`}>
+                                        {item.currentStock?.toLocaleString()} <span className="text-[11px] font-bold opacity-40 ml-0.5">{item.unit}</span>
+                                      </div>
+                                      {item.category === '원육' && (
+                                        <div className="text-[10px] font-black text-slate-400">
+                                          {(item.boxes || 0).toLocaleString()} BOX
+                                        </div>
+                                      )}
+                                  </div>
+                                  <div className="space-y-1">
+                                      <div className="text-[9px] font-black text-outline uppercase tracking-wider">보관 위치</div>
+                                      <div className="text-sm font-black text-[#1e293b] truncate">
+                                        {item.location || '미지정'}
+                                      </div>
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                {canEditItems && (
-                                  <>
-                                    <button onClick={() => handleEditItem(item)} className="p-3 bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all shadow-sm">
-                                      <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-3 bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all shadow-sm">
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </>
+
+                                {canEditPrices && (
+                                  <div className="flex items-center gap-4 py-3 px-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                    <div className="flex-1 text-left">
+                                      <div className="text-[8px] font-black text-outline uppercase mb-0.5">매입가</div>
+                                      <div className="text-[11px] font-black text-slate-600">₩{item.purchasePrice?.toLocaleString()}</div>
+                                    </div>
+                                    <div className="w-px h-6 bg-slate-200"></div>
+                                    <div className="flex-1 text-left">
+                                      <div className="text-[8px] font-black text-outline uppercase mb-0.5">판매가</div>
+                                      <div className="text-[11px] font-black text-indigo-600">₩{item.salesPrice?.toLocaleString()}</div>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100/60 text-left">
-                              <div className="space-y-1">
-                                  <div className="text-[9px] font-black text-outline uppercase tracking-wider">현재 재고</div>
-                                  <div className={`text-base font-black ${isShortage ? 'text-rose-500' : 'text-[#0f172a]'}`}>
-                                    {item.currentStock?.toLocaleString()} <span className="text-[11px] font-bold opacity-40 ml-0.5">{item.unit}</span>
-                                  </div>
-                                  {item.category === '원육' && (
-                                    <div className="text-[10px] font-black text-slate-400">
-                                      {(item.boxes || 0).toLocaleString()} BOX
-                                    </div>
-                                  )}
-                              </div>
-                              <div className="space-y-1">
-                                  <div className="text-[9px] font-black text-outline uppercase tracking-wider">보관 위치</div>
-                                  <div className="text-sm font-black text-[#1e293b] truncate">
-                                    {item.location || '미지정'}
-                                  </div>
-                              </div>
-                            </div>
-
-                            {canEditPrices && (
-                              <div className="flex items-center gap-4 py-3 px-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-                                <div className="flex-1 text-left">
-                                  <div className="text-[8px] font-black text-outline uppercase mb-0.5">매입가</div>
-                                  <div className="text-[11px] font-black text-slate-600">₩{item.purchasePrice?.toLocaleString()}</div>
-                                </div>
-                                <div className="w-px h-6 bg-slate-200"></div>
-                                <div className="flex-1 text-left">
-                                  <div className="text-[8px] font-black text-outline uppercase mb-0.5">판매가</div>
-                                  <div className="text-[11px] font-black text-indigo-600">₩{item.salesPrice?.toLocaleString()}</div>
-                                </div>
-                              </div>
-                            )}
+                            );
+                          })
+                        ) : (
+                          <div className="py-16 text-center opacity-40 bg-slate-50/50 rounded-[32px] border border-dashed border-outline-variant">
+                             <p className="text-sm font-black text-[#0f172a]">등록된 상품이 없습니다</p>
                           </div>
-                        );
-                      })
-                    ) : (
-                      <div className="py-16 text-center opacity-40 bg-slate-50/50 rounded-[32px] border border-dashed border-outline-variant">
-                         <p className="text-sm font-black text-[#0f172a]">등록된 상품이 없습니다</p>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
+                      <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-slate-50/50 border border-dashed border-outline-variant/60 rounded-2xl md:rounded-[32px] p-8 text-center space-y-4">
+                  <p className="text-xs md:text-sm font-bold text-slate-500">
+                    전체 {filteredItems.length}개의 등록 상품 목록이 접혀있습니다.
+                  </p>
+                  <button
+                    onClick={() => setIsItemsListExpanded(true)}
+                    className="mx-auto flex items-center justify-center gap-2 px-6 py-3 bg-white border border-outline-variant hover:border-primary text-[#0f172a] hover:text-primary rounded-xl font-black text-xs md:text-sm shadow-sm transition-all active:scale-[0.98]"
+                  >
+                    <span>목록 펼쳐서 검색 및 관리하기</span>
+                    <ChevronDown className="w-4 h-4 animate-bounce" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
