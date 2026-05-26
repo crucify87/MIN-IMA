@@ -186,6 +186,34 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Filter by date range (using item.updatedAt, logistics logs, or production batches)
+    baseItems = baseItems.filter((i: any) => {
+      let itemDate = '';
+      if (i.updatedAt) {
+        if (i.updatedAt.seconds) {
+          itemDate = new Date(i.updatedAt.seconds * 1000).toLocaleDateString('sv-SE');
+        } else if (typeof i.updatedAt.toDate === 'function') {
+          itemDate = i.updatedAt.toDate().toLocaleDateString('sv-SE');
+        } else {
+          const d = new Date(i.updatedAt);
+          if (!isNaN(d.getTime())) {
+            itemDate = d.toLocaleDateString('sv-SE');
+          }
+        }
+      }
+      const updatedAtMatches = itemDate && itemDate >= filterStartDate && itemDate <= filterEndDate;
+
+      const hasLogisticsMatches = logistics.some((log: any) => 
+        log.item === i.name && log.date >= filterStartDate && log.date <= filterEndDate
+      );
+
+      const hasProductionMatches = (production || []).some((prod: any) => 
+        prod.title === i.name && prod.manufDate >= filterStartDate && prod.manufDate <= filterEndDate
+      );
+
+      return updatedAtMatches || hasLogisticsMatches || hasProductionMatches;
+    });
+
     let shortage = 0;
     let replenish = 0;
     let normal = 0;
@@ -208,7 +236,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       replenish,
       normal
     };
-  }, [inventory, searchQuery]);
+  }, [inventory, searchQuery, filterStartDate, filterEndDate, logistics, production]);
 
   const filteredInventory = useMemo(() => {
     let result = !searchQuery ? inventory : inventory.filter((item: any) => 
@@ -216,6 +244,34 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Filter by date range (using item.updatedAt, logistics logs, or production batches)
+    result = result.filter((i: any) => {
+      let itemDate = '';
+      if (i.updatedAt) {
+        if (i.updatedAt.seconds) {
+          itemDate = new Date(i.updatedAt.seconds * 1000).toLocaleDateString('sv-SE');
+        } else if (typeof i.updatedAt.toDate === 'function') {
+          itemDate = i.updatedAt.toDate().toLocaleDateString('sv-SE');
+        } else {
+          const d = new Date(i.updatedAt);
+          if (!isNaN(d.getTime())) {
+            itemDate = d.toLocaleDateString('sv-SE');
+          }
+        }
+      }
+      const updatedAtMatches = itemDate && itemDate >= filterStartDate && itemDate <= filterEndDate;
+
+      const hasLogisticsMatches = logistics.some((log: any) => 
+        log.item === i.name && log.date >= filterStartDate && log.date <= filterEndDate
+      );
+
+      const hasProductionMatches = (production || []).some((prod: any) => 
+        prod.title === i.name && prod.manufDate >= filterStartDate && prod.manufDate <= filterEndDate
+      );
+
+      return updatedAtMatches || hasLogisticsMatches || hasProductionMatches;
+    });
 
     if (stockStatusFilter !== 'all') {
       result = result.filter((item: any) => {
@@ -252,12 +308,65 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
     });
-  }, [inventory, searchQuery, stockStatusFilter]);
+  }, [inventory, searchQuery, stockStatusFilter, filterStartDate, filterEndDate, logistics, production]);
 
   const paginatedInventory = useMemo(() => {
     const startIndex = (inventoryPage - 1) * ITEMS_PER_PAGE;
     return filteredInventory.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredInventory, inventoryPage]);
+
+  const getItemDisplayDate = (item: any) => {
+    // 1. Gather all transaction logs & production batches related to this item
+    const matchedLogs = (logistics || []).filter((log: any) => log.item === item.name);
+    const matchedProds = (production || []).filter((prod: any) => prod.title === item.name);
+
+    // 2. Filter them within current date filter range if set
+    if (filterStartDate && filterEndDate) {
+      const logsInFilter = matchedLogs.filter(
+        (log: any) => log.date >= filterStartDate && log.date <= filterEndDate
+      );
+      const prodsInFilter = matchedProds.filter(
+        (prod: any) => prod.manufDate >= filterStartDate && prod.manufDate <= filterEndDate
+      );
+
+      // Merge dates and pick the latest one
+      const datesInFilter = [
+        ...logsInFilter.map(l => l.date),
+        ...prodsInFilter.map(p => p.manufDate)
+      ].filter(Boolean);
+
+      if (datesInFilter.length > 0) {
+        datesInFilter.sort((a, b) => b.localeCompare(a));
+        return datesInFilter[0];
+      }
+    }
+
+    // 3. Fallback to all logs and production batches sorted by latest date
+    const allDates = [
+      ...matchedLogs.map(l => l.date),
+      ...matchedProds.map(p => p.manufDate)
+    ].filter(Boolean);
+
+    if (allDates.length > 0) {
+      allDates.sort((a, b) => b.localeCompare(a));
+      return allDates[0];
+    }
+
+    // 4. Fallback to item updatedAt
+    if (item.updatedAt) {
+      if (item.updatedAt.seconds) {
+        return new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0];
+      } else if (typeof item.updatedAt.toDate === 'function') {
+        return item.updatedAt.toDate().toISOString().split('T')[0];
+      } else {
+        const d = new Date(item.updatedAt);
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().split('T')[0];
+        }
+      }
+    }
+    return '-';
+  };
 
   const totalInventoryPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
 
@@ -364,7 +473,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     return (
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
         <div className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest order-2 md:order-1">
-          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시 중
+          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시
         </div>
         <div className="flex items-center gap-2 order-1 md:order-2">
           <button 
@@ -783,7 +892,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         {paginatedInventory.map((item: any, k: number) => (
                           <tr key={k} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('detail', item)}>
                             <td className="px-6 md:px-8 py-5 text-center text-[11px] font-bold text-outline tabular-nums">
-                              {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
+                              {getItemDisplayDate(item)}
                             </td>
                             <td className="px-6 md:px-8 py-5 text-left truncate">
                               <span className="font-black text-on-surface tracking-tight text-sm md:text-base truncate block" title={item.name}>{item.name}</span>
@@ -845,7 +954,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         <div className="flex items-center gap-3 min-w-0">
                             <div className="text-left min-w-0">
                               <div className="text-[10px] font-bold text-outline mb-0.5">
-                                {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
+                                {getItemDisplayDate(item)}
                               </div>
                               <div className="font-black text-[#0f172a] text-sm truncate">{item.name}</div>
                               {item.brand && <div className="text-[10px] font-bold text-primary truncate">{item.brand}</div>}

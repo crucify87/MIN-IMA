@@ -881,123 +881,129 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             <span className="md:hidden px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-outline uppercase tracking-widest mt-1">LOGISTICS LOGS</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 w-full xl:w-auto flex-1">
-            <select 
-              value={filterCategory} 
-              onChange={e => setFilterCategory(e.target.value)}
-              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
-            >
-              <option value="">전체 카테고리</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:flex xl:flex-row xl:items-center xl:justify-end gap-3 w-full xl:w-auto flex-1">
+            {/* 1. Category, Brand, Partner, and Keyword Box for Mobile */}
+            <div className="grid grid-cols-2 gap-2 w-full xl:flex xl:w-auto">
+              <select 
+                value={filterCategory} 
+                onChange={e => setFilterCategory(e.target.value)}
+                className="w-full h-11 px-3 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+              >
+                <option value="">전체 카테고리</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
 
-            <select 
-              value={filterBrand} 
-              onChange={e => setFilterBrand(e.target.value)}
-              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
-            >
-              <option value="">전체 브랜드</option>
-              {brands.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
+              <select 
+                value={filterBrand} 
+                onChange={e => setFilterBrand(e.target.value)}
+                className="w-full h-11 px-3 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+              >
+                <option value="">전체 브랜드</option>
+                {brands.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
 
-            <select 
-              value={filterPartner} 
-              onChange={e => setFilterPartner(e.target.value)}
-              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
-            >
-              <option value="">전체 거래처</option>
-              {partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
-            </select>
+              <select 
+                value={filterPartner} 
+                onChange={e => setFilterPartner(e.target.value)}
+                className="w-full h-11 px-3 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer"
+              >
+                <option value="">전체 거래처</option>
+                {partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
+              </select>
 
-            <div className="relative group flex-1 md:flex-none md:w-64">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-              <input 
-                type="text" 
-                placeholder="품목명, 거래처 검색..." 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
-                className="w-full h-11 md:h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
-              <div className="relative group flex-1 sm:flex-none">
+              <div className="relative group w-full xl:w-64">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                 <input 
-                  ref={startDatePickerRef}
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value);
-                    setActiveRange('');
-                  }}
-                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
+                  type="text" 
+                  placeholder="검색..." 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)} 
+                  className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
                 />
-                <button 
-                  onClick={handleStartDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
-                >
-                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
-                  <span className="font-black">{startDate.split('-').slice(1).join('/')}</span>
-                </button>
-              </div>
-
-              <span className="text-outline font-black text-xs">~</span>
-
-              <div className="relative group flex-1 sm:flex-none">
-                <input 
-                  ref={endDatePickerRef}
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value);
-                    setActiveRange('');
-                  }}
-                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
-                />
-                <button 
-                  onClick={handleEndDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
-                >
-                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
-                  <span className="font-black">{endDate.split('-').slice(1).join('/')}</span>
-                </button>
               </div>
             </div>
 
-            <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center flex-1 sm:flex-none shrink-0">
-              {[
-                { label: '전체', action: () => {
-                  // Bypass date matching, keep current date values if they ever turn back to daily/weekly
-                }},
-                { label: '일간', action: () => {
-                  setStartDate(today);
-                  setEndDate(today);
-                }},
-                { label: '주간', action: () => {
-                  const d = new Date();
-                  d.setDate(d.getDate() - 7);
-                  setStartDate(d.toISOString().split('T')[0]);
-                  setEndDate(today);
-                }},
-                { label: '월간', action: () => {
-                  const d = new Date();
-                  const first = new Date(d.getFullYear(), d.getMonth(), 1);
-                  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-                  setStartDate(first.toISOString().split('T')[0]);
-                  setEndDate(last.toISOString().split('T')[0]);
-                }}
-              ].map((range) => (
-                <button
-                  key={range.label}
-                  onClick={() => {
-                    setActiveRange(range.label);
-                    range.action();
+            {/* 2. Date Pickers & Range Tabs for Mobile */}
+            <div className="grid grid-cols-2 gap-2 w-full xl:flex xl:w-auto">
+              <div className="flex items-center gap-1.5 w-full">
+                <div className="relative group flex-1">
+                  <input 
+                    ref={startDatePickerRef}
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setActiveRange('');
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
+                  />
+                  <button 
+                    onClick={handleStartDateClick}
+                    className="w-full flex items-center justify-center gap-1.5 px-2 h-11 bg-white border border-outline-variant rounded-xl text-[11px] font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="font-black truncate">{startDate.split('-').slice(1).join('/')}</span>
+                  </button>
+                </div>
+
+                <span className="text-outline font-black text-xs shrink-0">~</span>
+
+                <div className="relative group flex-1">
+                  <input 
+                    ref={endDatePickerRef}
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setActiveRange('');
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
+                  />
+                  <button 
+                    onClick={handleEndDateClick}
+                    className="w-full flex items-center justify-center gap-1.5 px-2 h-11 bg-white border border-outline-variant rounded-xl text-[11px] font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="font-black truncate">{endDate.split('-').slice(1).join('/')}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center w-full min-w-0">
+                {[
+                  { label: '전체', action: () => {
+                    // Bypass date matching, keep current date values
+                  }},
+                  { label: '일간', action: () => {
+                    setStartDate(today);
+                    setEndDate(today);
+                  }},
+                  { label: '주간', action: () => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - 7);
+                    setStartDate(d.toISOString().split('T')[0]);
+                    setEndDate(today);
+                  }},
+                  { label: '월간', action: () => {
+                    const d = new Date();
+                    const first = new Date(d.getFullYear(), d.getMonth(), 1);
+                    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+                    setStartDate(first.toISOString().split('T')[0]);
+                    setEndDate(last.toISOString().split('T')[0]);
                   }}
-                  className={`flex-1 sm:flex-none px-3 md:px-4 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeRange === range.label ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}
-                >
-                  {range.label}
-                </button>
-              ))}
+                ].map((range) => (
+                  <button
+                    key={range.label}
+                    onClick={() => {
+                      setActiveRange(range.label);
+                      range.action();
+                    }}
+                    className={`flex-1 px-1 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeRange === range.label ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+                  >
+                    {range.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
