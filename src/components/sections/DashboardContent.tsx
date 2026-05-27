@@ -484,6 +484,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       const unit = (item.unit || 'KG').toUpperCase();
       const current = Number(item.currentStock) || 0;
       
+      if (cat === '원육' && unit === 'BOX') return acc;
+      
       if (!acc[cat]) {
         acc[cat] = {};
       }
@@ -557,7 +559,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         className={`bg-white p-4 md:p-6 rounded-[24px] md:rounded-[40px] border-2 transition-all flex flex-col items-center justify-center gap-1.5 md:gap-3 min-h-[120px] md:min-h-[200px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${stat.active ? 'border-primary shadow-xl shadow-primary/10' : 'border-outline-variant/30 shadow-sm'} ${stat.isCategory ? 'hover:border-primary/50' : 'hover:border-primary/30'}`}
       >
         <div className="text-center space-y-0.5 md:space-y-1.5 w-full">
-          <p className={`text-[10px] md:text-xs font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'} line-clamp-1`}>{stat.label}</p>
+          <p className={`text-[10px] md:text-sm font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'} line-clamp-1`}>{stat.label}</p>
           {stat.subtitle && (
             <p className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mx-auto w-fit ${
               stat.subtitle === '완제품' 
@@ -570,31 +572,34 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         </div>
 
         {hasMultipleUnits ? (
-          <div className="flex flex-col gap-1.5 w-full px-2 items-center justify-center">
+          <div className="flex flex-col gap-1.5 w-full px-4 items-center justify-center">
             {sortedUnitValues.length > 0 ? (
-              sortedUnitValues.map(([unit, val]: any) => (
-                <div key={unit} className="flex items-baseline justify-center gap-1 md:gap-1.5 w-full">
-                  <span className="text-base md:text-2xl font-black tabular-nums tracking-tighter leading-none text-on-surface">
-                    {Math.round(val).toLocaleString()}
-                  </span>
-                  <span className="text-[10px] md:text-xs font-black text-outline uppercase">{unit}</span>
-                </div>
-              ))
+              sortedUnitValues.map(([unit, val]: any) => {
+                const isKG = unit.toUpperCase() === 'KG';
+                return (
+                  <div key={unit} className="flex items-baseline justify-end gap-1.5 w-full max-w-[140px]">
+                    <span className={`text-base md:text-2xl font-black tabular-nums tracking-tighter leading-none ${isKG ? 'text-primary' : 'text-on-surface'}`}>
+                      {Math.round(val).toLocaleString()}
+                    </span>
+                    <span className="text-[10px] md:text-xs font-black text-outline uppercase w-8 text-left shrink-0">{unit}</span>
+                  </div>
+                );
+              })
             ) : (
-              <div className="flex items-baseline justify-center gap-1 md:gap-1.5 w-full">
-                <span className="text-base md:text-2xl font-black tabular-nums tracking-tighter leading-none text-on-surface">
+              <div className="flex items-baseline justify-end gap-1.5 w-full max-w-[140px]">
+                <span className="text-base md:text-2xl font-black tabular-nums tracking-tighter leading-none text-primary">
                   0
                 </span>
-                <span className="text-[10px] md:text-xs font-black text-outline uppercase">KG</span>
+                <span className="text-[10px] md:text-xs font-black text-outline uppercase w-8 text-left shrink-0">KG</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="flex items-baseline justify-center gap-1 md:gap-2 w-full px-2 overflow-hidden">
-            <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
+          <div className="flex items-baseline justify-end gap-2 w-full max-w-[160px] overflow-hidden">
+            <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${(stat.unit || 'KG').toUpperCase() === 'KG' ? 'text-primary' : 'text-on-surface'}`}>
               {Math.round((stat.value ?? 0) as number).toLocaleString()}
             </span>
-            <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0">
+            <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0 w-8 text-left">
               {stat.unit || 'KG'}
             </span>
           </div>
