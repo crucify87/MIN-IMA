@@ -177,7 +177,6 @@ export default function App() {
                   <InventoryContent 
                     inventory={inventory} 
                     logistics={logistics}
-                    production={production}
                     partners={partners}
                     onNavigate={handleNavigate} 
                     canEditItems={canEditItems} 

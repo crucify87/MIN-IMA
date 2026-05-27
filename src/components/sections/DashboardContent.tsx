@@ -186,34 +186,6 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Filter by date range (using item.updatedAt, logistics logs, or production batches)
-    baseItems = baseItems.filter((i: any) => {
-      let itemDate = '';
-      if (i.updatedAt) {
-        if (i.updatedAt.seconds) {
-          itemDate = new Date(i.updatedAt.seconds * 1000).toLocaleDateString('sv-SE');
-        } else if (typeof i.updatedAt.toDate === 'function') {
-          itemDate = i.updatedAt.toDate().toLocaleDateString('sv-SE');
-        } else {
-          const d = new Date(i.updatedAt);
-          if (!isNaN(d.getTime())) {
-            itemDate = d.toLocaleDateString('sv-SE');
-          }
-        }
-      }
-      const updatedAtMatches = itemDate && itemDate >= filterStartDate && itemDate <= filterEndDate;
-
-      const hasLogisticsMatches = logistics.some((log: any) => 
-        log.item === i.name && log.date >= filterStartDate && log.date <= filterEndDate
-      );
-
-      const hasProductionMatches = (production || []).some((prod: any) => 
-        prod.title === i.name && prod.manufDate >= filterStartDate && prod.manufDate <= filterEndDate
-      );
-
-      return updatedAtMatches || hasLogisticsMatches || hasProductionMatches;
-    });
-
     let shortage = 0;
     let replenish = 0;
     let normal = 0;
@@ -236,7 +208,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       replenish,
       normal
     };
-  }, [inventory, searchQuery, filterStartDate, filterEndDate, logistics, production]);
+  }, [inventory, searchQuery]);
 
   const filteredInventory = useMemo(() => {
     let result = !searchQuery ? inventory : inventory.filter((item: any) => 
@@ -244,34 +216,6 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
-    // Filter by date range (using item.updatedAt, logistics logs, or production batches)
-    result = result.filter((i: any) => {
-      let itemDate = '';
-      if (i.updatedAt) {
-        if (i.updatedAt.seconds) {
-          itemDate = new Date(i.updatedAt.seconds * 1000).toLocaleDateString('sv-SE');
-        } else if (typeof i.updatedAt.toDate === 'function') {
-          itemDate = i.updatedAt.toDate().toLocaleDateString('sv-SE');
-        } else {
-          const d = new Date(i.updatedAt);
-          if (!isNaN(d.getTime())) {
-            itemDate = d.toLocaleDateString('sv-SE');
-          }
-        }
-      }
-      const updatedAtMatches = itemDate && itemDate >= filterStartDate && itemDate <= filterEndDate;
-
-      const hasLogisticsMatches = logistics.some((log: any) => 
-        log.item === i.name && log.date >= filterStartDate && log.date <= filterEndDate
-      );
-
-      const hasProductionMatches = (production || []).some((prod: any) => 
-        prod.title === i.name && prod.manufDate >= filterStartDate && prod.manufDate <= filterEndDate
-      );
-
-      return updatedAtMatches || hasLogisticsMatches || hasProductionMatches;
-    });
 
     if (stockStatusFilter !== 'all') {
       result = result.filter((item: any) => {
@@ -308,65 +252,12 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
     });
-  }, [inventory, searchQuery, stockStatusFilter, filterStartDate, filterEndDate, logistics, production]);
+  }, [inventory, searchQuery, stockStatusFilter]);
 
   const paginatedInventory = useMemo(() => {
     const startIndex = (inventoryPage - 1) * ITEMS_PER_PAGE;
     return filteredInventory.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredInventory, inventoryPage]);
-
-  const getItemDisplayDate = (item: any) => {
-    // 1. Gather all transaction logs & production batches related to this item
-    const matchedLogs = (logistics || []).filter((log: any) => log.item === item.name);
-    const matchedProds = (production || []).filter((prod: any) => prod.title === item.name);
-
-    // 2. Filter them within current date filter range if set
-    if (filterStartDate && filterEndDate) {
-      const logsInFilter = matchedLogs.filter(
-        (log: any) => log.date >= filterStartDate && log.date <= filterEndDate
-      );
-      const prodsInFilter = matchedProds.filter(
-        (prod: any) => prod.manufDate >= filterStartDate && prod.manufDate <= filterEndDate
-      );
-
-      // Merge dates and pick the latest one
-      const datesInFilter = [
-        ...logsInFilter.map(l => l.date),
-        ...prodsInFilter.map(p => p.manufDate)
-      ].filter(Boolean);
-
-      if (datesInFilter.length > 0) {
-        datesInFilter.sort((a, b) => b.localeCompare(a));
-        return datesInFilter[0];
-      }
-    }
-
-    // 3. Fallback to all logs and production batches sorted by latest date
-    const allDates = [
-      ...matchedLogs.map(l => l.date),
-      ...matchedProds.map(p => p.manufDate)
-    ].filter(Boolean);
-
-    if (allDates.length > 0) {
-      allDates.sort((a, b) => b.localeCompare(a));
-      return allDates[0];
-    }
-
-    // 4. Fallback to item updatedAt
-    if (item.updatedAt) {
-      if (item.updatedAt.seconds) {
-        return new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0];
-      } else if (typeof item.updatedAt.toDate === 'function') {
-        return item.updatedAt.toDate().toISOString().split('T')[0];
-      } else {
-        const d = new Date(item.updatedAt);
-        if (!isNaN(d.getTime())) {
-          return d.toISOString().split('T')[0];
-        }
-      }
-    }
-    return '-';
-  };
 
   const totalInventoryPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
 
@@ -473,7 +364,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     return (
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
         <div className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest order-2 md:order-1">
-          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시
+          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시 중
         </div>
         <div className="flex items-center gap-2 order-1 md:order-2">
           <button 
@@ -585,11 +476,18 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     const productionQty = activeProduction
       .reduce((acc: number, curr: any) => acc + (Number(curr.production) || 0), 0);
 
-    // Calculate category totals
-    const categoryTotals = filteredInventory.reduce((acc: Record<string, number>, item: any) => {
+    // Calculate category totals (regardless of date filters, used for summary cards)
+    const categoryTotals = inventory.reduce((acc: Record<string, Record<string, number>>, item: any) => {
       const cat = item.category || '기타';
       if (cat === '완제품') return acc;
-      acc[cat] = (acc[cat] || 0) + (Number(item.currentStock) || 0);
+      
+      const unit = (item.unit || 'KG').toUpperCase();
+      const current = Number(item.currentStock) || 0;
+      
+      if (!acc[cat]) {
+        acc[cat] = {};
+      }
+      acc[cat][unit] = (acc[cat][unit] || 0) + current;
       return acc;
     }, {});
 
@@ -608,25 +506,29 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     const otherCategories = sortedCategories.filter(([cat]) => cat !== '원육');
 
     const firstRow = [
-      { label: '원육 총 재고', value: rawMeatEntry ? rawMeatEntry[1] : 0, isCategory: true },
-      { label: `${activeShift || '조회 기간'}입고`, value: input },
-      { label: `${activeShift || '조회 기간'}출고`, value: output, active: true },
-      { label: `${activeShift || '조회 기간'}생산`, value: productionQty, subtitle: '완제품' },
+      { 
+        label: '원육 총 재고', 
+        values: rawMeatEntry ? rawMeatEntry[1] : {}, 
+        isCategory: true 
+      },
+      { label: `${activeShift || '조회 기간'}입고`, value: input, unit: 'KG' },
+      { label: `${activeShift || '조회 기간'}출고`, value: output, active: true, unit: 'KG' },
+      { label: `${activeShift || '조회 기간'}생산`, value: productionQty, subtitle: '완제품', unit: 'KG' },
     ];
 
-    const secondRow = otherCategories.map(([category, total]) => ({
+    const secondRow = otherCategories.map(([category, unitMap]) => ({
       label: category,
-      value: total,
+      values: unitMap,
       isCategory: true
     }));
 
     return { row1: firstRow, row2: secondRow };
-  }, [inventory, combinedActivity, production, filterStartDate, filterEndDate, filteredInventory]);
+  }, [inventory, combinedActivity, production, filterStartDate, filterEndDate]);
 
   const StatCard = ({ stat, idx }: { stat: any, idx: number, key?: string }) => {
     const handleCardClick = () => {
       if (stat.isCategory || stat.label.includes('재고')) {
-        const category = stat.label === '원육 총 재고' ? '원육' : (stat.isCategory ? stat.label : null);
+        const category = stat.label === '원육' || stat.label === '원육 총 재고' ? '원육' : (stat.isCategory ? stat.label : null);
         onNavigate('inventory', category);
       } else if (stat.label.includes('입고') || stat.label.includes('출고')) {
         onNavigate('logistics');
@@ -635,12 +537,26 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       }
     };
 
+    const hasMultipleUnits = stat.values && Object.keys(stat.values).length > 0;
+
+    // Define strict unit ordering to place KG at the top, then EA, then BOX, and others last
+    const UNIT_ORDER: Record<string, number> = { 'KG': 1, 'EA': 2, 'BOX': 3 };
+
+    const sortedUnitValues = hasMultipleUnits
+      ? Object.entries(stat.values)
+          .sort(([unitA], [unitB]) => {
+            const orderA = UNIT_ORDER[unitA.toUpperCase()] || 99;
+            const orderB = UNIT_ORDER[unitB.toUpperCase()] || 99;
+            return orderA - orderB;
+          })
+      : [];
+
     return (
       <div 
         onClick={handleCardClick}
-        className={`bg-white p-4 md:p-8 rounded-[24px] md:rounded-[40px] border-2 transition-all flex flex-col items-center justify-center gap-1.5 md:gap-4 min-h-[120px] md:min-h-[200px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${stat.active ? 'border-primary shadow-xl shadow-primary/10' : 'border-outline-variant/30 shadow-sm'} ${stat.isCategory ? 'hover:border-primary/50' : 'hover:border-primary/30'}`}
+        className={`bg-white p-4 md:p-6 rounded-[24px] md:rounded-[40px] border-2 transition-all flex flex-col items-center justify-center gap-1.5 md:gap-3 min-h-[120px] md:min-h-[200px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${stat.active ? 'border-primary shadow-xl shadow-primary/10' : 'border-outline-variant/30 shadow-sm'} ${stat.isCategory ? 'hover:border-primary/50' : 'hover:border-primary/30'}`}
       >
-        <div className="text-center space-y-0.5 md:space-y-1.5">
+        <div className="text-center space-y-0.5 md:space-y-1.5 w-full">
           <p className={`text-[10px] md:text-xs font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'} line-clamp-1`}>{stat.label}</p>
           {stat.subtitle && (
             <p className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mx-auto w-fit ${
@@ -652,12 +568,37 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             </p>
           )}
         </div>
-        <div className="flex items-baseline justify-center gap-1 md:gap-2 w-full px-2 overflow-hidden">
-          <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
-            {Math.round(stat.value as number).toLocaleString()}
-          </span>
-          <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0">KG</span>
-        </div>
+
+        {hasMultipleUnits ? (
+          <div className="flex flex-col gap-1.5 w-full px-2 items-center justify-center">
+            {sortedUnitValues.length > 0 ? (
+              sortedUnitValues.map(([unit, val]: any) => (
+                <div key={unit} className="flex items-baseline justify-center gap-1 md:gap-1.5 w-full">
+                  <span className="text-base md:text-2xl font-black tabular-nums tracking-tighter leading-none text-on-surface">
+                    {Math.round(val).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] md:text-xs font-black text-outline uppercase">{unit}</span>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-baseline justify-center gap-1 md:gap-1.5 w-full">
+                <span className="text-base md:text-2xl font-black tabular-nums tracking-tighter leading-none text-on-surface">
+                  0
+                </span>
+                <span className="text-[10px] md:text-xs font-black text-outline uppercase">KG</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-baseline justify-center gap-1 md:gap-2 w-full px-2 overflow-hidden">
+            <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${stat.active ? 'text-primary' : 'text-on-surface'}`}>
+              {Math.round((stat.value ?? 0) as number).toLocaleString()}
+            </span>
+            <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0">
+              {stat.unit || 'KG'}
+            </span>
+          </div>
+        )}
       </div>
     );
   };
@@ -892,7 +833,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         {paginatedInventory.map((item: any, k: number) => (
                           <tr key={k} className="hover:bg-surface-container/50 transition-colors group cursor-pointer" onClick={() => onNavigate('detail', item)}>
                             <td className="px-6 md:px-8 py-5 text-center text-[11px] font-bold text-outline tabular-nums">
-                              {getItemDisplayDate(item)}
+                              {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
                             </td>
                             <td className="px-6 md:px-8 py-5 text-left truncate">
                               <span className="font-black text-on-surface tracking-tight text-sm md:text-base truncate block" title={item.name}>{item.name}</span>
@@ -954,7 +895,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         <div className="flex items-center gap-3 min-w-0">
                             <div className="text-left min-w-0">
                               <div className="text-[10px] font-bold text-outline mb-0.5">
-                                {getItemDisplayDate(item)}
+                                {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
                               </div>
                               <div className="font-black text-[#0f172a] text-sm truncate">{item.name}</div>
                               {item.brand && <div className="text-[10px] font-bold text-primary truncate">{item.brand}</div>}

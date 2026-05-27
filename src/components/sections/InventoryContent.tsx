@@ -17,7 +17,7 @@ import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
 
-function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], production = [], partners = [], initialCategory }: any) {
+function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], partners = [], initialCategory }: any) {
   const today = new Date().toLocaleDateString('sv-SE');
   const [search, setSearch] = useState(() => sessionStorage.getItem('inventory_search') || '');
   const [filterCategory, setFilterCategory] = useState(() => initialCategory || sessionStorage.getItem('inventory_filterCategory') || '');
@@ -209,15 +209,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
           log.item === i.name && log.date >= filterStartDate && log.date <= filterEndDate
         );
 
-        const hasProductionMatches = (production || []).some((prod: any) => 
-          prod.title === i.name && prod.manufDate >= filterStartDate && prod.manufDate <= filterEndDate
-        );
-
-        const matchesDate = updatedAtMatches || hasLogisticsMatches || hasProductionMatches;
+        const matchesDate = updatedAtMatches || hasLogisticsMatches;
 
         return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesDate;
       });
-  }, [inventory, search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate, logistics, production]);
+  }, [inventory, search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate, logistics]);
 
   const statusCounts = useMemo(() => {
     let shortage = 0;
@@ -293,59 +289,6 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filtered, currentPage]);
 
-  const getItemDisplayDate = (item: any) => {
-    // 1. Gather all transaction logs & production batches related to this item
-    const matchedLogs = (logistics || []).filter((log: any) => log.item === item.name);
-    const matchedProds = (production || []).filter((prod: any) => prod.title === item.name);
-
-    // 2. Filter them within current date filter range if set
-    if (filterStartDate && filterEndDate) {
-      const logsInFilter = matchedLogs.filter(
-        (log: any) => log.date >= filterStartDate && log.date <= filterEndDate
-      );
-      const prodsInFilter = matchedProds.filter(
-        (prod: any) => prod.manufDate >= filterStartDate && prod.manufDate <= filterEndDate
-      );
-
-      // Merge dates and pick the latest one
-      const datesInFilter = [
-        ...logsInFilter.map(l => l.date),
-        ...prodsInFilter.map(p => p.manufDate)
-      ].filter(Boolean);
-
-      if (datesInFilter.length > 0) {
-        datesInFilter.sort((a, b) => b.localeCompare(a));
-        return datesInFilter[0];
-      }
-    }
-
-    // 3. Fallback to all logs and production batches sorted by latest date
-    const allDates = [
-      ...matchedLogs.map(l => l.date),
-      ...matchedProds.map(p => p.manufDate)
-    ].filter(Boolean);
-
-    if (allDates.length > 0) {
-      allDates.sort((a, b) => b.localeCompare(a));
-      return allDates[0];
-    }
-
-    // 4. Fallback to item updatedAt
-    if (item.updatedAt) {
-      if (item.updatedAt.seconds) {
-        return new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0];
-      } else if (typeof item.updatedAt.toDate === 'function') {
-        return item.updatedAt.toDate().toISOString().split('T')[0];
-      } else {
-        const d = new Date(item.updatedAt);
-        if (!isNaN(d.getTime())) {
-          return d.toISOString().split('T')[0];
-        }
-      }
-    }
-    return '-';
-  };
-
   const Pagination = ({ current, total, totalItems, itemsPerPage, onChange }: { current: number; total: number; totalItems: number; itemsPerPage: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
     
@@ -368,7 +311,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     return (
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
         <div className="text-[10px] md:text-xs font-black text-outline uppercase tracking-widest order-2 md:order-1">
-          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시
+          {totalItems.toLocaleString()}개 항목 중 {startItem}-{endItem} 번호 표시 중
         </div>
         <div className="flex items-center gap-2 order-1 md:order-2">
           <button 
@@ -696,7 +639,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                     paginatedItems.map((item: any, i: number) => (
                       <tr key={i} className="hover:bg-surface-container/5 transition-colors">
                         <td className="px-4 py-4 text-[11px] font-bold text-outline tabular-nums whitespace-nowrap">
-                          {getItemDisplayDate(item)}
+                          {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
                         </td>
                       <td className="px-4 py-4 text-left">
                         <div className="font-black text-on-surface text-base leading-tight">{item.name}</div>
@@ -775,7 +718,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                       <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[8px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg border border-primary/10">
-                            {getItemDisplayDate(item)}
+                            {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '날짜미정'}
                           </span>
                           <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[8px] font-black text-outline uppercase">{item.category}</span>
                         </div>

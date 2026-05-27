@@ -67,17 +67,14 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   };
   const [line, setLine] = useState('삼산공장');
   const [logDate, setLogDate] = useState(new Date().toLocaleDateString('sv-SE'));
-  const [rawMaterial, setRawMaterial] = useState('');
-  const [brand, setBrand] = useState('');
-  const [rawQty, setRawQty] = useState('');
 
   const [rows, setRows] = useState([
-    { id: Date.now(), title: '', production: '', expiryDate: '' }
+    { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: new Date().toLocaleDateString('sv-SE'), expiryDate: '' }
   ]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeBrandDropdown, setActiveBrandDropdown] = useState<boolean>(false);
-  const [activeRawDropdown, setActiveRawDropdown] = useState<boolean>(false);
+  const [activeBrandDropdown, setActiveBrandDropdown] = useState<number | null>(null);
+  const [activeRawDropdown, setActiveRawDropdown] = useState<number | null>(null);
   const [activeItemDropdown, setActiveItemDropdown] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -235,20 +232,42 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
   };
 
   const formStatistics = useMemo(() => {
-    const totalRaw = Number(rawQty) || 0;
-    const totalProd = rows.reduce((acc, r) => acc + (Number(r.production) || 0), 0);
+    let totalRaw = 0;
+    let totalProd = 0;
+    const rawGroups: { [key: string]: { rawQty: number; production: number; items: { name: string; brand: string }[] } } = {};
+
+    rows.forEach(r => {
+      const rawNum = Number(r.rawQty) || 0;
+      const prodNum = Number(r.production) || 0;
+      totalRaw += rawNum;
+      totalProd += prodNum;
+
+      const key = (r.rawMaterial || '').trim() || '미지정 원육';
+      if (!rawGroups[key]) {
+        rawGroups[key] = { rawQty: 0, production: 0, items: [] };
+      }
+      rawGroups[key].rawQty += rawNum;
+      rawGroups[key].production += prodNum;
+      if (r.title && !rawGroups[key].items.some(item => item.name === r.title)) {
+        rawGroups[key].items.push({ name: r.title, brand: r.brand || '' });
+      }
+    });
 
     const overallYield = totalRaw > 0 ? (totalProd / totalRaw) * 100 : 0;
     const overallLoss = totalRaw > 0 ? ((totalRaw - totalProd) / totalRaw) * 100 : 0;
 
-    const groupCalculations = rawMaterial ? [{
-      rawMaterial,
-      rawQty: totalRaw,
-      production: totalProd,
-      yieldRate: overallYield,
-      lossRate: overallLoss,
-      items: rows.filter(r => r.title).map(r => ({ name: r.title, brand: brand }))
-    }] : [];
+    const groupCalculations = Object.entries(rawGroups).map(([rawMat, g]) => {
+      const yld = g.rawQty > 0 ? (g.production / g.rawQty) * 100 : 0;
+      const loss = g.rawQty > 0 ? ((g.rawQty - g.production) / g.rawQty) * 100 : 0;
+      return {
+        rawMaterial: rawMat,
+        rawQty: g.rawQty,
+        production: g.production,
+        yieldRate: yld,
+        lossRate: loss,
+        items: g.items
+      };
+    });
 
     return {
       totalRaw,
@@ -258,10 +277,10 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
       groupCalculations,
       hasMultiple: rows.length > 1
     };
-  }, [rawQty, rows, rawMaterial, brand]);
+  }, [rows]);
 
   const addRow = () => {
-    setRows([...rows, { id: Date.now(), title: '', production: '', expiryDate: '' }]);
+    setRows([...rows, { id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: logDate, expiryDate: '' }]);
   };
 
   const removeRow = (id: number) => {
@@ -350,8 +369,8 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
 
       if (editingId) {
         const row = rows[0];
-        const prodNum = Number(row.production) || 0;
-        const rawNum = Number(rawQty) || 0;
+        const prodNum = Number(row.production);
+        const rawNum = Number(row.rawQty);
         const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
         const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
 
@@ -364,23 +383,22 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           await deleteRelatedLogistics(editingId);
         }
 
+        // Clean up row data for Firestore
+        const { id: _, ...cleanRow } = row;
+
         await updateDoc(doc(db, 'production_batches', String(editingId)), {
-          title: row.title,
-          rawMaterial,
-          brand,
-          rawQty: rawNum,
+          ...cleanRow,
+          line,
           production: prodNum,
+          rawQty: rawNum,
           yield: yieldRate,
           loss: lossRate,
-          expiryDate: row.expiryDate || '',
-          manufDate: logDate,
-          line,
           updatedAt: serverTimestamp()
         });
 
         // Apply new inventory change
-        await updateInventoryStock(row.title, prodNum, false, brand);
-        await updateInventoryStock(rawMaterial, -rawNum, true, brand);
+        await updateInventoryStock(row.title, prodNum, false, row.brand);
+        await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
 
         // Create new logistics records
         await createLogisticsRecord({
@@ -388,67 +406,59 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           type: '입고',
           weight: prodNum,
           category: '완제품',
-          brand,
+          brand: row.brand,
           partner: line,
           batchId: editingId,
-          date: logDate
+          date: row.manufDate
         });
         await createLogisticsRecord({
-          item: rawMaterial,
+          item: row.rawMaterial,
           type: '출고',
           weight: rawNum,
           category: '원육',
-          brand,
+          brand: row.brand,
           partner: '생산투입',
           batchId: editingId,
-          date: logDate
+          date: row.manufDate
         });
 
         alert('생산 실적 수정 완료');
         setEditingId(null);
         setShowForm(false);
-        setRawMaterial('');
-        setBrand('');
-        setRawQty('');
-        setRows([{ id: Date.now(), title: '', production: '', expiryDate: '' }]);
+        setRows([{ id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: logDate, expiryDate: '' }]);
         return;
       }
 
-      const totalRaw = Number(rawQty) || 0;
-      const totalProd = rows.reduce((acc, r) => acc + (Number(r.production) || 0), 0);
-      const overallYield = totalRaw > 0 ? (totalProd / totalRaw) * 100 : 0;
-      const overallLoss = totalRaw > 0 ? ((totalRaw - totalProd) / totalRaw) * 100 : 0;
-
       for (const row of rows) {
-        if (!row.title || !row.production) continue;
+        if (!row.title || !row.rawQty || !row.production) continue;
         
-        const prodNum = Number(row.production) || 0;
-        const ratio = totalProd > 0 ? (prodNum / totalProd) : (1 / rows.length);
-        const allocatedRawNum = totalRaw * ratio;
+        const prodNum = Number(row.production); 
+        const rawNum = Number(row.rawQty);
+        const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
+        const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
+
+        // Clean up row data for Firestore
+        const { id: _, ...cleanRow } = row;
 
         const itemMaster = inventory.find((it: any) => it.name === row.title);
         const partner = itemMaster?.partner || '';
 
         const batchRef = await addDoc(collection(db, 'production_batches'), { 
-          title: row.title,
-          rawMaterial,
-          brand,
-          rawQty: allocatedRawNum,
-          production: prodNum,
-          yield: overallYield,
-          loss: overallLoss,
-          manufDate: logDate,
-          expiryDate: row.expiryDate || '',
+          ...cleanRow, 
           line,
           partner,
+          production: prodNum, 
+          rawQty: rawNum, 
+          yield: yieldRate,
+          loss: lossRate, 
           createdAt: serverTimestamp() 
         });
 
         const batchId = batchRef.id;
 
         // Apply inventory change
-        await updateInventoryStock(row.title, prodNum, false, brand);
-        await updateInventoryStock(rawMaterial, -allocatedRawNum, true, brand);
+        await updateInventoryStock(row.title, prodNum, false, row.brand);
+        await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
 
         // Create logistics records
         await createLogisticsRecord({
@@ -456,28 +466,25 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
           type: '입고',
           weight: prodNum,
           category: '완제품',
-          brand,
+          brand: row.brand,
           partner: line,
-          batchId,
-          date: logDate
+          batchId: batchId,
+          date: row.manufDate
         });
         await createLogisticsRecord({
-          item: rawMaterial,
+          item: row.rawMaterial,
           type: '출고',
-          weight: allocatedRawNum,
+          weight: rawNum,
           category: '원육',
-          brand,
+          brand: row.brand,
           partner: '생산투입',
-          batchId,
-          date: logDate
+          batchId: batchId,
+          date: row.manufDate
         });
       }
       alert('생산 실적 등록 완료'); 
       setShowForm(false);
-      setRawMaterial('');
-      setBrand('');
-      setRawQty('');
-      setRows([{ id: Date.now(), title: '', production: '', expiryDate: '' }]);
+      setRows([{ id: Date.now(), title: '', rawMaterial: '', brand: '', rawQty: '', production: '', manufDate: logDate, expiryDate: '' }]);
     } catch (error) { 
       handleFirestoreError(error, OperationType.WRITE, 'production_batches'); 
     } finally {
@@ -489,13 +496,14 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
     setEditingId(item.id);
     setLine(item.line || '삼산공장');
     setLogDate(item.manufDate);
-    setRawMaterial(item.rawMaterial || '');
-    setBrand(item.brand || '');
-    setRawQty(item.rawQty ? String(item.rawQty) : '');
     setRows([{
       id: Date.now(),
       title: item.title,
-      production: item.production ? String(item.production) : '',
+      rawMaterial: item.rawMaterial,
+      brand: item.brand || '',
+      rawQty: item.rawQty,
+      production: item.production,
+      manufDate: item.manufDate,
       expiryDate: item.expiryDate || ''
     }]);
     setShowForm(true);
@@ -596,7 +604,9 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                   type="date" 
                   value={logDate}
                   onChange={(e) => {
-                    setLogDate(e.target.value);
+                    const newDate = e.target.value;
+                    setLogDate(newDate);
+                    setRows(rows.map(r => ({ ...r, manufDate: newDate })));
                   }}
                   className="h-12 md:h-14 px-4 bg-white border border-outline-variant rounded-2xl font-black text-xs md:text-sm shadow-sm outline-none cursor-pointer hover:border-primary transition-all"
                 />
@@ -612,310 +622,288 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             </div>
           </div>
 
-          <div className="space-y-[32px]">
-            {/* 공통 정보 & 원육 정보 입력 */}
-            <div className="bg-[#f8fafc] p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-slate-200/50 space-y-6">
-              <h3 className="text-base md:text-lg font-black text-slate-800 flex items-center gap-2">
-                <span className="w-1.5 h-4.5 bg-primary rounded" />
-                1. 원육 투입 정보 입력
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* 원육 품명 */}
-                <div className="space-y-1 relative">
-                  <label className="text-[10px] md:text-xs font-black text-outline">원육 품명</label>
-                  <div className="flex flex-col gap-1 w-full relative">
-                    <input 
-                      placeholder="원육 품명 선택 또는 입력" 
-                      value={rawMaterial} 
-                      onChange={e => setRawMaterial(e.target.value)} 
-                      onFocus={() => setActiveRawDropdown(true)}
-                      onBlur={() => setTimeout(() => setActiveRawDropdown(false), 200)}
-                      className="h-14 px-4 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" 
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setActiveRawDropdown(!activeRawDropdown)}
-                      className="absolute right-2 top-2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
-                    >
-                      <ChevronDown className={`w-4 h-4 transition-transform ${activeRawDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                    {activeRawDropdown && (
-                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                        {(() => {
-                          const filteredRaw = rawMaterials.filter(item => item.name.toLowerCase().includes((rawMaterial || '').toLowerCase()));
-                          return filteredRaw.length > 0 ? (
-                            filteredRaw.map((item: any) => (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setRawMaterial(item.name);
-                                  if (item.brand) setBrand(item.brand);
-                                  setActiveRawDropdown(false);
-                                }}
-                                className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${rawMaterial === item.name ? 'bg-primary/5' : ''}`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className={`text-sm font-bold ${rawMaterial === item.name ? 'text-primary' : 'text-slate-600'}`}>{item.name}</span>
-                                  {rawMaterial === item.name && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-black text-outline-variant">{item.brand || '브랜드 없음'}</span>
-                                  <span className="text-[10px] font-black text-primary/50">| {Math.round(item.currentStock || 0).toLocaleString()} KG</span>
-                                </div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">검색 결과가 없습니다</div>
-                          );
-                        })()}
-                        <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
-                      </div>
-                    )}
-                    {rawMaterial && (
-                      <div className="px-2 flex items-center justify-between mt-1">
-                        <span className="text-[10px] font-black text-outline uppercase shrink-0">원육 현재 재고</span>
-                        {(() => {
-                          const inv = inventory.find((i: any) => i.name === rawMaterial);
-                          const stock = inv?.currentStock || 0;
-                          const isLow = stock < (Number(rawQty) || 0);
-                          return (
-                            <span className={`text-[10px] font-black ${isLow ? 'text-rose-600' : 'text-blue-600'}`}>
-                              {Math.round(stock).toLocaleString()} KG
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 원육 브랜드 */}
-                <div className="space-y-1 relative col-span-1">
-                  <label className="text-[10px] md:text-xs font-black text-outline">브랜드</label>
-                  <div className="relative">
-                    <input 
-                      placeholder="브랜드" 
-                      value={brand} 
-                      onChange={e => setBrand(e.target.value)} 
-                      onFocus={() => setActiveBrandDropdown(true)}
-                      onBlur={() => setTimeout(() => setActiveBrandDropdown(false), 200)}
-                      className="h-14 px-4 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" 
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setActiveBrandDropdown(!activeBrandDropdown)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
-                    >
-                      <ChevronDown className={`w-4 h-4 transition-transform ${activeBrandDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                    {activeBrandDropdown && (
-                      <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                        {(() => {
-                          const filteredBrands = brands.filter(b => b.toLowerCase().includes((brand || '').toLowerCase()));
-                          return filteredBrands.length > 0 ? (
-                            filteredBrands.map((b) => (
-                              <button
-                                key={b}
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setBrand(b);
-                                  setActiveBrandDropdown(false);
-                                }}
-                                className={`w-full h-11 flex flex-col justify-center px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${brand === b ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
-                              >
-                                <span>{b}</span>
-                                {brand === b && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">검색 결과가 없습니다</div>
-                          );
-                        })()}
-                        <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 총 원육 투입량 */}
-                <div className="space-y-1">
-                  <label className="text-[10px] md:text-xs font-black text-outline uppercase">총 투입량 (KG)</label>
-                  <input 
-                    type="text" 
-                    placeholder="0" 
-                    value={formatWithCommas(rawQty)} 
-                    onChange={e => {
-                      const val = e.target.value;
-                      let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
-                      const parts = cleaned.split('.');
-                      if (parts.length > 2) {
-                        cleaned = parts[0] + '.' + parts.slice(1).join('');
-                      }
-                      const dotIndex = cleaned.indexOf('.');
-                      if (dotIndex !== -1) {
-                        cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
-                      }
-                      setRawQty(cleaned);
-                    }} 
-                    className="h-14 px-4 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 완제품 다중 입력 */}
-            <div className="space-y-6">
-              <h3 className="text-base md:text-lg font-black text-slate-800 flex items-center justify-between gap-2 px-1">
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-4.5 bg-indigo-600 rounded" />
-                  2. 생산 완제품 정보 입력
-                </span>
-                <span className="text-xs text-outline font-bold">생산 품목: {rows.length}개</span>
-              </h3>
-
-              <div className="space-y-4">
-                 <div className="hidden md:grid grid-cols-12 gap-4 px-4">
-                    <p className="col-span-3 text-center text-[12px] font-black text-outline tracking-tight">품목명</p>
-                    <p className="col-span-3 text-center text-[12px] font-black text-outline tracking-tight">원육 품명</p>
-                    <p className="col-span-2 text-center text-[12px] font-black text-outline tracking-tight">브랜드</p>
-                    <p className="col-span-2 text-center text-[12px] font-black text-outline tracking-tight uppercase">투입량 (KG)</p>
-                    <p className="col-span-2 text-center text-[12px] font-black text-outline tracking-tight uppercase">생산량 (KG)</p>
-                 </div>
+          <div className="space-y-6">
+             <div className="hidden md:grid grid-cols-12 gap-4 px-4">
+                <p className="col-span-3 text-center text-[12px] font-black text-outline tracking-tight">품목명</p>
+                <p className="col-span-3 text-center text-[12px] font-black text-outline tracking-tight">원육 품명</p>
+                <p className="col-span-2 text-center text-[12px] font-black text-outline tracking-tight">브랜드</p>
+                <p className="col-span-2 text-center text-[12px] font-black text-outline tracking-tight uppercase">투입량 (KG)</p>
+                <p className="col-span-2 text-center text-[12px] font-black text-outline tracking-tight uppercase">생산량 (KG)</p>
+             </div>
 
              {rows.map((row, index) => {
+                const raw = Number(row.rawQty) || 0;
+                const prod = Number(row.production) || 0;
+                const yieldRate = raw > 0 ? (prod / raw) * 100 : 0;
+                const lossRate = raw > 0 ? ((raw - prod) / raw) * 100 : 0;
+
                 return (
-                  <div key={row.id} className="relative bg-[#f8fafc] p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-slate-200/50 space-y-6 animate-in fade-in duration-300">
-                    {index > 0 && (
-                      <button 
-                        type="button"
-                        onClick={() => removeRow(row.id)} 
-                        className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-all z-10"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                      {/* 완제품 품목명 */}
-                      <div className="lg:col-span-12 xl:col-span-5 space-y-1">
-                        <label className="text-[10px] font-black text-outline">완제품 품목명</label>
-                        <div className="flex flex-col gap-1 w-full relative">
-                          <input 
-                            placeholder="완제품 품목명 입력 또는 선택" 
-                            value={row.title} 
-                            onChange={e => updateRow(row.id, 'title', e.target.value)} 
-                            onFocus={() => setActiveItemDropdown(row.id)}
-                            onBlur={() => setTimeout(() => setActiveItemDropdown(null), 200)}
-                            className="h-14 px-4 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" 
-                          />
-                          <button 
-                            type="button"
-                            onClick={() => setActiveItemDropdown(activeItemDropdown === row.id ? null : row.id)}
-                            className="absolute right-2 top-2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </button>
-                          {activeItemDropdown === row.id && (
-                            <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                              {productItems.length > 0 ? (
-                                productItems.filter(item => item.name.toLowerCase().includes((row.title || '').toLowerCase())).map((item) => (
-                                  <button
-                                    key={item.id}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      updateRow(row.id, 'title', item.name);
-                                      setActiveItemDropdown(null);
-                                    }}
-                                    className={"w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors " + (row.title === item.name ? 'bg-primary/5' : '')}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className={"text-sm font-bold " + (row.title === item.name ? 'text-primary' : 'text-slate-600')}>{item.name}</span>
-                                      {row.title === item.name && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] font-black text-outline-variant">{item.category}</span>
-                                      <span className="text-[10px] font-black text-primary/50">| {item.currentStock?.toLocaleString()} KG</span>
-                                    </div>
-                                  </button>
-                                ))
-                              ) : (
-                                <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">등록된 완제품 품목이 없습니다</div>
+                   <div key={row.id} className="relative bg-[#f1f5f9] p-4 md:p-6 rounded-[24px] md:rounded-[32px] border border-outline-variant/30 space-y-6">
+                      {index > 0 && <button onClick={() => removeRow(row.id)} className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-all z-10"><X className="w-4 h-4" /></button>}
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                         <div className="md:col-span-3 space-y-1">
+                           <label className="md:hidden text-[10px] font-black text-outline">품목명</label>
+                           <div className="flex flex-col gap-1 w-full relative">
+                             <input 
+                               placeholder="품목명 입력 또는 선택" 
+                               value={row.title} 
+                               onChange={e => updateRow(row.id, 'title', e.target.value)} 
+                               onFocus={() => setActiveItemDropdown(row.id)}
+                               className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" 
+                             />
+                             <button 
+                                type="button"
+                                onClick={() => setActiveItemDropdown(activeItemDropdown === row.id ? null : row.id)}
+                                className="absolute right-2 top-[calc(50%-12px)] md:top-[calc(50%-8px)] -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                             >
+                               <ChevronDown className={`w-4 h-4 transition-transform ${activeItemDropdown === row.id ? 'rotate-180' : ''}`} />
+                             </button>
+                             {activeItemDropdown === row.id && (
+                               <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                                 {productItems.length > 0 ? (
+                                   productItems.filter(item => item.name.toLowerCase().includes(row.title.toLowerCase())).map((item: any) => (
+                                     <button
+                                       key={item.id}
+                                       type="button"
+                                       onMouseDown={(e) => {
+                                         e.preventDefault();
+                                         updateRow(row.id, 'title', item.name);
+                                         if (item.brand) updateRow(row.id, 'brand', item.brand);
+                                         setActiveItemDropdown(null);
+                                       }}
+                                       className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${row.title === item.name ? 'bg-primary/5' : ''}`}
+                                     >
+                                       <div className="flex items-center justify-between">
+                                         <span className={`text-sm font-bold ${row.title === item.name ? 'text-primary' : 'text-slate-600'}`}>{item.name}</span>
+                                         {row.title === item.name && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                                       </div>
+                                       <div className="flex items-center gap-2">
+                                         <span className="text-[10px] font-black text-outline-variant">{item.category}</span>
+                                         <span className="text-[10px] font-black text-primary/50">| {item.currentStock?.toLocaleString()} KG</span>
+                                       </div>
+                                     </button>
+                                   ))
+                                 ) : (
+                                   <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">등록된 완제품 품목이 없습니다</div>
+                                 )}
+                                 <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                               </div>
+                             )}
+                             {row.title && (
+                               <div className="px-2 flex items-center justify-between">
+                                 <span className="text-[10px] font-black text-outline uppercase shrink-0">생산품 재고</span>
+                                 <span className="text-[10px] font-black text-emerald-600">
+                                   {inventory.find((i: any) => i.name === row.title)?.currentStock?.toLocaleString() || '0'} KG
+                                 </span>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                         <div className="md:col-span-3 space-y-1 relative">
+                           <label className="md:hidden text-[10px] font-black text-outline">원육 품명</label>
+                           <div className="flex flex-col gap-1 w-full relative">
+                             <input 
+                               placeholder="원육 품명 선택 또는 입력" 
+                               value={row.rawMaterial} 
+                               onChange={e => updateRow(row.id, 'rawMaterial', e.target.value)} 
+                               onFocus={() => setActiveRawDropdown(row.id)}
+                               className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" 
+                             />
+                             <button 
+                                type="button"
+                                onClick={() => setActiveRawDropdown(activeRawDropdown === row.id ? null : row.id)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                             >
+                               <ChevronDown className={`w-4 h-4 transition-transform ${activeRawDropdown === row.id ? 'rotate-180' : ''}`} />
+                             </button>
+                             {activeRawDropdown === row.id && (
+                               <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                                 {(() => {
+                                   const filteredRaw = rawMaterials.filter(item => item.name.toLowerCase().includes((row.rawMaterial || '').toLowerCase()));
+                                    return filteredRaw.length > 0 ? (
+                                      filteredRaw.map((item: any) => (
+                                        <button
+                                          key={item.id}
+                                          type="button"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            updateRow(row.id, 'rawMaterial', item.name);
+                                            if (item.brand) updateRow(row.id, 'brand', item.brand);
+                                            setActiveRawDropdown(null);
+                                          }}
+                                          className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${row.rawMaterial === item.name ? 'bg-primary/5' : ''}`}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className={`text-sm font-bold ${row.rawMaterial === item.name ? 'text-primary' : 'text-slate-600'}`}>{item.name}</span>
+                                            {row.rawMaterial === item.name && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black text-outline-variant">{item.brand || '브랜드 없음'}</span>
+                                            <span className="text-[10px] font-black text-primary/50">| {Math.round(item.currentStock || 0).toLocaleString()} KG</span>
+                                          </div>
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">검색 결과가 없습니다</div>
+                                    );
+                                  })()}
+                                  <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                                </div>
                               )}
-                              <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                              {row.rawMaterial && (
+                                <div className="px-2 flex items-center justify-between mt-1">
+                                  <span className="text-[10px] font-black text-outline uppercase shrink-0">원육 재고</span>
+                                  {(() => {
+                                    const inv = inventory.find((i: any) => i.name === row.rawMaterial);
+                                    const stock = inv?.currentStock || 0;
+                                    const isLow = stock < (Number(row.rawQty) || 0);
+                                    return (
+                                      <span className={`text-[10px] font-black ${isLow ? 'text-rose-600' : 'text-blue-600'}`}>
+                                        {Math.round(stock).toLocaleString()} KG
+                                      </span>
+                                    );
+                                  })()}
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {row.title && (
-                            <div className="px-2 flex items-center justify-between mt-0.5">
-                              <span className="text-[10px] font-black text-outline uppercase shrink-0">완제품 현재 재고</span>
-                              <span className="text-[10px] font-black text-emerald-600">
-                                {inventory.find((i) => i.name === row.title)?.currentStock?.toLocaleString() || '0'} KG
-                              </span>
+                          </div>
+                          <div className="md:col-span-2 space-y-1 relative">
+                             <label className="md:hidden text-[10px] font-black text-outline">브랜드</label>
+                             <div className="relative">
+                               <input 
+                                 placeholder="브랜드" 
+                                 value={row.brand} 
+                                 onChange={e => updateRow(row.id, 'brand', e.target.value)} 
+                                 onFocus={() => setActiveBrandDropdown(row.id)}
+                                 className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full" 
+                               />
+                               <button 
+                                 type="button"
+                                 onClick={() => setActiveBrandDropdown(activeBrandDropdown === row.id ? null : row.id)}
+                                 className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                               >
+                                 <ChevronDown className={`w-4 h-4 transition-transform ${activeBrandDropdown === row.id ? 'rotate-180' : ''}`} />
+                               </button>
+                               {activeBrandDropdown === row.id && (
+                                 <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                                   {(() => {
+                                     const filteredBrands = brands.filter(b => b.toLowerCase().includes((row.brand || '').toLowerCase()));
+                                    return filteredBrands.length > 0 ? (
+                                      filteredBrands.map((b) => (
+                                        <button
+                                          key={b}
+                                          type="button"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            updateRow(row.id, 'brand', b);
+                                            setActiveBrandDropdown(null);
+                                          }}
+                                          className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${row.brand === b ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                                        >
+                                          <span>{b}</span>
+                                          {row.brand === b && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">검색 결과가 없습니다</div>
+                                    );
+                                  })()}
+                                  <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                         </div>
+                         <div className="md:col-span-2 space-y-1">
+                           <label className="md:hidden text-[10px] font-black text-outline">투입량 (KG)</label>
+                           <input 
+                                type="text" 
+                                placeholder="0" 
+                                value={formatWithCommas(row.rawQty)} 
+                                onChange={e => updateRow(row.id, 'rawQty', (() => {
+                                  const val = e.target.value;
+                                  let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                                  const parts = cleaned.split('.');
+                                  if (parts.length > 2) {
+                                    cleaned = parts[0] + '.' + parts.slice(1).join('');
+                                  }
+                                  const dotIndex = cleaned.indexOf('.');
+                                  if (dotIndex !== -1) {
+                                    cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                                  }
+                                  return cleaned;
+                                })())} 
+                                className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
+                            />
+                         </div>
+                         <div className="md:col-span-2 space-y-1">
+                           <label className="md:hidden text-[10px] font-black text-outline">생산량 (KG)</label>
+                           <input 
+                               type="text" 
+                               placeholder="0" 
+                               value={formatWithCommas(row.production)} 
+                               onChange={e => updateRow(row.id, 'production', (() => {
+                                  const val = e.target.value;
+                                  let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                                  const parts = cleaned.split('.');
+                                  if (parts.length > 2) {
+                                    cleaned = parts[0] + '.' + parts.slice(1).join('');
+                                  }
+                                  const dotIndex = cleaned.indexOf('.');
+                                  if (dotIndex !== -1) {
+                                    cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                                  }
+                                  return cleaned;
+                                })())} 
+                               className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
+                           />
+                         </div>
                       </div>
+ 
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 col-span-1 sm:col-span-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-emerald-700 uppercase ml-1">생산 수율 (%)</label>
+                            <div className="h-14 md:h-16 flex items-center justify-center bg-emerald-50 rounded-2xl font-black text-xl md:text-3xl text-emerald-600 border border-emerald-100 shadow-sm">
+                              {`${yieldRate.toFixed(1)}%`}
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-rose-700 uppercase ml-1">로스 비율 (%)</label>
+                            <div className="h-14 md:h-16 flex items-center justify-center bg-rose-50 rounded-2xl font-black text-xl md:text-3xl text-rose-600 border border-rose-100 shadow-sm">
+                              {`${lossRate.toFixed(1)}%`}
+                            </div>
+                          </div>
+                        </div>
 
-                      {/* 생산량 */}
-                      <div className="md:col-span-6 xl:col-span-3 space-y-1">
-                        <label className="text-[10px] font-black text-outline">생산량 (KG)</label>
-                        <input 
-                          type="text" 
-                          placeholder="0" 
-                          value={formatWithCommas(row.production)} 
-                          onChange={e => updateRow(row.id, 'production', (() => {
-                            const val = e.target.value;
-                            let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
-                            const parts = cleaned.split('.');
-                            if (parts.length > 2) {
-                              cleaned = parts[0] + '.' + parts.slice(1).join('');
-                            }
-                            const dotIndex = cleaned.indexOf('.');
-                            if (dotIndex !== -1) {
-                              cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
-                            }
-                            return cleaned;
-                          })())} 
-                          className="h-14 px-4 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full" 
-                        />
+                         <div className="flex items-center gap-3 bg-white px-4 md:px-6 h-14 md:h-16 rounded-2xl border border-outline-variant shadow-sm self-start">
+                            <span className="text-[10px] font-black text-outline whitespace-nowrap">제조일자</span>
+                            <input type="date" value={row.manufDate} onChange={e => updateRow(row.id, 'manufDate', e.target.value)} className="flex-1 bg-transparent font-bold text-xs md:text-sm outline-none" />
+                            <CalendarDays className="w-4 h-4 text-outline-variant" />
+                         </div>
+                         <div className="flex flex-col gap-2">
+                           <div className="flex items-center gap-3 bg-white px-4 md:px-6 h-14 md:h-16 rounded-2xl border border-outline-variant shadow-sm">
+                              <span className="text-[10px] font-black text-outline whitespace-nowrap">소비기한</span>
+                              <input type="date" value={row.expiryDate} onChange={e => updateRow(row.id, 'expiryDate', e.target.value)} className="flex-1 bg-transparent font-bold text-xs md:text-sm outline-none" placeholder="연도-월-일" />
+                              <CalendarDays className="w-4 h-4 text-outline-variant" />
+                           </div>
+                           <div className="flex flex-wrap gap-1.5 px-1">
+                             {[1, 3, 6, 12, 24].map((m) => (
+                               <button
+                                 key={m}
+                                 type="button"
+                                 onClick={() => setExpiryShortcut(row.id, row.manufDate, m)}
+                                 className="px-3 py-1.5 bg-white border border-outline-variant/30 rounded-lg text-[10px] font-black text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm"
+                               >
+                                 {m >= 12 ? `${m / 12}년` : `${m}개월`}
+                               </button>
+                             ))}
+                           </div>
+                         </div>
                       </div>
-
-                      {/*消费期限*/}
-                      <div className="md:col-span-6 xl:col-span-4 flex flex-col gap-2">
-                        <div className="flex items-center gap-3 bg-white px-4 h-14 rounded-2xl border border-outline-variant shadow-sm w-full">
-                          <span className="text-[10px] font-black text-outline whitespace-nowrap">소비기한</span>
-                          <div className="flex-1 min-w-0" />
-                          <input 
-                            type="date" 
-                            value={row.expiryDate} 
-                            onChange={e => updateRow(row.id, 'expiryDate', e.target.value)} 
-                            className="w-36 bg-transparent font-bold text-xs md:text-sm outline-none text-right" 
-                            placeholder="연도-월-일" 
-                          />
-                          <CalendarDays className="w-4 h-4 text-outline-variant shrink-0" />
-                        </div>
-                        <div className="flex flex-wrap gap-1 px-1">
-                          {[1, 3, 6, 12, 24].map((m) => (
-                            <button
-                              key={m}
-                              type="button"
-                              onClick={() => setExpiryShortcut(row.id, logDate, m)}
-                              className="px-2.5 py-1 bg-white border border-outline-variant/30 rounded-lg text-[9px] font-black text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm"
-                            >
-                              {m >= 12 ? (m / 12) + "년" : m + "개월"}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                   </div>
                 );
-              })}
-            </div>
+             })}
           </div>
 
           {/* Integrated Yield and Loss Summary Card */}
@@ -1015,8 +1003,7 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
                 </>
              )}
           </div>
-        </div>
-        <DeleteConfirmModal
+          <DeleteConfirmModal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
         onConfirm={() => handleDelete(deleteModal.id, deleteModal.title)}
@@ -1049,114 +1036,108 @@ function ProductionContent({ production, inventory, onNavigate, canEditItems }: 
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:flex-row lg:items-center xl:justify-end gap-3 w-full lg:w-auto flex-1">
-            {/* 1. Line & Search Grid for Mobile */}
-            <div className="grid grid-cols-2 gap-2 w-full lg:flex lg:w-auto">
-              <div className="relative w-full lg:w-48">
-                <select 
-                  value={filterLine} 
-                  onChange={(e) => setFilterLine(e.target.value)}
-                  className="w-full h-11 px-4 bg-white border border-outline-variant rounded-xl text-[11px] font-black appearance-none focus:border-primary outline-none shadow-sm cursor-pointer pr-10"
-                >
-                  {['전체', '삼산공장', '언양공장 부속물', '언양공장 식육가공'].map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <ChevronDown className="w-3.5 h-3.5 text-outline" />
-                </div>
-              </div>
-
-              <div className="relative group w-full lg:w-64">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                <input 
-                  type="text" 
-                  placeholder="품목명 검색..." 
-                  value={search} 
-                  onChange={(e) => setSearch(e.target.value)} 
-                  className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
-                />
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full lg:w-auto flex-1">
+            <div className="relative lg:w-48">
+              <select 
+                value={filterLine} 
+                onChange={(e) => setFilterLine(e.target.value)}
+                className="w-full h-11 px-4 bg-white border border-outline-variant rounded-xl text-[11px] font-black appearance-none focus:border-primary outline-none shadow-sm cursor-pointer pr-10"
+              >
+                {['전체', '삼산공장', '언양공장 부속물', '언양공장 식육가공'].map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDown className="w-3.5 h-3.5 text-outline" />
               </div>
             </div>
 
-            {/* 2. Date Picker & Shift Tabs Grid for Mobile */}
-            <div className="grid grid-cols-2 gap-2 w-full lg:flex lg:w-auto">
-              <div className="flex items-center gap-1.5 w-full">
-                <div className="relative group flex-1">
-                  <input 
-                    ref={startDatePickerRef}
-                    type="date"
-                    value={filterStartDate}
-                    onChange={(e) => {
-                      setFilterStartDate(e.target.value);
-                      setActiveShift('');
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
-                  />
-                  <button 
-                    onClick={handleStartDateClick}
-                    className="w-full flex items-center justify-center gap-1.5 px-2 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
-                  >
-                    <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="font-black text-[11px] truncate">{filterStartDate.split('-').slice(1).join('/')}</span>
-                  </button>
-                </div>
+            <div className="relative group flex-1 md:flex-none md:w-64">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+              <input 
+                type="text" 
+                placeholder="품목명 검색..." 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-xs md:text-sm font-bold outline-none focus:border-primary transition-all shadow-sm" 
+              />
+            </div>
 
-                <span className="text-outline font-black text-xs shrink-0">~</span>
-
-                <div className="relative group flex-1">
-                  <input 
-                    ref={endDatePickerRef}
-                    type="date"
-                    value={filterEndDate}
-                    onChange={(e) => {
-                      setFilterEndDate(e.target.value);
-                      setActiveShift('');
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
-                  />
-                  <button 
-                    onClick={handleEndDateClick}
-                    className="w-full flex items-center justify-center gap-1.5 px-2 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
-                  >
-                    <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="font-black text-[11px] truncate">{filterEndDate.split('-').slice(1).join('/')}</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center w-full min-w-0">
-                {[
-                  { label: '일간', action: () => {
-                    setFilterStartDate(today);
-                    setFilterEndDate(today);
-                  }},
-                  { label: '주간', action: () => {
-                    const d = new Date();
-                    d.setDate(d.getDate() - 7);
-                    setFilterStartDate(d.toISOString().split('T')[0]);
-                    setFilterEndDate(today);
-                  }},
-                  { label: '월간', action: () => {
-                    const d = new Date();
-                    const first = new Date(d.getFullYear(), d.getMonth(), 1);
-                    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-                    setFilterStartDate(first.toISOString().split('T')[0]);
-                    setFilterEndDate(last.toISOString().split('T')[0]);
+            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+              <div className="relative group flex-1 sm:flex-none">
+                <input 
+                  ref={startDatePickerRef}
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => {
+                    setFilterStartDate(e.target.value);
+                    setActiveShift('');
                   }}
-                ].map((shift) => (
-                  <button
-                    key={shift.label}
-                    onClick={() => {
-                      setActiveShift(shift.label);
-                      shift.action();
-                    }}
-                    className={`flex-1 px-2.5 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift.label ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
-                  >
-                    {shift.label}
-                  </button>
-                ))}
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
+                />
+                <button 
+                  onClick={handleStartDateClick}
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-black">{filterStartDate.split('-').slice(1).join('/')}</span>
+                </button>
               </div>
+
+              <span className="text-outline font-black text-xs">~</span>
+
+              <div className="relative group flex-1 sm:flex-none">
+                <input 
+                  ref={endDatePickerRef}
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => {
+                    setFilterEndDate(e.target.value);
+                    setActiveShift('');
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
+                />
+                <button 
+                  onClick={handleEndDateClick}
+                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-black">{filterEndDate.split('-').slice(1).join('/')}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 sm:flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center shrink-0">
+              {[
+                { label: '일간', action: () => {
+                  setFilterStartDate(today);
+                  setFilterEndDate(today);
+                }},
+                { label: '주간', action: () => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 7);
+                  setFilterStartDate(d.toISOString().split('T')[0]);
+                  setFilterEndDate(today);
+                }},
+                { label: '월간', action: () => {
+                  const d = new Date();
+                  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+                  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+                  setFilterStartDate(first.toISOString().split('T')[0]);
+                  setFilterEndDate(last.toISOString().split('T')[0]);
+                }}
+              ].map((shift) => (
+                <button
+                  key={shift.label}
+                  onClick={() => {
+                    setActiveShift(shift.label);
+                    shift.action();
+                  }}
+                  className={`flex-1 sm:flex-none px-3 md:px-4 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift.label ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
+                >
+                  {shift.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
