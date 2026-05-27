@@ -85,6 +85,7 @@ function ProductionContent({
       production: "",
       manufDate: new Date().toLocaleDateString("sv-SE"),
       expiryDate: "",
+      linkType: "none",
     },
   ]);
 
@@ -98,6 +99,38 @@ function ProductionContent({
   const [activeItemDropdown, setActiveItemDropdown] = useState<number | null>(
     null,
   );
+
+  const formRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (!target) return;
+
+      if (activeItemDropdown !== null) {
+        const itemContainer = document.querySelector(`.item-dropdown-container-${activeItemDropdown}`);
+        if (itemContainer && !itemContainer.contains(target)) {
+          setActiveItemDropdown(null);
+        }
+      }
+      if (activeRawDropdown !== null) {
+        const rawContainer = document.querySelector(`.raw-dropdown-container-${activeRawDropdown}`);
+        if (rawContainer && !rawContainer.contains(target)) {
+          setActiveRawDropdown(null);
+        }
+      }
+      if (activeBrandDropdown !== null) {
+        const brandContainer = document.querySelector(`.brand-dropdown-container-${activeBrandDropdown}`);
+        if (brandContainer && !brandContainer.contains(target)) {
+          setActiveBrandDropdown(null);
+        }
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [activeItemDropdown, activeRawDropdown, activeBrandDropdown]);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(false);
@@ -327,9 +360,12 @@ function ProductionContent({
       };
     } = {};
 
-    rows.forEach((r) => {
-      const rawNum = Number(r.rawQty) || 0;
-      const prodNum = Number(r.production) || 0;
+    rows.forEach((r, idx) => {
+      const isRawLinked = idx > 0 && r.linkType === "raw";
+      const isProductLinked = idx > 0 && r.linkType === "product";
+
+      const rawNum = isRawLinked ? 0 : (Number(r.rawQty) || 0);
+      const prodNum = isProductLinked ? 0 : (Number(r.production) || 0);
       totalRaw += rawNum;
       totalProd += prodNum;
 
@@ -422,6 +458,7 @@ function ProductionContent({
         production: "",
         manufDate: logDate,
         expiryDate: "",
+        linkType: "none",
       },
     ]);
   };
@@ -528,20 +565,27 @@ function ProductionContent({
 
       if (editingId) {
         const row = rows[0];
-        const prodNum = Number(row.production);
-        const rawNum = Number(row.rawQty);
+        const isRawLinked = row.linkType === "raw";
+        const isProductLinked = row.linkType === "product";
+
+        const prodNum = isProductLinked ? 0 : Number(row.production) || 0;
+        const rawNum = isRawLinked ? 0 : Number(row.rawQty) || 0;
         const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
         const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
 
         const oldRecord = production.find((p: any) => p.id === editingId);
         if (oldRecord) {
           // Revert old inventory change
-          await updateInventoryStock(oldRecord.title, -oldRecord.production);
-          await updateInventoryStock(
-            oldRecord.rawMaterial,
-            oldRecord.rawQty,
-            true,
-          );
+          if (oldRecord.production > 0) {
+            await updateInventoryStock(oldRecord.title, -oldRecord.production);
+          }
+          if (oldRecord.rawQty > 0) {
+            await updateInventoryStock(
+              oldRecord.rawMaterial,
+              oldRecord.rawQty,
+              true,
+            );
+          }
           // Delete old logistics
           await deleteRelatedLogistics(editingId);
         }
@@ -556,34 +600,43 @@ function ProductionContent({
           rawQty: rawNum,
           yield: yieldRate,
           loss: lossRate,
+          linkType: row.linkType || "none",
           updatedAt: serverTimestamp(),
         });
 
         // Apply new inventory change
-        await updateInventoryStock(row.title, prodNum, false, row.brand);
-        await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
+        if (prodNum > 0) {
+          await updateInventoryStock(row.title, prodNum, false, row.brand);
+        }
+        if (rawNum > 0) {
+          await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
+        }
 
         // Create new logistics records
-        await createLogisticsRecord({
-          item: row.title,
-          type: "입고",
-          weight: prodNum,
-          category: "완제품",
-          brand: row.brand,
-          partner: line,
-          batchId: editingId,
-          date: row.manufDate,
-        });
-        await createLogisticsRecord({
-          item: row.rawMaterial,
-          type: "출고",
-          weight: rawNum,
-          category: "원육",
-          brand: row.brand,
-          partner: "생산투입",
-          batchId: editingId,
-          date: row.manufDate,
-        });
+        if (prodNum > 0) {
+          await createLogisticsRecord({
+            item: row.title,
+            type: "입고",
+            weight: prodNum,
+            category: "완제품",
+            brand: row.brand,
+            partner: line,
+            batchId: editingId,
+            date: row.manufDate,
+          });
+        }
+        if (rawNum > 0) {
+          await createLogisticsRecord({
+            item: row.rawMaterial,
+            type: "출고",
+            weight: rawNum,
+            category: "원육",
+            brand: row.brand,
+            partner: "생산투입",
+            batchId: editingId,
+            date: row.manufDate,
+          });
+        }
 
         alert("생산 실적 수정 완료");
         setEditingId(null);
@@ -598,63 +651,87 @@ function ProductionContent({
             production: "",
             manufDate: logDate,
             expiryDate: "",
+            linkType: "none",
           },
         ]);
         return;
       }
 
-      for (const row of rows) {
-        if (!row.title || !row.rawQty || !row.production) continue;
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const isRawLinked = i > 0 && row.linkType === "raw";
+        const isProductLinked = i > 0 && row.linkType === "product";
 
-        const prodNum = Number(row.production);
-        const rawNum = Number(row.rawQty);
+        const resolvedTitle = isProductLinked ? rows[i - 1].title : row.title;
+        const resolvedRawMaterial = isRawLinked ? rows[i - 1].rawMaterial : row.rawMaterial;
+        const resolvedBrand = isRawLinked ? rows[i - 1].brand : (isProductLinked ? rows[i - 1].brand : row.brand);
+
+        if (!resolvedTitle) continue;
+
+        const prodNum = isProductLinked ? 0 : Number(row.production) || 0;
+        const rawNum = isRawLinked ? 0 : Number(row.rawQty) || 0;
+
+        if (i === 0 && (!row.rawQty || !row.production)) continue;
+
         const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
         const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
 
         // Clean up row data for Firestore
         const { id: _, ...cleanRow } = row;
 
-        const itemMaster = inventory.find((it: any) => it.name === row.title);
+        const itemMaster = inventory.find((it: any) => it.name === resolvedTitle);
         const partner = itemMaster?.partner || "";
 
         const batchRef = await addDoc(collection(db, "production_batches"), {
           ...cleanRow,
+          title: resolvedTitle,
+          rawMaterial: resolvedRawMaterial,
+          brand: resolvedBrand,
           line,
           partner,
           production: prodNum,
           rawQty: rawNum,
           yield: yieldRate,
           loss: lossRate,
+          linkType: row.linkType || "none",
           createdAt: serverTimestamp(),
         });
 
         const batchId = batchRef.id;
 
         // Apply inventory change
-        await updateInventoryStock(row.title, prodNum, false, row.brand);
-        await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
+        if (prodNum > 0) {
+          await updateInventoryStock(resolvedTitle, prodNum, false, resolvedBrand);
+        }
+        if (rawNum > 0) {
+          await updateInventoryStock(resolvedRawMaterial, -rawNum, true, resolvedBrand);
+        }
 
         // Create logistics records
-        await createLogisticsRecord({
-          item: row.title,
-          type: "입고",
-          weight: prodNum,
-          category: "완제품",
-          brand: row.brand,
-          partner: line,
-          batchId: batchId,
-          date: row.manufDate,
-        });
-        await createLogisticsRecord({
-          item: row.rawMaterial,
-          type: "출고",
-          weight: rawNum,
-          category: "원육",
-          brand: row.brand,
-          partner: "생산투입",
-          batchId: batchId,
-          date: row.manufDate,
-        });
+        if (prodNum > 0) {
+          await createLogisticsRecord({
+            item: resolvedTitle,
+            type: "입고",
+            weight: prodNum,
+            category: "완제품",
+            brand: resolvedBrand,
+            partner: line,
+            batchId: batchId,
+            date: row.manufDate,
+          });
+        }
+        if (rawNum > 0) {
+          await createLogisticsRecord({
+            item: resolvedRawMaterial,
+            type: "출고",
+            weight: rawNum,
+            category: "원육",
+            brand: resolvedBrand,
+            partner: "생산투입",
+            batchId: batchId,
+            date: row.manufDate,
+          });
+        }
       }
       alert("생산 실적 등록 완료");
       setShowForm(false);
@@ -668,6 +745,7 @@ function ProductionContent({
           production: "",
           manufDate: logDate,
           expiryDate: "",
+          linkType: "none",
         },
       ]);
     } catch (error) {
@@ -691,6 +769,7 @@ function ProductionContent({
         production: item.production,
         manufDate: item.manufDate,
         expiryDate: item.expiryDate || "",
+        linkType: item.linkType || "none",
       },
     ]);
     setShowForm(true);
@@ -799,6 +878,7 @@ function ProductionContent({
       {/* Entry Form */}
       {showForm && (
         <motion.div
+          ref={formRef}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="bg-white rounded-[32px] md:rounded-[48px] border border-outline-variant/30 shadow-2xl p-6 md:p-10 space-y-8 md:space-y-10"
@@ -868,7 +948,7 @@ function ProductionContent({
               return (
                 <div
                   key={row.id}
-                  className="relative bg-[#f1f5f9] p-4 md:p-6 rounded-[24px] md:rounded-[32px] border border-outline-variant/30 space-y-6"
+                  className="relative bg-[#f1f5f9] p-4 md:p-6 rounded-[24px] md:rounded-[32px] border border-outline-variant/30 space-y-4"
                 >
                   {index > 0 && (
                     <button
@@ -881,99 +961,161 @@ function ProductionContent({
                     </button>
                   )}
 
+                  {/* Link Selection Options for Subsequent Rows */}
+                  {index > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap bg-white/60 p-2 rounded-2xl max-w-max">
+                      <span className="text-[10px] font-black text-slate-500 uppercase ml-1 mr-1">연계 설정:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateRow(row.id, "linkType", "none");
+                        }}
+                        className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${
+                          row.linkType === "none" || !row.linkType
+                            ? "bg-[#0f172a] text-white"
+                            : "bg-white border border-outline-variant text-[#0f172a] hover:border-[#0f172a]"
+                        }`}
+                      >
+                        개별 등록
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateRow(row.id, "linkType", "raw");
+                          updateRow(row.id, "rawMaterial", rows[index - 1].rawMaterial);
+                          updateRow(row.id, "brand", rows[index - 1].brand);
+                          updateRow(row.id, "rawQty", "0");
+                        }}
+                        className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${
+                          row.linkType === "raw"
+                            ? "bg-blue-600 text-white"
+                            : "bg-white border border-outline-variant text-blue-600 hover:border-blue-600"
+                        }`}
+                      >
+                        원육 연계 (1:M 가공)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateRow(row.id, "linkType", "product");
+                          updateRow(row.id, "title", rows[index - 1].title);
+                          updateRow(row.id, "brand", rows[index - 1].brand);
+                          updateRow(row.id, "production", "0");
+                          updateRow(row.id, "expiryDate", rows[index - 1].expiryDate);
+                        }}
+                        className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${
+                          row.linkType === "product"
+                            ? "bg-rose-600 text-white"
+                            : "bg-white border border-outline-variant text-rose-600 hover:border-rose-600"
+                        }`}
+                      >
+                        품목 연계 (M:1 혼합)
+                      </button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                     <div className="md:col-span-3 space-y-1">
                       <label className="block text-xs font-black text-slate-500 ml-1">
                         품목명
                       </label>
-                      <div className="flex flex-col gap-1 w-full relative">
-                        <input
-                          placeholder="품목명 입력 또는 선택"
-                          value={row.title}
-                          onChange={(e) =>
-                            updateRow(row.id, "title", e.target.value)
-                          }
-                          onFocus={() => setActiveItemDropdown(row.id)}
-                          className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setActiveItemDropdown(
-                              activeItemDropdown === row.id ? null : row.id,
-                            )
-                          }
-                          className="absolute right-2 top-[calc(50%-12px)] md:top-[calc(50%-8px)] -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
-                        >
-                          <ChevronDown
-                            className={`w-4 h-4 transition-transform ${activeItemDropdown === row.id ? "rotate-180" : ""}`}
-                          />
-                        </button>
-                        {activeItemDropdown === row.id && (
-                          <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                            {productItems.length > 0 ? (
-                              productItems
-                                .filter((item) =>
-                                  item.name
-                                    .toLowerCase()
-                                    .includes(row.title.toLowerCase()),
+                      <div className={`flex flex-col gap-1 w-full relative item-dropdown-container-${row.id}`}>
+                        {index > 0 && row.linkType === "product" ? (
+                          <div className="h-14 md:h-16 px-4 md:px-6 bg-rose-50/50 border border-rose-200 rounded-2xl flex items-center gap-2 font-bold text-rose-800 shadow-sm w-full">
+                            <span className="text-[9px] font-black bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded uppercase">품목 연계됨</span>
+                            <span className="truncate text-xs font-black">{rows[index - 1].title || "(위 행의 품목이 지정되지 않음)"}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              placeholder="품목명 입력 또는 선택"
+                              value={row.title}
+                              onChange={(e) =>
+                                updateRow(row.id, "title", e.target.value)
+                              }
+                              onFocus={() => setActiveItemDropdown(row.id)}
+                              className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveItemDropdown(
+                                  activeItemDropdown === row.id ? null : row.id,
                                 )
-                                .map((item: any) => (
-                                  <button
-                                    key={item.id}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      updateRow(row.id, "title", item.name);
-                                      if (item.brand)
-                                        updateRow(row.id, "brand", item.brand);
-                                      setActiveItemDropdown(null);
-                                    }}
-                                    className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${row.title === item.name ? "bg-primary/5" : ""}`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span
-                                        className={`text-sm font-bold ${row.title === item.name ? "text-primary" : "text-slate-600"}`}
+                              }
+                              className="absolute right-2 top-[calc(50%-12px)] md:top-[calc(50%-8px)] -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                            >
+                              <ChevronDown
+                                className={`w-4 h-4 transition-transform ${activeItemDropdown === row.id ? "rotate-180" : ""}`}
+                              />
+                            </button>
+                            {activeItemDropdown === row.id && (
+                              <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                                {productItems.length > 0 ? (
+                                  productItems
+                                    .filter((item) =>
+                                      item.name
+                                        .toLowerCase()
+                                        .includes(row.title.toLowerCase()),
+                                    )
+                                    .map((item: any) => (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          updateRow(row.id, "title", item.name);
+                                          if (item.brand)
+                                            updateRow(row.id, "brand", item.brand);
+                                          setActiveItemDropdown(null);
+                                        }}
+                                        className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${row.title === item.name ? "bg-primary/5" : ""}`}
                                       >
-                                        {item.name}
-                                      </span>
-                                      {row.title === item.name && (
-                                        <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] font-black text-outline-variant">
-                                        {item.category}
-                                      </span>
-                                      <span className="text-[10px] font-black text-primary/50">
-                                        | {item.currentStock?.toLocaleString()}{" "}
-                                        KG
-                                      </span>
-                                    </div>
-                                  </button>
-                                ))
-                            ) : (
-                              <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">
-                                등록된 완제품 품목이 없습니다
+                                        <div className="flex items-center justify-between">
+                                          <span
+                                            className={`text-sm font-bold ${row.title === item.name ? "text-primary" : "text-slate-600"}`}
+                                          >
+                                            {item.name}
+                                          </span>
+                                          {row.title === item.name && (
+                                            <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] font-black text-outline-variant">
+                                            {item.category}
+                                          </span>
+                                          <span className="text-[10px] font-black text-primary/50">
+                                            | {item.currentStock?.toLocaleString()}{" "}
+                                            KG
+                                          </span>
+                                        </div>
+                                      </button>
+                                    ))
+                                ) : (
+                                  <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">
+                                    등록된 완제품 품목이 없습니다
+                                  </div>
+                                )}
+                                <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">
+                                  직접 입력 가능
+                                </div>
                               </div>
                             )}
-                            <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">
-                              직접 입력 가능
-                            </div>
-                          </div>
-                        )}
-                        {row.title && (
-                          <div className="px-2 flex items-center justify-between">
-                            <span className="text-[10px] font-black text-outline uppercase shrink-0">
-                              생산품 재고
-                            </span>
-                            <span className="text-[10px] font-black text-emerald-600">
-                              {inventory
-                                .find((i: any) => i.name === row.title)
-                                ?.currentStock?.toLocaleString() || "0"}{" "}
-                              KG
-                            </span>
-                          </div>
+                            {row.title && (
+                              <div className="px-2 flex items-center justify-between">
+                                <span className="text-[10px] font-black text-outline uppercase shrink-0">
+                                  생산품 재고
+                                </span>
+                                <span className="text-[10px] font-black text-emerald-600">
+                                  {inventory
+                                    .find((i: any) => i.name === row.title)
+                                    ?.currentStock?.toLocaleString() || "0"}{" "}
+                                  KG
+                                </span>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -981,112 +1123,121 @@ function ProductionContent({
                       <label className="block text-xs font-black text-slate-500 ml-1">
                         원육 품명
                       </label>
-                      <div className="flex flex-col gap-1 w-full relative">
-                        <input
-                          placeholder="원육 품명 선택 또는 입력"
-                          value={row.rawMaterial}
-                          onChange={(e) =>
-                            updateRow(row.id, "rawMaterial", e.target.value)
-                          }
-                          onFocus={() => setActiveRawDropdown(row.id)}
-                          className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setActiveRawDropdown(
-                              activeRawDropdown === row.id ? null : row.id,
-                            )
-                          }
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
-                        >
-                          <ChevronDown
-                            className={`w-4 h-4 transition-transform ${activeRawDropdown === row.id ? "rotate-180" : ""}`}
-                          />
-                        </button>
-                        {activeRawDropdown === row.id && (
-                          <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                            {(() => {
-                              const filteredRaw = rawMaterials.filter((item) =>
-                                item.name
-                                  .toLowerCase()
-                                  .includes(
-                                    (row.rawMaterial || "").toLowerCase(),
-                                  ),
-                              );
-                              return filteredRaw.length > 0 ? (
-                                filteredRaw.map((item: any) => (
-                                  <button
-                                    key={item.id}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      updateRow(
-                                        row.id,
-                                        "rawMaterial",
-                                        item.name,
-                                      );
-                                      if (item.brand)
-                                        updateRow(row.id, "brand", item.brand);
-                                      setActiveRawDropdown(null);
-                                    }}
-                                    className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${row.rawMaterial === item.name ? "bg-primary/5" : ""}`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span
-                                        className={`text-sm font-bold ${row.rawMaterial === item.name ? "text-primary" : "text-slate-600"}`}
+                      <div className={`flex flex-col gap-1 w-full relative raw-dropdown-container-${row.id}`}>
+                        {index > 0 && row.linkType === "raw" ? (
+                          <div className="h-14 md:h-16 px-4 md:px-6 bg-blue-50/50 border border-blue-200 rounded-2xl flex items-center gap-2 font-bold text-blue-800 shadow-sm w-full">
+                            <span className="text-[9px] font-black bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase">원육 연계됨</span>
+                            <span className="truncate text-xs font-black">{rows[index - 1].rawMaterial || "(위 행의 원육이 지정되지 않음)"}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              placeholder="원육 품명 선택 또는 입력"
+                              value={row.rawMaterial}
+                              onChange={(e) =>
+                                updateRow(row.id, "rawMaterial", e.target.value)
+                              }
+                              onFocus={() => setActiveRawDropdown(row.id)}
+                              className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveRawDropdown(
+                                  activeRawDropdown === row.id ? null : row.id,
+                                )
+                              }
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                            >
+                              <ChevronDown
+                                className={`w-4 h-4 transition-transform ${activeRawDropdown === row.id ? "rotate-180" : ""}`}
+                              />
+                            </button>
+                            {activeRawDropdown === row.id && (
+                              <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                                {(() => {
+                                  const filteredRaw = rawMaterials.filter((item) =>
+                                    item.name
+                                      .toLowerCase()
+                                      .includes(
+                                        (row.rawMaterial || "").toLowerCase(),
+                                      ),
+                                  );
+                                  return filteredRaw.length > 0 ? (
+                                    filteredRaw.map((item: any) => (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          updateRow(
+                                            row.id,
+                                            "rawMaterial",
+                                            item.name,
+                                          );
+                                          if (item.brand)
+                                            updateRow(row.id, "brand", item.brand);
+                                          setActiveRawDropdown(null);
+                                        }}
+                                        className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${row.rawMaterial === item.name ? "bg-primary/5" : ""}`}
                                       >
-                                        {item.name}
-                                      </span>
-                                      {row.rawMaterial === item.name && (
-                                        <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                                      )}
+                                        <div className="flex items-center justify-between">
+                                          <span
+                                            className={`text-sm font-bold ${row.rawMaterial === item.name ? "text-primary" : "text-slate-600"}`}
+                                          >
+                                            {item.name}
+                                          </span>
+                                          {row.rawMaterial === item.name && (
+                                            <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] font-black text-outline-variant">
+                                            {item.brand || "브랜드 없음"}
+                                          </span>
+                                          <span className="text-[10px] font-black text-primary/50">
+                                            |{" "}
+                                            {Math.round(
+                                              item.currentStock || 0,
+                                            ).toLocaleString()}{" "}
+                                            KG
+                                          </span>
+                                        </div>
+                                      </button>
+                                    ))
+                                  ) : (
+                                    <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">
+                                      검색 Result가 없습니다
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] font-black text-outline-variant">
-                                        {item.brand || "브랜드 없음"}
-                                      </span>
-                                      <span className="text-[10px] font-black text-primary/50">
-                                        |{" "}
-                                        {Math.round(
-                                          item.currentStock || 0,
-                                        ).toLocaleString()}{" "}
-                                        KG
-                                      </span>
-                                    </div>
-                                  </button>
-                                ))
-                              ) : (
-                                <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">
-                                  검색 결과가 없습니다
+                                  );
+                                })()}
+                                <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">
+                                  직접 입력 가능
                                 </div>
-                              );
-                            })()}
-                            <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">
-                              직접 입력 가능
-                            </div>
-                          </div>
-                        )}
-                        {row.rawMaterial && (
-                          <div className="px-2 flex items-center justify-between mt-1">
-                            <span className="text-[10px] font-black text-outline uppercase shrink-0">
-                              원육 재고
-                            </span>
-                            {(() => {
-                              const inv = inventory.find(
-                                (i: any) => i.name === row.rawMaterial,
-                              );
-                              const stock = inv?.currentStock || 0;
-                              const isLow = stock < (Number(row.rawQty) || 0);
-                              return (
-                                <span
-                                  className={`text-[10px] font-black ${isLow ? "text-rose-600" : "text-blue-600"}`}
-                                >
-                                  {Math.round(stock).toLocaleString()} KG
+                              </div>
+                            )}
+                            {row.rawMaterial && (
+                              <div className="px-2 flex items-center justify-between mt-1">
+                                <span className="text-[10px] font-black text-outline uppercase shrink-0">
+                                  원육 재고
                                 </span>
-                              );
-                            })()}
-                          </div>
+                                {(() => {
+                                  const inv = inventory.find(
+                                    (i: any) => i.name === row.rawMaterial,
+                                  );
+                                  const stock = inv?.currentStock || 0;
+                                  const isLow = stock < (Number(row.rawQty) || 0);
+                                  return (
+                                    <span
+                                      className={`text-[10px] font-black ${isLow ? "text-rose-600" : "text-blue-600"}`}
+                                    >
+                                      {Math.round(stock).toLocaleString()} KG
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -1094,137 +1245,162 @@ function ProductionContent({
                       <label className="block text-xs font-black text-slate-500 ml-1">
                         브랜드
                       </label>
-                      <div className="relative">
-                        <input
-                          placeholder="브랜드"
-                          value={row.brand}
-                          onChange={(e) =>
-                            updateRow(row.id, "brand", e.target.value)
-                          }
-                          onFocus={() => setActiveBrandDropdown(row.id)}
-                          className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setActiveBrandDropdown(
-                              activeBrandDropdown === row.id ? null : row.id,
-                            )
-                          }
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
-                        >
-                          <ChevronDown
-                            className={`w-4 h-4 transition-transform ${activeBrandDropdown === row.id ? "rotate-180" : ""}`}
-                          />
-                        </button>
-                        {activeBrandDropdown === row.id && (
-                          <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                            {(() => {
-                              const filteredBrands = brands.filter((b) =>
-                                b
-                                  .toLowerCase()
-                                  .includes((row.brand || "").toLowerCase()),
-                              );
-                              return filteredBrands.length > 0 ? (
-                                filteredBrands.map((b) => (
-                                  <button
-                                    key={b}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      updateRow(row.id, "brand", b);
-                                      setActiveBrandDropdown(null);
-                                    }}
-                                    className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${row.brand === b ? "bg-primary/5 text-primary" : "text-slate-600"}`}
-                                  >
-                                    <span>{b}</span>
-                                    {row.brand === b && (
-                                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                                    )}
-                                  </button>
-                                ))
-                              ) : (
-                                <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">
-                                  검색 결과가 없습니다
-                                </div>
-                              );
-                            })()}
-                            <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">
-                              직접 입력 가능
-                            </div>
+                      <div className={`relative brand-dropdown-container-${row.id}`}>
+                        {index > 0 && (row.linkType === "raw" || row.linkType === "product") ? (
+                          <div className="h-14 md:h-16 px-4 md:px-6 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl flex items-center gap-2 font-bold shadow-sm w-full">
+                            <span className="text-[8px] font-black bg-slate-200 text-slate-700 px-1 py-0.5 rounded uppercase">자동 연계</span>
+                            <span className="truncate text-xs font-bold">{rows[index - 1].brand || "(없음)"}</span>
                           </div>
+                        ) : (
+                          <>
+                            <input
+                              placeholder="브랜드"
+                              value={row.brand}
+                              onChange={(e) =>
+                                updateRow(row.id, "brand", e.target.value)
+                              }
+                              onFocus={() => setActiveBrandDropdown(row.id)}
+                              className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold outline-none focus:border-primary transition-all shadow-sm w-full"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveBrandDropdown(
+                                  activeBrandDropdown === row.id ? null : row.id,
+                                )
+                              }
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                            >
+                              <ChevronDown
+                                className={`w-4 h-4 transition-transform ${activeBrandDropdown === row.id ? "rotate-180" : ""}`}
+                              />
+                            </button>
+                            {activeBrandDropdown === row.id && (
+                              <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                                {(() => {
+                                  const filteredBrands = brands.filter((b) =>
+                                    b
+                                      .toLowerCase()
+                                      .includes((row.brand || "").toLowerCase()),
+                                  );
+                                  return filteredBrands.length > 0 ? (
+                                    filteredBrands.map((b) => (
+                                      <button
+                                        key={b}
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          updateRow(row.id, "brand", b);
+                                          setActiveBrandDropdown(null);
+                                        }}
+                                        className={`w-full h-11 flex items-center justify-between px-5 text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${row.brand === b ? "bg-primary/5 text-primary" : "text-slate-600"}`}
+                                      >
+                                        <span>{b}</span>
+                                        {row.brand === b && (
+                                          <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                                        )}
+                                      </button>
+                                    ))
+                                  ) : (
+                                    <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">
+                                      검색 Result가 없습니다
+                                    </div>
+                                  );
+                                })()}
+                                <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">
+                                  직접 입력 가능
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
-                    <div className="md:col-span-2 space-y-1">
-                      <label className="block text-xs font-black text-slate-500 ml-1">
-                        투입량 (KG)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="0"
-                        value={formatWithCommas(row.rawQty)}
-                        onChange={(e) =>
-                          updateRow(
-                            row.id,
-                            "rawQty",
-                            (() => {
-                              const val = e.target.value;
-                              let cleaned = val
-                                .replace(/(?!^)-/g, "")
-                                .replace(/[^0-9.-]/g, "");
-                              const parts = cleaned.split(".");
-                              if (parts.length > 2) {
-                                cleaned =
-                                  parts[0] + "." + parts.slice(1).join("");
-                              }
-                              const dotIndex = cleaned.indexOf(".");
-                              if (dotIndex !== -1) {
-                                cleaned =
-                                  cleaned.substring(0, dotIndex + 1) +
-                                  cleaned.substring(dotIndex + 1, dotIndex + 3);
-                              }
-                              return cleaned;
-                            })(),
-                          )
-                        }
-                        className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full"
-                      />
-                    </div>
-                    <div className="md:col-span-2 space-y-1">
-                      <label className="block text-xs font-black text-slate-500 ml-1">
-                        생산량 (KG)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="0"
-                        value={formatWithCommas(row.production)}
-                        onChange={(e) =>
-                          updateRow(
-                            row.id,
-                            "production",
-                            (() => {
-                              const val = e.target.value;
-                              let cleaned = val
-                                .replace(/(?!^)-/g, "")
-                                .replace(/[^0-9.-]/g, "");
-                              const parts = cleaned.split(".");
-                              if (parts.length > 2) {
-                                cleaned =
-                                  parts[0] + "." + parts.slice(1).join("");
-                              }
-                              const dotIndex = cleaned.indexOf(".");
-                              if (dotIndex !== -1) {
-                                cleaned =
-                                  cleaned.substring(0, dotIndex + 1) +
-                                  cleaned.substring(dotIndex + 1, dotIndex + 3);
-                              }
-                              return cleaned;
-                            })(),
-                          )
-                        }
-                        className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full"
-                      />
+                    <div className="grid grid-cols-2 gap-3 col-span-1 md:col-span-4">
+                      <div className="space-y-1">
+                        <label className="block text-xs font-black text-slate-500 ml-1">
+                          투입량 (KG)
+                        </label>
+                        {index > 0 && row.linkType === "raw" ? (
+                          <div className="h-14 md:h-16 bg-[#e0f2fe]/40 border border-sky-100 rounded-2xl flex flex-col justify-center items-center text-sky-700 shadow-sm w-full cursor-not-allowed">
+                            <span className="font-extrabold text-[#0f172a] text-sm">0</span>
+                            <span className="text-[8px] font-black text-sky-600 -mt-0.5 px-1 py-0.5 bg-sky-50 rounded">첫행에서 차감</span>
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder="0"
+                            value={formatWithCommas(row.rawQty)}
+                            onChange={(e) =>
+                              updateRow(
+                                row.id,
+                                "rawQty",
+                                (() => {
+                                  const val = e.target.value;
+                                  let cleaned = val
+                                    .replace(/(?!^)-/g, "")
+                                    .replace(/[^0-9.-]/g, "");
+                                  const parts = cleaned.split(".");
+                                  if (parts.length > 2) {
+                                    cleaned =
+                                      parts[0] + "." + parts.slice(1).join("");
+                                  }
+                                  const dotIndex = cleaned.indexOf(".");
+                                  if (dotIndex !== -1) {
+                                    cleaned =
+                                      cleaned.substring(0, dotIndex + 1) +
+                                      cleaned.substring(dotIndex + 1, dotIndex + 3);
+                                  }
+                                  return cleaned;
+                                })(),
+                              )
+                            }
+                            className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full"
+                          />
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-xs font-black text-slate-500 ml-1">
+                          생산량 (KG)
+                        </label>
+                        {index > 0 && row.linkType === "product" ? (
+                          <div className="h-14 md:h-16 bg-[#fdf2f8]/40 border border-rose-100 rounded-2xl flex flex-col justify-center items-center text-rose-700 shadow-sm w-full cursor-not-allowed">
+                            <span className="font-extrabold text-[#0f172a] text-sm">0</span>
+                            <span className="text-[8px] font-black text-rose-600 -mt-0.5 px-1 py-0.5 bg-rose-50 rounded">첫행에 등록</span>
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder="0"
+                            value={formatWithCommas(row.production)}
+                            onChange={(e) =>
+                              updateRow(
+                                row.id,
+                                "production",
+                                (() => {
+                                  const val = e.target.value;
+                                  let cleaned = val
+                                    .replace(/(?!^)-/g, "")
+                                    .replace(/[^0-9.-]/g, "");
+                                  const parts = cleaned.split(".");
+                                  if (parts.length > 2) {
+                                    cleaned =
+                                      parts[0] + "." + parts.slice(1).join("");
+                                  }
+                                  const dotIndex = cleaned.indexOf(".");
+                                  if (dotIndex !== -1) {
+                                    cleaned =
+                                      cleaned.substring(0, dotIndex + 1) +
+                                      cleaned.substring(dotIndex + 1, dotIndex + 3);
+                                  }
+                                  return cleaned;
+                                })(),
+                              )
+                            }
+                            className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full"
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1235,7 +1411,13 @@ function ProductionContent({
                           생산 수율 (%)
                         </label>
                         <div className="h-14 md:h-16 flex items-center justify-center bg-emerald-50 rounded-2xl font-black text-xl md:text-3xl text-emerald-600 border border-emerald-100 shadow-sm">
-                          {`${yieldRate.toFixed(1)}%`}
+                          {index > 0 && row.linkType === "raw" ? (
+                            <span className="text-xs font-black text-blue-600">원육공유 1:M</span>
+                          ) : index > 0 && row.linkType === "product" ? (
+                            <span className="text-xs font-black text-rose-600">품목공유 M:1</span>
+                          ) : (
+                            `${yieldRate.toFixed(1)}%`
+                          )}
                         </div>
                       </div>
                       <div className="space-y-1.5">
@@ -1243,7 +1425,13 @@ function ProductionContent({
                           로스 비율 (%)
                         </label>
                         <div className="h-14 md:h-16 flex items-center justify-center bg-rose-50 rounded-2xl font-black text-xl md:text-3xl text-rose-600 border border-rose-100 shadow-sm">
-                          {`${lossRate.toFixed(1)}%`}
+                          {index > 0 && row.linkType === "raw" ? (
+                            <span className="text-xs font-black text-blue-650 bg-blue-50/50 px-2 py-1 rounded">원육 연계됨</span>
+                          ) : index > 0 && row.linkType === "product" ? (
+                            <span className="text-xs font-black text-rose-650 bg-rose-50/50 px-2 py-1 rounded">품목 연계됨</span>
+                          ) : (
+                            `${lossRate.toFixed(1)}%`
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1278,7 +1466,7 @@ function ProductionContent({
                         />
                         <CalendarDays className="w-4 h-4 text-outline-variant" />
                       </div>
-                      <div className="flex flex-wrap gap-1.5 px-1">
+                      <div className="grid grid-cols-5 gap-1 px-0.5 w-full">
                         {[1, 3, 6, 12, 24].map((m) => (
                           <button
                             key={m}
@@ -1286,7 +1474,7 @@ function ProductionContent({
                             onClick={() =>
                               setExpiryShortcut(row.id, row.manufDate, m)
                             }
-                            className="px-3 py-1.5 bg-white border border-outline-variant/30 rounded-lg text-[10px] font-black text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm"
+                            className="py-1 bg-white border border-outline-variant/30 rounded-lg text-[9px] md:text-[10px] font-black text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm text-center truncate min-w-0"
                           >
                             {m >= 12 ? `${m / 12}년` : `${m}개월`}
                           </button>
@@ -1725,46 +1913,82 @@ function ProductionContent({
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-6">
-                          <div className="font-black text-[#0f172a]">
-                            {item.title}
-                          </div>
-                          <div className="flex flex-col items-center gap-0.5 mt-1">
-                            <span className="text-[10px] font-bold text-outline uppercase tracking-tight">
-                              {itemData?.specs || ""}
-                            </span>
-                            {item.partner && (
-                              <span className="text-[9px] font-black text-primary/70 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 uppercase">
-                                @{item.partner}
+                        <td className="px-6 py-6 font-black text-[#0f172a]">
+                          <div className="flex flex-col items-center">
+                            <div className="font-black flex items-center justify-center gap-1.5 flex-wrap">
+                              <span>{item.title}</span>
+                              {item.linkType === "product" && (
+                                <span className="px-1.5 py-0.5 text-[8px] font-black text-rose-600 bg-rose-50 border border-rose-200/50 rounded uppercase">품목 연계</span>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-center gap-0.5 mt-1">
+                              <span className="text-[10px] font-bold text-outline">
+                                {itemData?.specs || ""}
                               </span>
-                            )}
+                              {item.partner && (
+                                <span className="text-[9px] font-black text-primary/70 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 uppercase">
+                                  @{item.partner}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-6 text-sm">
                           <div className="flex flex-col items-center">
-                            <span className="font-bold text-[#0f172a]">
-                              {item.rawMaterial || "-"}
-                            </span>
+                            <div className="font-bold text-[#0f172a] flex items-center justify-center gap-1 flex-wrap">
+                              <span>{item.rawMaterial || "-"}</span>
+                              {item.linkType === "raw" && (
+                                <span className="px-1.5 py-0.5 text-[8px] font-black text-blue-600 bg-blue-50 border border-blue-200/50 rounded uppercase">원육 연계</span>
+                              )}
+                            </div>
                             <span className="text-[10px] text-outline-variant">
                               {item.brand || "-"}
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-6 font-bold text-outline-variant">
-                          {Math.round(item.rawQty || 0).toLocaleString()} KG
+                          {item.linkType === "raw" ? (
+                            <span className="text-[10px] text-sky-600 bg-sky-50/50 px-1.5 py-0.5 rounded font-bold">원육 공유</span>
+                          ) : (
+                            `${Math.round(item.rawQty || 0).toLocaleString()} KG`
+                          )}
                         </td>
                         <td className="px-6 py-6 font-black text-[#0f172a]">
-                          {Math.round(item.production || 0).toLocaleString()} KG
+                          {item.linkType === "product" ? (
+                            <span className="text-[10px] text-rose-600 bg-rose-50/50 px-1.5 py-0.5 rounded font-bold">품목 공유</span>
+                          ) : (
+                            `${Math.round(item.production || 0).toLocaleString()} KG`
+                          )}
                         </td>
                         <td className="px-6 py-6">
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg font-black text-xs">
-                            {item.yield?.toFixed(1) || 0}%
-                          </span>
+                          {item.linkType === "product" ? (
+                            <span className="px-2 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg font-black text-[10px] uppercase font-bold">
+                              품목공유
+                            </span>
+                          ) : item.linkType === "raw" ? (
+                            <span className="px-2 py-1 bg-sky-50 text-sky-600 border border-sky-100 rounded-lg font-black text-[10px] uppercase font-bold">
+                              원육공유
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg font-black text-xs">
+                              {item.yield?.toFixed(1) || 0}%
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-6">
-                          <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg font-black text-xs">
-                            {item.loss?.toFixed(1) || 0}%
-                          </span>
+                          {item.linkType === "product" ? (
+                            <span className="px-2 py-1 bg-slate-50 text-slate-400 rounded-lg font-black text-[10px] uppercase">
+                              -
+                            </span>
+                          ) : item.linkType === "raw" ? (
+                            <span className="px-2 py-1 bg-slate-50 text-slate-400 rounded-lg font-black text-[10px] uppercase">
+                              -
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg font-black text-xs">
+                              {item.loss?.toFixed(1) || 0}%
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-6 text-sm font-bold text-outline">
                           {item.manufDate}
