@@ -500,7 +500,11 @@ function ProductionContent({
       ) => {
         if (!name) return;
         const trimmedName = name.trim();
-        const item = inventory.find((i: any) => i.name === trimmedName);
+        const item = inventory.find(
+          (i: any) =>
+            i.name.trim() === trimmedName &&
+            (isRaw ? i.category === "원육" : i.category === "완제품"),
+        );
         if (item) {
           await updateDoc(doc(db, "inventory", item.id), {
             currentStock: increment(diff),
@@ -577,13 +581,14 @@ function ProductionContent({
         if (oldRecord) {
           // Revert old inventory change
           if (oldRecord.production > 0) {
-            await updateInventoryStock(oldRecord.title, -oldRecord.production);
+            await updateInventoryStock(oldRecord.title, -oldRecord.production, false, oldRecord.brand);
           }
           if (oldRecord.rawQty > 0) {
             await updateInventoryStock(
               oldRecord.rawMaterial,
               oldRecord.rawQty,
               true,
+              oldRecord.brand,
             );
           }
           // Delete old logistics
@@ -781,9 +786,14 @@ function ProductionContent({
 
     setLoading(true);
     try {
-      const updateInventoryStock = async (name: string, diff: number) => {
+      const updateInventoryStock = async (name: string, diff: number, isRaw: boolean = false) => {
         if (!name) return;
-        const item = inventory.find((i: any) => i.name === name);
+        const trimmedName = name.trim();
+        const item = inventory.find(
+          (i: any) =>
+            i.name.trim() === trimmedName &&
+            (isRaw ? i.category === "원육" : i.category === "완제품"),
+        );
         if (item) {
           await updateDoc(doc(db, "inventory", item.id), {
             currentStock: increment(diff),
@@ -799,8 +809,8 @@ function ProductionContent({
 
       // Revert inventory changes if record existed
       if (record) {
-        await updateInventoryStock(record.title, -record.production);
-        await updateInventoryStock(record.rawMaterial, record.rawQty);
+        await updateInventoryStock(record.title, -record.production, false);
+        await updateInventoryStock(record.rawMaterial, record.rawQty, true);
 
         // Delete related logistics
         const { getDocs, query, where } = await import("firebase/firestore");
@@ -817,6 +827,7 @@ function ProductionContent({
         setEditingId(null);
         setShowForm(false);
       }
+      alert("생산 기록이 성공적으로 삭제되었습니다.");
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, "production_batches");
     } finally {
@@ -1682,7 +1693,13 @@ function ProductionContent({
                 <button
                   onClick={() => {
                     const rec = production.find((p: any) => p.id === editingId);
-                    if (rec) handleDelete(editingId, rec.title);
+                    if (rec) {
+                      setDeleteModal({
+                        isOpen: true,
+                        id: editingId,
+                        title: rec.title,
+                      });
+                    }
                   }}
                   className="flex-1 h-16 bg-rose-50 text-rose-600 rounded-2xl font-black text-lg hover:bg-rose-100 transition-all flex items-center justify-center gap-2"
                 >
