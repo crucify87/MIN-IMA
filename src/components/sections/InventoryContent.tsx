@@ -424,8 +424,8 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
           >
             <div className={`absolute top-0 left-0 w-full h-1 md:h-1.5 ${stat.isAlert ? 'bg-rose-500' : stat.isSuccess ? 'bg-emerald-500' : idx === 0 ? 'bg-[#94a3b8]' : 'bg-[#3b82f6]'}`} />
             <p className="text-[8px] md:text-[11px] font-black text-outline uppercase tracking-tight text-center truncate w-full px-1">{stat.label}</p>
-            <div className="flex items-baseline justify-center gap-1 md:gap-2 w-full overflow-hidden">
-              <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
+            <div className="flex items-baseline justify-center gap-1 md:gap-2 w-full overflow-visible">
+              <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none ${stat.isAlert ? 'text-rose-600' : stat.isSuccess ? 'text-emerald-600' : 'text-on-surface'}`}>
                 {Math.round(stat.value).toLocaleString()}
               </span>
               <span className="text-[8px] md:text-sm font-black text-outline uppercase shrink-0">{stat.unit}</span>

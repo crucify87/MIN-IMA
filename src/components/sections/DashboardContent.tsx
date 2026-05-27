@@ -595,11 +595,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             )}
           </div>
         ) : (
-          <div className="flex items-baseline justify-end gap-2 w-full max-w-[160px] overflow-hidden">
-            <span className={`text-xl md:text-5xl font-black tabular-nums tracking-tighter leading-none truncate ${(stat.unit || 'KG').toUpperCase() === 'KG' ? 'text-primary' : 'text-on-surface'}`}>
+          <div className="flex items-baseline justify-center gap-1.5 w-full overflow-visible">
+            <span className={`text-xl md:text-4xl lg:text-5xl font-black tabular-nums tracking-tighter leading-none ${(stat.unit || 'KG').toUpperCase() === 'KG' ? 'text-primary' : 'text-on-surface'}`}>
               {Math.round((stat.value ?? 0) as number).toLocaleString()}
             </span>
-            <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0 w-8 text-left">
+            <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0 w-auto text-left">
               {stat.unit || 'KG'}
             </span>
           </div>
