@@ -532,7 +532,7 @@ function ProductionContent({
         const item = inventory.find(
           (i: any) =>
             i.name.trim() === trimmedName &&
-            (isRaw ? i.category === "원육" : i.category === "완제품") &&
+            (isRaw ? i.category === "원육" : i.category !== "원육") &&
             i.isApproved !== false,
         );
         if (item) {
@@ -541,28 +541,20 @@ function ProductionContent({
             updatedAt: serverTimestamp(),
           });
         } else {
-          // If item doesn't exist, create it as unapproved (pending)
-          const pendingItem = inventory.find(
-            (i: any) =>
-              i.name.trim() === trimmedName &&
-              (isRaw ? i.category === "원육" : i.category === "완제품") &&
-              i.isApproved === false
-          );
-          if (!pendingItem) {
-            await addDoc(collection(db, "inventory"), {
-              name: trimmedName,
-              currentStock: 0,
-              sku: `PENDING-${Math.random().toString(36).substring(7).toUpperCase()}`,
-              category: isRaw ? "원육" : "완제품",
-              brand: brandName || "",
-              unit: "KG",
-              minStock: 0,
-              location: "미지정",
-              isApproved: false,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            });
-          }
+          // If item doesn't exist, create it as approved directly so it appears in the Settings product list
+          await addDoc(collection(db, "inventory"), {
+            name: trimmedName,
+            currentStock: diff,
+            sku: `${isRaw ? "R" : "P"}-${Math.random().toString(36).substring(7).toUpperCase()}`,
+            category: isRaw ? "원육" : "완제품",
+            brand: brandName || "",
+            unit: "KG",
+            minStock: 0,
+            location: "미지정",
+            isApproved: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
         }
       };
 
@@ -737,7 +729,7 @@ function ProductionContent({
         const item = inventory.find(
           (i: any) =>
             i.name.trim() === trimmedName &&
-            (isRaw ? i.category === "원육" : i.category === "완제품") &&
+            (isRaw ? i.category === "원육" : i.category !== "원육") &&
             i.isApproved !== false,
         );
         if (item) {
