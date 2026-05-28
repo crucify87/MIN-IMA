@@ -352,15 +352,46 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     return { totalWeight, inputCount, outputCount };
   }, [filtered]);
 
+  const getCorrespondingCategory = (itemObj: any) => {
+    if (!itemObj) return '';
+    if (itemObj.category && itemObj.category !== '완제품') {
+      return itemObj.category;
+    }
+    
+    // Try to find another item in inventory with same name that has a real category (not '완제품')
+    const realItem = inventory.find((i: any) => 
+      i.name?.trim() === itemObj.name?.trim() && 
+      i.category && 
+      i.category !== '완제품'
+    );
+    if (realItem) return realItem.category;
+
+    // Fallback: Guess category based on keywords in name
+    const name = itemObj.name || '';
+    if (name.includes('돈') || name.includes('돼지') || name.includes('삼겹') || name.includes('목살') || name.includes('갈비') || name.includes('등심') || name.includes('안심') || name.includes('앞다리') || name.includes('뒷다리')) {
+      return '돼지고기';
+    }
+    if (name.includes('우') || name.includes('소') || name.includes('소고기') || name.includes('한우') || name.includes('갈비살') || name.includes('등심') || name.includes('안심') || name.includes('살치') || name.includes('부채')) {
+      return '소고기';
+    }
+    if (name.includes('부속') || name.includes('내장') || name.includes('곱창') || name.includes('대창') || name.includes('막창') || name.includes('오소리') || name.includes('염통') || name.includes('머리')) {
+      return '부속물';
+    }
+    
+    return '';
+  };
+
   const categories = useMemo(() => {
     const cats = inventory
+      .filter((i: any) => i.isApproved !== false)
       .map((i: any) => i.category)
-      .filter((cat: any) => cat);
+      .filter((cat: any) => cat && cat !== '완제품');
     return Array.from(new Set(cats));
   }, [inventory]);
 
   const brands = useMemo(() => {
     const bnds = inventory
+      .filter((i: any) => i.isApproved !== false)
       .map((i: any) => i.brand)
       .filter(Boolean);
     return Array.from(new Set(bnds));
@@ -372,8 +403,30 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   }, [categories, form.category]);
 
   const filteredItems = useMemo(() => {
-    if (!form.item) return inventory;
-    return inventory.filter((i: any) => i.name.toLowerCase().includes(form.item.toLowerCase()));
+    // Only approved items first
+    let list = inventory.filter((i: any) => i.isApproved !== false);
+    
+    const deDuplicated: any[] = [];
+    const seenNames = new Set<string>();
+    
+    // Sort: non-완제품 first, then 완제품
+    const sortedList = [...list].sort((a: any, b: any) => {
+      const aVal = a.category === '완제품' ? 1 : 0;
+      const bVal = b.category === '완제품' ? 1 : 0;
+      return aVal - bVal;
+    });
+
+    sortedList.forEach((i: any) => {
+      const name = (i.name || '').trim();
+      if (!name) return;
+      if (!seenNames.has(name)) {
+        seenNames.add(name);
+        deDuplicated.push(i);
+      }
+    });
+
+    if (!form.item) return deDuplicated;
+    return deDuplicated.filter((i: any) => i.name.toLowerCase().includes(form.item.toLowerCase()));
   }, [inventory, form.item]);
 
   const filteredBrands = useMemo(() => {
@@ -387,15 +440,28 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       const itemName = form.item.trim();
       const weightNum = Number(form.weight);
       const boxesNum = Number(form.boxes) || 0;
+
+      // Ensure form category is set correctly if it's currently '완제품' or empty
+      let resolvedCategory = form.category;
+      if (!resolvedCategory || resolvedCategory === '완제품') {
+        const itemObj = inventory.find((i: any) => i.name.trim() === itemName);
+        resolvedCategory = getCorrespondingCategory(itemObj || { name: itemName });
+        if (!resolvedCategory) {
+          resolvedCategory = '미분류';
+        }
+      }
       
       const updateInventoryStock = async (name: string, weightDiff: number, boxesDiff: number) => {
-        const item = inventory.find((i: any) => i.name === name);
+        let item = inventory.find((i: any) => i.name === name && i.category === resolvedCategory);
+        if (!item) {
+          item = inventory.find((i: any) => i.name === name);
+        }
         if (item) {
           await updateDoc(doc(db, 'inventory', item.id), {
             currentStock: increment(weightDiff),
             boxes: increment(boxesDiff),
             brand: form.brand || item.brand || '',
-            category: form.category || item.category || '미분류',
+            category: resolvedCategory || item.category || '미분류',
             updatedAt: serverTimestamp()
           });
         } else {
@@ -405,7 +471,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             currentStock: weightDiff,
             boxes: boxesDiff,
             brand: form.brand || '',
-            category: form.category || '미분류',
+            category: resolvedCategory || '미분류',
             partner: form.partner || '',
             sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
             unit: 'BOX',
@@ -430,6 +496,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         
         await updateDoc(doc(db, 'logistics', editingId), { 
           ...form,
+          category: resolvedCategory,
           item: itemName,
           weight: weightNum, 
           boxes: boxesNum,
@@ -448,6 +515,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       } else {
         await addDoc(collection(db, 'logistics'), { 
           ...form, 
+          category: resolvedCategory,
           item: itemName,
           weight: weightNum, 
           boxes: boxesNum,
@@ -601,7 +669,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                        setForm(prev => ({
                          ...prev,
                          brand: invItem.brand || prev.brand,
-                         category: invItem.category || prev.category,
+                         category: getCorrespondingCategory(invItem) || prev.category,
                          partner: invItem.partner || prev.partner,
                          unit: (invItem.unit || 'BOX').toUpperCase()
                        }));
@@ -630,7 +698,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                            ...prev,
                            item: i.name,
                            brand: i.brand || prev.brand,
-                           category: i.category || prev.category,
+                           category: getCorrespondingCategory(i) || prev.category,
                            partner: i.partner || prev.partner,
                            unit: (i.unit || 'BOX').toUpperCase()
                          }));

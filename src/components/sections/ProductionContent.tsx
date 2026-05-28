@@ -196,16 +196,19 @@ function ProductionContent({
   };
 
   const brands = useMemo(() => {
-    const allBrands = inventory.map((i: any) => i.brand).filter(Boolean);
+    const allBrands = inventory
+      .filter((i: any) => i.isApproved !== false)
+      .map((i: any) => i.brand)
+      .filter(Boolean);
     return Array.from(new Set(allBrands)) as string[];
   }, [inventory]);
 
   const rawMaterials = useMemo(() => {
-    return inventory.filter((i: any) => i.category === "원육");
+    return inventory.filter((i: any) => i.category === "원육" && i.isApproved !== false);
   }, [inventory]);
 
   const productItems = useMemo(() => {
-    return inventory.filter((i: any) => i.category !== "원육");
+    return inventory.filter((i: any) => i.category !== "원육" && i.isApproved !== false);
   }, [inventory]);
 
   const filtered = useMemo(() => {
@@ -529,7 +532,8 @@ function ProductionContent({
         const item = inventory.find(
           (i: any) =>
             i.name.trim() === trimmedName &&
-            (isRaw ? i.category === "원육" : i.category === "완제품"),
+            (isRaw ? i.category === "원육" : i.category === "완제품") &&
+            i.isApproved !== false,
         );
         if (item) {
           await updateDoc(doc(db, "inventory", item.id), {
@@ -537,60 +541,29 @@ function ProductionContent({
             updatedAt: serverTimestamp(),
           });
         } else {
-          // If item doesn't exist, create it
-          await addDoc(collection(db, "inventory"), {
-            name: trimmedName,
-            currentStock: diff,
-            sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
-            category: isRaw ? "원육" : "완제품",
-            brand: brandName || "",
-            unit: "KG",
-            minStock: 0,
-            location: "미지정",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
+          // If item doesn't exist, create it as unapproved (pending)
+          const pendingItem = inventory.find(
+            (i: any) =>
+              i.name.trim() === trimmedName &&
+              (isRaw ? i.category === "원육" : i.category === "완제품") &&
+              i.isApproved === false
+          );
+          if (!pendingItem) {
+            await addDoc(collection(db, "inventory"), {
+              name: trimmedName,
+              currentStock: 0,
+              sku: `PENDING-${Math.random().toString(36).substring(7).toUpperCase()}`,
+              category: isRaw ? "원육" : "완제품",
+              brand: brandName || "",
+              unit: "KG",
+              minStock: 0,
+              location: "미지정",
+              isApproved: false,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          }
         }
-      };
-
-      const createLogisticsRecord = async (data: {
-        item: string;
-        type: "입고" | "출고";
-        weight: number;
-        category: string;
-        brand: string;
-        partner: string;
-        batchId: string;
-        date: string;
-      }) => {
-        await addDoc(collection(db, "logistics"), {
-          ...data,
-          time: new Date().toLocaleTimeString("en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          status: "완료",
-          boxes: 0,
-          freightType: "현장",
-          createdAt: serverTimestamp(),
-        });
-      };
-
-      const deleteRelatedLogistics = async (batchId: string) => {
-        // Since we don't have a direct query for all logistics of a batch here without useAppData updating,
-        // we might rely on the fact that production_batches deletion/update should handle it.
-        // In a real app, I'd query logistics where batchId == batchId and delete them.
-        // For now, I'll use a simple approach: find in the 'logistics' prop if available or just know we need to clean up.
-        // Actually, the user's requirement is for it to "show up".
-        // To handle updates/deletes, I'll need to fetch them first.
-        const { getDocs, query, where } = await import("firebase/firestore");
-        const q = query(
-          collection(db, "logistics"),
-          where("batchId", "==", batchId),
-        );
-        const snapshot = await getDocs(q);
-        const deletePromises = snapshot.docs.map((d) => deleteDoc(d.ref));
-        await Promise.all(deletePromises);
       };
 
       if (editingId) {
@@ -617,8 +590,6 @@ function ProductionContent({
               oldRecord.brand,
             );
           }
-          // Delete old logistics
-          await deleteRelatedLogistics(editingId);
         }
 
         // Clean up row data for Firestore
@@ -641,32 +612,6 @@ function ProductionContent({
         }
         if (rawNum > 0) {
           await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
-        }
-
-        // Create new logistics records
-        if (prodNum > 0) {
-          await createLogisticsRecord({
-            item: row.title,
-            type: "입고",
-            weight: prodNum,
-            category: "완제품",
-            brand: row.brand,
-            partner: line,
-            batchId: editingId,
-            date: row.manufDate,
-          });
-        }
-        if (rawNum > 0) {
-          await createLogisticsRecord({
-            item: row.rawMaterial,
-            type: "출고",
-            weight: rawNum,
-            category: "원육",
-            brand: row.brand,
-            partner: "생산투입",
-            batchId: editingId,
-            date: row.manufDate,
-          });
         }
 
         alert("생산 실적 수정 완료");
@@ -737,32 +682,6 @@ function ProductionContent({
         if (rawNum > 0) {
           await updateInventoryStock(resolvedRawMaterial, -rawNum, true, resolvedBrand);
         }
-
-        // Create logistics records
-        if (prodNum > 0) {
-          await createLogisticsRecord({
-            item: resolvedTitle,
-            type: "입고",
-            weight: prodNum,
-            category: "완제품",
-            brand: resolvedBrand,
-            partner: line,
-            batchId: batchId,
-            date: row.manufDate,
-          });
-        }
-        if (rawNum > 0) {
-          await createLogisticsRecord({
-            item: resolvedRawMaterial,
-            type: "출고",
-            weight: rawNum,
-            category: "원육",
-            brand: resolvedBrand,
-            partner: "생산투입",
-            batchId: batchId,
-            date: row.manufDate,
-          });
-        }
       }
       alert("생산 실적 등록 완료");
       setShowForm(false);
@@ -818,7 +737,8 @@ function ProductionContent({
         const item = inventory.find(
           (i: any) =>
             i.name.trim() === trimmedName &&
-            (isRaw ? i.category === "원육" : i.category === "완제품"),
+            (isRaw ? i.category === "원육" : i.category === "완제품") &&
+            i.isApproved !== false,
         );
         if (item) {
           await updateDoc(doc(db, "inventory", item.id), {
@@ -835,18 +755,12 @@ function ProductionContent({
 
       // Revert inventory changes if record existed
       if (record) {
-        await updateInventoryStock(record.title, -record.production, false);
-        await updateInventoryStock(record.rawMaterial, record.rawQty, true);
-
-        // Delete related logistics
-        const { getDocs, query, where } = await import("firebase/firestore");
-        const q = query(
-          collection(db, "logistics"),
-          where("batchId", "==", id),
-        );
-        const snapshot = await getDocs(q);
-        const deletePromises = snapshot.docs.map((d) => deleteDoc(d.ref));
-        await Promise.all(deletePromises);
+        if (record.production > 0) {
+          await updateInventoryStock(record.title, -record.production, false);
+        }
+        if (record.rawQty > 0) {
+          await updateInventoryStock(record.rawMaterial, record.rawQty, true);
+        }
       }
 
       if (editingId === id) {

@@ -211,6 +211,7 @@ function SettingsContent({
     purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: ''
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [pendingApprovalId, setPendingApprovalId] = useState<string | null>(null);
   const [showUnitOptions, setShowUnitOptions] = useState(false);
   const [showCategoryOptions, setShowCategoryOptions] = useState(false);
   const [showBrandOptions, setShowBrandOptions] = useState(false);
@@ -330,36 +331,93 @@ function SettingsContent({
         alert('상품 정보가 수정되었습니다.');
         setEditingItemId(null);
       } else {
-        const docRef = await addDoc(collection(db, 'inventory'), {
-          ...data,
-          createdAt: serverTimestamp()
-        });
-        
-        // Add logistics record for initial stock if > 0
-        if (data.currentStock > 0) {
-          try {
-            await addDoc(collection(db, 'logistics'), {
-              date: new Date().toLocaleDateString('sv-SE'),
-              time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-              type: '입고',
-              item: data.name,
-              weight: data.currentStock,
-              boxes: data.boxes,
-              partner: data.partner || '초기재고등록',
-              category: data.category,
-              brand: data.brand,
-              memo: '신규 상품 등록 초기 재고',
-              createdAt: serverTimestamp()
-            });
-          } catch (logError) {
-            console.error('Failed to create initial logistics record:', logError);
+        if (pendingApprovalId) {
+          await updateDoc(doc(db, 'inventory', pendingApprovalId), {
+            ...data,
+            isApproved: true
+          });
+
+          // Add logistics record for initial stock if > 0
+          if (data.currentStock > 0) {
+            try {
+              await addDoc(collection(db, 'logistics'), {
+                date: new Date().toLocaleDateString('sv-SE'),
+                time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                type: '입고',
+                item: data.name,
+                weight: data.currentStock,
+                boxes: data.boxes,
+                partner: data.partner || '초기재고등록',
+                category: data.category,
+                brand: data.brand,
+                memo: '승인 대기 임시 상품 정식 등록 초기 재고',
+                createdAt: serverTimestamp()
+              });
+            } catch (logError) {
+              console.error('Failed to create initial logistics record:', logError);
+            }
           }
+
+          alert('승인 대기 상품이 성공적으로 등록(승인)되었습니다.');
+          setPendingApprovalId(null);
+        } else {
+          await addDoc(collection(db, 'inventory'), {
+            ...data,
+            isApproved: true,
+            createdAt: serverTimestamp()
+          });
+          
+          // Add logistics record for initial stock if > 0
+          if (data.currentStock > 0) {
+            try {
+              await addDoc(collection(db, 'logistics'), {
+                date: new Date().toLocaleDateString('sv-SE'),
+                time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                type: '입고',
+                item: data.name,
+                weight: data.currentStock,
+                boxes: data.boxes,
+                partner: data.partner || '초기재고등록',
+                category: data.category,
+                brand: data.brand,
+                memo: '신규 상품 등록 초기 재고',
+                createdAt: serverTimestamp()
+              });
+            } catch (logError) {
+              console.error('Failed to create initial logistics record:', logError);
+            }
+          }
+          
+          alert('상품 등록이 완료되었습니다.');
         }
-        
-        alert('상품 등록이 완료되었습니다.');
       }
       setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'box', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
+  };
+
+  const handlePendingItemSelection = (item: any) => {
+    setPendingApprovalId(item.id);
+    setEditingItemId(null);
+    setItemForm({
+      sku: getNextSku(item.category === '원육' ? 'R' : 'P'),
+      name: item.name || '',
+      category: item.category || '돼지고기',
+      brand: item.brand || '',
+      specs: item.specs || '',
+      unit: item.unit || 'BOX',
+      boxes: String(item.boxes || ''),
+      currentStock: String(item.currentStock || ''),
+      safetyStock: String(item.safetyStock || ''),
+      purchasePrice: String(item.purchasePrice || ''),
+      salesPrice: String(item.salesPrice || ''),
+      manufDate: item.manufDate || '',
+      expiryDate: item.expiryDate || '',
+      location: item.location || '',
+      detailLocation: item.detailLocation || '',
+      partner: item.partner || ''
+    });
+    const el = document.getElementById('item-form');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleEditItem = (item: any) => {
@@ -457,7 +515,8 @@ function SettingsContent({
   };
 
   const filteredItems = React.useMemo(() => {
-    let result = inventory.filter((i: any) => 
+    const approvedInventory = inventory.filter((i: any) => i.isApproved !== false);
+    let result = approvedInventory.filter((i: any) => 
       i.name.toLowerCase().includes(search.toLowerCase()) || 
       i.sku?.toLowerCase().includes(search.toLowerCase()) ||
       i.category?.toLowerCase().includes(search.toLowerCase()) ||
@@ -485,12 +544,14 @@ function SettingsContent({
   }, [inventory, search, filterCategory, filterBrand, filterPartner]);
 
   const categories = React.useMemo(() => {
-    const cats = new Set(inventory.map((i: any) => i.category).filter(Boolean));
+    const approvedInventory = inventory.filter((i: any) => i.isApproved !== false);
+    const cats = new Set(approvedInventory.map((i: any) => i.category).filter(Boolean));
     return Array.from(cats).sort() as string[];
   }, [inventory]);
 
   const brands = React.useMemo(() => {
-    const bnds = new Set(inventory.map((i: any) => i.brand).filter(Boolean));
+    const approvedInventory = inventory.filter((i: any) => i.isApproved !== false);
+    const bnds = new Set(approvedInventory.map((i: any) => i.brand).filter(Boolean));
     return Array.from(bnds).sort() as string[];
   }, [inventory]);
 
@@ -501,7 +562,8 @@ function SettingsContent({
         if (p.name) pts.add(p.name);
       });
     }
-    inventory.forEach((i: any) => {
+    const approvedInventory = inventory.filter((i: any) => i.isApproved !== false);
+    approvedInventory.forEach((i: any) => {
       if (i.partner) pts.add(i.partner);
     });
     return Array.from(pts).sort();
@@ -637,6 +699,45 @@ function SettingsContent({
       <div className="bg-white rounded-[24px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
         {tab === 'p' && (
           <div className="p-3 md:p-10 space-y-6 md:space-y-12">
+            {/* Approval Pending Temporary Items List */}
+            {canEditItems && (
+              (() => {
+                const pendingItems = inventory.filter((i: any) => i.isApproved === false);
+                if (pendingItems.length === 0) return null;
+                return (
+                  <div className="max-w-2xl mx-auto bg-amber-50/40 border border-amber-200/60 rounded-[24px] p-6 space-y-4">
+                    <div>
+                      <h4 className="text-xs md:text-sm font-black text-amber-800 flex items-center gap-2 text-left">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                        승인 대기 임시 품목 ({pendingItems.length}개)
+                      </h4>
+                      <p className="text-[10px] font-bold text-amber-600/80 mt-1 text-left leading-relaxed">
+                        생산일지 작성시 신규로 입력된 품목들입니다. 아래에서 품목을 클릭하면 등록 폼에 자동 입력되며, SKU 및 기타 핵심 정보(단위, 보관위치 등)를 확인하시고 하단 버튼을 클릭하시면 승인 등록됩니다.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                      {pendingItems.map((item: any) => (
+                        <div 
+                          key={item.id} 
+                          onClick={() => handlePendingItemSelection(item)}
+                          className={`flex items-center justify-between p-3.5 bg-white border rounded-xl cursor-pointer hover:border-amber-500 transition-all select-none hover:shadow-xs ${pendingApprovalId === item.id ? 'border-amber-500 ring-2 ring-amber-500/15 bg-amber-50/10' : 'border-slate-100'}`}
+                        >
+                          <div className="text-left space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[8px] font-black leading-none">{item.category}</span>
+                              <span className="text-xs font-black text-slate-800 leading-none">{item.name}</span>
+                            </div>
+                            {item.brand && <p className="text-[9px] font-bold text-slate-400">{item.brand}</p>}
+                          </div>
+                          <span className="text-[9px] font-black text-amber-600 hover:text-amber-700 bg-amber-50 border border-amber-200/50 px-2 py-1 rounded-lg">승인 대기</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+
             {/* 1. Registration Form (TOP) */}
             {canEditItems ? (
               <div id="item-form" className="max-w-2xl mx-auto space-y-4 md:space-y-10">
