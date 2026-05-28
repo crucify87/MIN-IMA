@@ -101,6 +101,19 @@
       },
       "required": ["email"]
     },
+    "feedback": {
+      "title": "Feedback & Improvement Suggestion",
+      "description": "Feedback submitted by users for system improvements",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["UI/디자인", "오류/버그", "기능 제안", "기타"] },
+        "content": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "content", "userEmail", "createdAt"]
+    },
     "appSettings": {
       "title": "App Settings",
       "description": "Global application configuration like logo",
@@ -136,6 +149,10 @@
     "/admin_emails/{emailId}": {
       "schema": "adminEmail",
       "description": "List of authorized administrator emails"
+    },
+    "/feedbacks/{feedbackId}": {
+      "schema": "feedback",
+      "description": "Improvement proposals and bug reports"
     },
     "/settings/{settingId}": {
       "schema": "appSettings",

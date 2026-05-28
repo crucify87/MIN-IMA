@@ -465,12 +465,34 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
     // Calculate main stats
     const activeActivity = combinedActivity.filter(a => isInRange(a.date));
-    const input = activeActivity
+    
+    const inputValues = activeActivity
       .filter((l: any) => l.type === '입고')
-      .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
-    const output = activeActivity
+      .reduce((acc: Record<string, number>, curr: any) => {
+        const itemInfo = inventory.find((it: any) => it.name === curr.item);
+        const unit = (itemInfo?.unit || curr.weightUnit || curr.unit || 'KG').toUpperCase();
+        const value = Number(curr.weight) || 0;
+        acc[unit] = (acc[unit] || 0) + value;
+        return acc;
+      }, {});
+
+    if (Object.keys(inputValues).length === 0) {
+      inputValues['KG'] = 0;
+    }
+
+    const outputValues = activeActivity
       .filter((l: any) => l.type === '출고')
-      .reduce((acc: number, curr: any) => acc + (Number(curr.weight) || 0), 0);
+      .reduce((acc: Record<string, number>, curr: any) => {
+        const itemInfo = inventory.find((it: any) => it.name === curr.item);
+        const unit = (itemInfo?.unit || curr.weightUnit || curr.unit || 'KG').toUpperCase();
+        const value = Number(curr.weight) || 0;
+        acc[unit] = (acc[unit] || 0) + value;
+        return acc;
+      }, {});
+
+    if (Object.keys(outputValues).length === 0) {
+      outputValues['KG'] = 0;
+    }
       
     const activeProduction = production.filter((p: any) => isInRange(p.manufDate));
     const productionQty = activeProduction
@@ -513,8 +535,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         values: rawMeatEntry ? rawMeatEntry[1] : {}, 
         isCategory: true 
       },
-      { label: `${activeShift || '조회 기간'}입고`, value: input, unit: 'KG' },
-      { label: `${activeShift || '조회 기간'}출고`, value: output, active: true, unit: 'KG' },
+      { label: `${activeShift || '조회 기간'}입고`, values: inputValues },
+      { label: `${activeShift || '조회 기간'}출고`, values: outputValues, active: true },
       { label: `${activeShift || '조회 기간'}생산`, value: productionQty, subtitle: '완제품', unit: 'KG' },
     ];
 

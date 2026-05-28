@@ -16,7 +16,8 @@ import {
   Image as ImageIcon,
   Upload,
   AlertTriangle,
-  MapPin
+  MapPin,
+  MessageSquarePlus
 } from 'lucide-react';
 import { 
   doc, 
@@ -29,11 +30,14 @@ import {
   writeBatch,
   query,
   where,
-  getDocs
+  getDocs,
+  onSnapshot,
+  orderBy
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
+import { FeedbackModal } from '../common/FeedbackModal';
 
 function SettingsContent({ 
   user,
@@ -46,7 +50,46 @@ function SettingsContent({
   canEditPrices,
   settings
 }: any) {
-  const [tab, setTab] = useState<'p' | 't' | 'u' | 's'>('p');
+  const [tab, setTab] = useState<'p' | 't' | 'u' | 's' | 'f'>('p');
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
+  const [feedbackSearch, setFeedbackSearch] = useState('');
+  const [feedbackFilterType, setFeedbackFilterType] = useState('');
+  const [deletingFeedbackId, setDeletingFeedbackId] = useState<string | null>(null);
+
+  const formatFeedbackDate = (timestamp: any) => {
+    if (!timestamp) return '-';
+    // If it's a Firestore Timestamp, it has computed .toDate()
+    const date = timestamp && typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const handleConfirmDeleteFeedback = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'feedbacks', id));
+      setDeletingFeedbackId(null);
+    } catch (err: any) {
+      console.error('Failed to delete feedback:', err);
+      alert('건의사항 삭제에 실패했습니다: ' + err?.message);
+    }
+  };
+
+  const filteredFeedbacks = feedbacks.filter((item) => {
+    const matchesType = !feedbackFilterType || item.type === feedbackFilterType;
+    const matchesSearch = !feedbackSearch || 
+      item.content?.toLowerCase().includes(feedbackSearch.toLowerCase()) ||
+      item.userEmail?.toLowerCase().includes(feedbackSearch.toLowerCase()) ||
+      item.userName?.toLowerCase().includes(feedbackSearch.toLowerCase());
+    return matchesType && matchesSearch;
+  });
+
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -64,6 +107,23 @@ function SettingsContent({
   const [appName, setAppName] = useState(settings?.appName || '재고 관리 시스템');
   const [savingSettings, setSavingSettings] = useState(false);
   
+  React.useEffect(() => {
+    setLoadingFeedbacks(true);
+    const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      setFeedbacks(list);
+      setLoadingFeedbacks(false);
+    }, (error) => {
+      console.error("Error listening to feedbacks:", error);
+      setLoadingFeedbacks(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
     let str = String(value).replace(/[^0-9.-]/g, '');
@@ -540,6 +600,14 @@ function SettingsContent({
         <button onClick={() => setTab('t')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처</button>
         {canManageUsers && <button onClick={() => setTab('u')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>권한</button>}
         {canManageUsers && <button onClick={() => setTab('s')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 's' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>앱설정</button>}
+        <button onClick={() => setTab('f')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap flex items-center gap-1.5 ${tab === 'f' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>
+          <span>건의사항</span>
+          {feedbacks.length > 0 && (
+            <span className="px-1.5 py-0.5 bg-[#059669] text-white text-[9px] font-black rounded-full leading-none shrink-0 min-w-4 text-center">
+              {feedbacks.length}
+            </span>
+          )}
+        </button>
       </div>
 
       <div className="bg-white rounded-[24px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
@@ -1441,7 +1509,191 @@ function SettingsContent({
             </div>
           </div>
         )}
+
+        {tab === 'f' && (
+          <div className="p-3 md:p-10 space-y-6 md:space-y-10 font-sans">
+            {/* Header / Intro */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+              <div className="space-y-1">
+                <h3 className="font-black text-xl md:text-2xl text-slate-900 tracking-tight flex items-center gap-2">
+                  <span className="w-2.5 h-6 bg-[#059669] rounded-full inline-block animate-pulse"></span>
+                  접수된 건의사항/피드백
+                </h3>
+                <p className="text-xs md:text-sm font-bold text-slate-500">
+                  사용자분들이 작성해주신 개선 건의사항 및 버그 피드백을 실시간으로 확인하고 관리하는 공간입니다.
+                </p>
+              </div>
+            </div>
+
+            {/* Filter / Search Bar */}
+            <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+              {/* Type Category Filter */}
+              <div className="flex flex-wrap gap-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 w-full md:w-fit overflow-x-auto">
+                {['전체', '기능 제안', 'UI/디자인', '오류/버그', '기타'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setFeedbackFilterType(t === '전체' ? '' : t)}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap ${
+                      (t === '전체' && !feedbackFilterType) || feedbackFilterType === t
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search input */}
+              <div className="relative flex-1 md:max-w-xs">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  placeholder="피드백 내용 또는 작성자 검색..."
+                  value={feedbackSearch}
+                  onChange={(e) => setFeedbackSearch(e.target.value)}
+                  className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs md:text-sm focus:bg-white focus:border-slate-400 outline-none transition-all placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            {/* Loading / Empty Space */}
+            {loadingFeedbacks ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="w-8 h-8 border-4 border-[#059669]/20 border-t-[#059669] rounded-full animate-spin"></div>
+                <span className="text-xs font-bold text-slate-400">건의사항 목록 동기화 중...</span>
+              </div>
+            ) : filteredFeedbacks.length === 0 ? (
+              <div className="py-20 border border-dashed border-slate-200 rounded-[28px] flex flex-col items-center justify-center text-center px-4 bg-slate-50/50">
+                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-4 animate-bounce">
+                  <MessageSquarePlus className="w-7 h-7 text-slate-500" />
+                </div>
+                <p className="font-extrabold text-slate-800 text-base">접수된 건의사항이 없습니다.</p>
+                <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm leading-relaxed">
+                  {feedbackFilterType || feedbackSearch 
+                    ? '선택하신 필터나 검색어에 해당하는 건의사항이 발견되지 않았습니다.' 
+                    : '사이드바 하단 또는 앱설정 하단의 [개선사항 및 피드백 건의] 기능을 사용하여 소중한 한 마디를 남겨주세요.'}
+                </p>
+                {(feedbackFilterType || feedbackSearch) && (
+                  <button
+                    onClick={() => {
+                      setFeedbackFilterType('');
+                      setFeedbackSearch('');
+                    }}
+                    className="mt-4 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-extrabold text-xs rounded-xl transition-all"
+                  >
+                    필터 초기화
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {filteredFeedbacks.map((item: any) => {
+                  const typeColors: Record<string, string> = {
+                    '기능 제안': 'bg-blue-50 text-blue-600 border-blue-100',
+                    'UI/디자인': 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',
+                    '오류/버그': 'bg-rose-50 text-rose-600 border-rose-100',
+                    '기타': 'bg-slate-100 text-slate-600 border-slate-200',
+                  };
+
+                  const isConfirmingDelete = deletingFeedbackId === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="group border border-slate-100 bg-slate-50/40 rounded-3xl p-5 md:p-6 transition-all duration-300 hover:border-slate-300 hover:bg-white hover:shadow-xl hover:shadow-slate-100/40 flex flex-col justify-between gap-4"
+                    >
+                      {/* Top Row: Meta & Buttons */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dashed border-slate-200/65 pb-3.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] md:text-[11px] font-black border uppercase tracking-wider ${typeColors[item.type] || typeColors['기타']}`}>
+                            {item.type}
+                          </span>
+                          <span className="text-xs md:text-sm font-black text-slate-800">
+                            {item.userName || '미정'}
+                          </span>
+                          <span className="text-xs font-bold text-slate-400 border-l border-slate-200 pl-2 font-mono">
+                            {item.userEmail}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-[10px] md:text-[11px] font-black text-slate-400 font-mono">
+                            {formatFeedbackDate(item.createdAt)}
+                          </span>
+
+                          {/* Delete option for authorized users */}
+                          {canManageUsers && (
+                            <div className="relative">
+                              {isConfirmingDelete ? (
+                                <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-100 px-2 py-1 rounded-lg">
+                                  <span className="text-[9px] font-black text-rose-600">삭제?</span>
+                                  <button
+                                    onClick={() => handleConfirmDeleteFeedback(item.id)}
+                                    className="px-1.5 py-0.5 bg-rose-600 text-white font-black text-[9px] rounded-md hover:bg-rose-700 transition animate-pulse"
+                                  >
+                                    예
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingFeedbackId(null)}
+                                    className="px-1.5 py-0.5 bg-white text-slate-500 font-black text-[9px] rounded-md hover:bg-slate-100 border border-slate-200 transition"
+                                  >
+                                    아니오
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingFeedbackId(item.id)}
+                                  className="w-7 h-7 rounded-lg hover:bg-rose-50 text-slate-350 hover:text-rose-600 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                  title="건의사항 삭제"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Content Box */}
+                      <div className="text-xs md:text-sm font-medium text-slate-700 leading-relaxed whitespace-pre-wrap break-words pl-1">
+                        {item.content}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* 개선사항 건의 섹션 */}
+      <div className="bg-emerald-50/40 border border-emerald-100/80 rounded-[24px] md:rounded-[36px] p-6 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden relative group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/20 rounded-full blur-2xl -mr-6 -mt-6"></div>
+        <div className="space-y-2 relative z-10 max-w-3xl">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-emerald-100/80 text-emerald-600 rounded-lg flex items-center justify-center shrink-0">
+              <MessageSquarePlus className="w-4.5 h-4.5" />
+            </div>
+            <h3 className="text-base md:text-lg font-black text-slate-800 tracking-tight">시스템 품질 향상 및 개선 제안</h3>
+          </div>
+          <p className="text-xs md:text-sm font-semibold text-slate-500 leading-relaxed pl-1">
+            IMA 생산 및 재고 관리 시스템을 사용하면서 발견된 오류 또는 비즈니스 흐름 상 추가가 필요한 기능이 있다면 편하게 말씀해 주세요. 
+            소중한 조언을 밑거름 삼아 끊임없이 시스템 사용 환경을 개선해 나가겠습니다.
+          </p>
+        </div>
+        <button
+          onClick={() => setFeedbackOpen(true)}
+          className="shrink-0 w-full md:w-auto px-6 py-4 bg-[#059669] text-white font-extrabold text-xs md:text-sm rounded-xl md:rounded-2xl shadow-lg shadow-emerald-600/10 hover:shadow-emerald-600/25 hover:bg-emerald-700 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 relative z-10"
+        >
+          <MessageSquarePlus className="w-4 h-4" />
+          <span>개선사항 및 피드백 건의</span>
+        </button>
+      </div>
+
+      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

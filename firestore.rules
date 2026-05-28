@@ -120,6 +120,15 @@ service cloud.firestore {
              (!data.keys().hasAny(['updatedBy']) || (data.updatedBy is string && data.updatedBy.size() <= 200));
     }
 
+    function isValidFeedback(data) {
+      return data.keys().hasAll(['type', 'content', 'userEmail', 'createdAt']) &&
+             data.type in ['UI/디자인', '오류/버그', '기능 제안', '기타'] &&
+             data.content is string && data.content.size() <= 4000 &&
+             data.userEmail is string && data.userEmail.size() <= 200 &&
+             (!data.keys().hasAny(['userName']) || (data.userName is string && data.userName.size() <= 200)) &&
+             data.createdAt is timestamp;
+    }
+
     // --- Collection Routes ---
 
     match /users/{userId} {
@@ -160,6 +169,12 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true; // Public for login screen logo
       allow write: if isSuperAdmin();
+    }
+
+    match /feedbacks/{feedbackId} {
+      allow create: if isSignedIn() && isValidFeedback(incoming());
+      allow read: if isApproved();
+      allow update, delete: if isSuperAdmin();
     }
   }
 }

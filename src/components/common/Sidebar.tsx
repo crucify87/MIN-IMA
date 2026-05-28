@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
   Truck, 
   Settings, 
   Factory, 
-  LogOut 
+  LogOut,
+  MessageSquarePlus
 } from 'lucide-react';
 import AppLogo from './AppLogo';
 import { ViewType } from '../../types';
+import { FeedbackModal } from './FeedbackModal';
 
 interface SidebarProps {
   view: ViewType;
@@ -19,6 +21,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: '대시보드' },
     { id: 'inventory', icon: Package, label: '재고현황' },
@@ -53,6 +56,18 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
             )}
           </button>
         ))}
+        
+        {/* 개선사항 건의 버튼 */}
+        <button
+          onClick={() => setFeedbackOpen(true)}
+          className="w-full group relative flex items-center gap-4 px-6 py-4 rounded-[24px] transition-all duration-300 hover:bg-emerald-50/60 border border-dashed border-transparent hover:border-emerald-100/80 text-outline hover:text-emerald-600 mt-2"
+        >
+          <MessageSquarePlus className="w-6 h-6 transition-transform group-hover:scale-110 text-outline group-hover:text-emerald-500" />
+          <span className="font-extrabold text-sm tracking-tight text-slate-500 group-hover:text-slate-700">개선사항 건의</span>
+          <div className="absolute right-4 px-1.5 py-0.5 rounded bg-slate-100 text-[8px] font-black text-slate-400 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
+            제안
+          </div>
+        </button>
       </nav>
 
       <div className="mt-auto space-y-4 pt-10 border-t-2 border-outline-variant/30">
@@ -70,7 +85,12 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
             <LogOut className="w-5 h-5" />
           </button>
         </div>
+        <div className="text-center text-[9px] text-slate-400 font-black tracking-widest pt-1 uppercase">
+          IMA SYSTEM v1.2.1 STABLE
+        </div>
       </div>
+
+      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </aside>
   );
 };
