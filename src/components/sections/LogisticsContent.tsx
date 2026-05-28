@@ -31,6 +31,8 @@ import { DeleteConfirmModal } from '../common/DeleteConfirmModal';
 function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditItems }: any) {
   const [showForm, setShowForm] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [incomingPage, setIncomingPage] = useState(1);
+  const [outgoingPage, setOutgoingPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeRange, setActiveRange] = useState(() => sessionStorage.getItem('logistics_activeRange') || '전체');
@@ -80,6 +82,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'shortage' | 'replenish' | 'normal'>(() => {
     return (sessionStorage.getItem('logistics_stockStatusFilter') as any) || 'all';
   });
+  const [typeFilter, setTypeFilter] = useState<'all' | '입고' | '출고'>(() => {
+    return (sessionStorage.getItem('logistics_typeFilter') as 'all' | '입고' | '출고') || 'all';
+  });
 
   React.useEffect(() => {
     sessionStorage.setItem('logistics_search', search);
@@ -114,8 +119,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   }, [stockStatusFilter]);
 
   React.useEffect(() => {
+    sessionStorage.setItem('logistics_typeFilter', typeFilter);
+  }, [typeFilter]);
+
+  React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterCategory, filterBrand, filterPartner, startDate, endDate, activeRange, stockStatusFilter]);
+    setIncomingPage(1);
+    setOutgoingPage(1);
+  }, [search, filterCategory, filterBrand, filterPartner, startDate, endDate, activeRange, stockStatusFilter, typeFilter]);
 
   const today = new Date().toLocaleDateString('sv-SE');
 
@@ -161,7 +172,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     };
   }, [baseFiltered, inventory]);
 
-  const filtered = useMemo(() => {
+  const statusFilteredList = useMemo(() => {
     let result = baseFiltered;
 
     if (stockStatusFilter !== 'all') {
@@ -178,19 +189,62 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         return true;
       });
     }
+    return result;
+  }, [baseFiltered, stockStatusFilter, inventory]);
+
+  const typeCounts = useMemo(() => {
+    let input = 0;
+    let output = 0;
+    statusFilteredList.forEach((l: any) => {
+      if (l.type === '입고') input++;
+      if (l.type === '출고') output++;
+    });
+    return {
+      all: statusFilteredList.length,
+      input,
+      output
+    };
+  }, [statusFilteredList]);
+
+  const filtered = useMemo(() => {
+    let result = statusFilteredList;
+
+    if (typeFilter !== 'all') {
+      result = result.filter((l: any) => l.type === typeFilter);
+    }
 
     // Sort by date then time in reverse (latest first)
     return [...result].sort((a: any, b: any) => {
       if (a.date !== b.date) return b.date.localeCompare(a.date);
       return b.time.localeCompare(a.time);
     });
-  }, [baseFiltered, stockStatusFilter, inventory]);
+  }, [statusFilteredList, typeFilter]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filtered, currentPage]);
+
+  const incomingFiltered = useMemo(() => {
+    return filtered.filter((l: any) => l.type === '입고');
+  }, [filtered]);
+
+  const outgoingFiltered = useMemo(() => {
+    return filtered.filter((l: any) => l.type === '출고');
+  }, [filtered]);
+
+  const incomingTotalPages = Math.ceil(incomingFiltered.length / ITEMS_PER_PAGE);
+  const incomingPaginatedItems = useMemo(() => {
+    const startIndex = (incomingPage - 1) * ITEMS_PER_PAGE;
+    return incomingFiltered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [incomingFiltered, incomingPage]);
+
+  const outgoingTotalPages = Math.ceil(outgoingFiltered.length / ITEMS_PER_PAGE);
+  const outgoingPaginatedItems = useMemo(() => {
+    const startIndex = (outgoingPage - 1) * ITEMS_PER_PAGE;
+    return outgoingFiltered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [outgoingFiltered, outgoingPage]);
 
   const Pagination = ({ current, total, totalItems, itemsPerPage, onChange }: { current: number; total: number; totalItems: number; itemsPerPage: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
@@ -1070,60 +1124,51 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           </div>
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => { setStockStatusFilter('all'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'all'
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-slate-100 text-[#0f172a] hover:bg-slate-200'
-            }`}
-          >
-            전체
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-              {statusCounts.all}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('shortage'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'shortage'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-            }`}
-          >
-            부족
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'shortage' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
-              {statusCounts.shortage}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('replenish'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'replenish'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-            }`}
-          >
-            보충
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'replenish' ? 'bg-white/20 text-blue-100' : 'bg-blue-100 text-blue-600'}`}>
-              {statusCounts.replenish}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('normal'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'normal'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-            }`}
-          >
-            정상
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'normal' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
-              {statusCounts.normal}
-            </span>
-          </button>
+        {/* Filter Bar */}
+        <div className="bg-slate-50 p-4 rounded-3xl border border-outline-variant/15">
+          {/* Type Filter Tabs (입출구분 필터) */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-black text-outline uppercase tracking-wider mr-1">입출종류</span>
+            <button
+              onClick={() => { setTypeFilter('all'); setCurrentPage(1); setIncomingPage(1); setOutgoingPage(1); }}
+              className={`px-3 md:px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+                typeFilter === 'all'
+                  ? 'bg-[#0f172a] text-white shadow-sm'
+                  : 'bg-white text-[#0f172a] hover:bg-slate-50 border border-outline-variant/30'
+              }`}
+            >
+              전체
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${typeFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                {typeCounts.all}
+              </span>
+            </button>
+            <button
+              onClick={() => { setTypeFilter('입고'); setCurrentPage(1); setIncomingPage(1); setOutgoingPage(1); }}
+              className={`px-3 md:px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+                typeFilter === '입고'
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+              }`}
+            >
+              입고
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${typeFilter === '입고' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
+                {typeCounts.input}
+              </span>
+            </button>
+            <button
+              onClick={() => { setTypeFilter('출고'); setCurrentPage(1); setIncomingPage(1); setOutgoingPage(1); }}
+              className={`px-3 md:px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
+                typeFilter === '출고'
+                  ? 'bg-rose-500 text-white shadow-sm'
+                  : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+              }`}
+            >
+              출고
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${typeFilter === '출고' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
+                {typeCounts.output}
+              </span>
+            </button>
+          </div>
         </div>
 
         <div className="min-h-[400px] flex flex-col rounded-[28px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-1.5 md:p-10">
@@ -1283,24 +1328,25 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                 );
               })}
               </div>
+
+              <Pagination 
+                current={currentPage} 
+                total={totalPages} 
+                totalItems={filtered.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onChange={setCurrentPage} 
+              />
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-70">
+            <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-70 py-12">
               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-md border border-outline-variant/20">
                 <Package className="w-10 h-10 text-outline/30" />
               </div>
-              <p className="text-xl font-black text-[#0f172a]/50 tracking-tight">
+              <p className="text-xl font-black text-[#0f172a]/50 tracking-tight text-center">
                 물류 기록이 존재하지 않거나 필터 결과와 일치하지 않습니다.
               </p>
             </div>
           )}
-          <Pagination 
-            current={currentPage} 
-            total={totalPages} 
-            totalItems={filtered.length}
-            itemsPerPage={ITEMS_PER_PAGE}
-            onChange={setCurrentPage} 
-          />
         </div>
       </section>
     </div>
