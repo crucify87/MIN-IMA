@@ -218,6 +218,7 @@ export default function App() {
                     partners={partners} 
                     allUsers={allUsers} 
                     user={user} 
+                    userData={userData}
                     canEditPrices={canEditPrices} 
                     canEditItems={canEditItems} 
                     canManageUsers={canManageUsers} 

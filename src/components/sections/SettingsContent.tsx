@@ -41,6 +41,7 @@ import { FeedbackModal } from '../common/FeedbackModal';
 
 function SettingsContent({ 
   user,
+  userData,
   inventory, 
   partners, 
   allUsers, 
@@ -50,6 +51,8 @@ function SettingsContent({
   canEditPrices,
   settings
 }: any) {
+  const hasFeedbackViewPermission = canManageUsers || userData?.canViewFeedback === true;
+
   const [tab, setTab] = useState<'p' | 't' | 'u' | 's' | 'f'>('p');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
@@ -57,6 +60,20 @@ function SettingsContent({
   const [feedbackSearch, setFeedbackSearch] = useState('');
   const [feedbackFilterType, setFeedbackFilterType] = useState('');
   const [deletingFeedbackId, setDeletingFeedbackId] = useState<string | null>(null);
+
+  const handleToggleFeedbackPermission = async (targetUserId: string, currentVal: boolean) => {
+    if (!canManageUsers) return;
+    try {
+      await updateDoc(doc(db, 'users', targetUserId), { 
+        canViewFeedback: !currentVal, 
+        updatedAt: serverTimestamp() 
+      });
+      alert('피드백 조회 권한이 변경되었습니다.');
+    } catch (error) {
+      console.error(error);
+      alert('권한 변경에 실패했습니다.');
+    }
+  };
 
   const formatFeedbackDate = (timestamp: any) => {
     if (!timestamp) return '-';
@@ -108,6 +125,11 @@ function SettingsContent({
   const [savingSettings, setSavingSettings] = useState(false);
   
   React.useEffect(() => {
+    if (!hasFeedbackViewPermission) {
+      setFeedbacks([]);
+      setLoadingFeedbacks(false);
+      return;
+    }
     setLoadingFeedbacks(true);
     const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -122,7 +144,7 @@ function SettingsContent({
       setLoadingFeedbacks(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [hasFeedbackViewPermission]);
 
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
@@ -600,14 +622,16 @@ function SettingsContent({
         <button onClick={() => setTab('t')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 't' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>거래처</button>
         {canManageUsers && <button onClick={() => setTab('u')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 'u' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>권한</button>}
         {canManageUsers && <button onClick={() => setTab('s')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${tab === 's' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>앱설정</button>}
-        <button onClick={() => setTab('f')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap flex items-center gap-1.5 ${tab === 'f' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>
-          <span>건의사항</span>
-          {feedbacks.length > 0 && (
-            <span className="px-1.5 py-0.5 bg-[#059669] text-white text-[9px] font-black rounded-full leading-none shrink-0 min-w-4 text-center">
-              {feedbacks.length}
-            </span>
-          )}
-        </button>
+        {hasFeedbackViewPermission && (
+          <button onClick={() => setTab('f')} className={`shrink-0 px-5 md:px-10 py-3 rounded-xl font-black text-[11px] md:text-sm transition-all whitespace-nowrap flex items-center gap-1.5 ${tab === 'f' ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}>
+            <span>건의사항</span>
+            {feedbacks.length > 0 && (
+              <span className="px-1.5 py-0.5 bg-[#059669] text-white text-[9px] font-black rounded-full leading-none shrink-0 min-w-4 text-center">
+                {feedbacks.length}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-[24px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
@@ -1405,6 +1429,21 @@ function SettingsContent({
                       <span className={`px-3 md:px-4 py-1.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${u.role === 'super_admin' ? 'bg-indigo-50 text-indigo-600' : u.role === 'admin' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
                         {u.role === 'super_admin' ? 'SUPER' : u.role === 'admin' ? 'ADMIN' : 'USER'}
                       </span>
+                      {canManageUsers && (
+                        <>
+                          <div className="h-6 w-px bg-outline-variant/30"></div>
+                          <label className="flex items-center gap-1.5 cursor-pointer shrink-0 select-none">
+                            <input 
+                              type="checkbox" 
+                              checked={u.canViewFeedback === true || u.role === 'super_admin'} 
+                              disabled={!canManageUsers || u.email === 'crucify87@gmail.com' || u.role === 'super_admin'}
+                              onChange={() => handleToggleFeedbackPermission(u.id, u.canViewFeedback || false)}
+                              className="w-4.5 h-4.5 text-emerald-600 focus:ring-emerald-500 border-outline-variant rounded transition-all cursor-pointer accent-[#059669] disabled:opacity-50"
+                            />
+                            <span className="text-[10px] md:text-xs font-black text-slate-650 whitespace-nowrap">피드백 조회</span>
+                          </label>
+                        </>
+                      )}
                       {canManageUsers && u.email !== user?.email && u.email !== 'crucify87@gmail.com' && (
                         <button onClick={() => handleDeleteUser(u.id, u.email)} className="p-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all active:scale-90" title="계정 삭제">
                           <Trash2 className="w-4.5 h-4.5 md:w-5 md:h-5" />
@@ -1510,7 +1549,7 @@ function SettingsContent({
           </div>
         )}
 
-        {tab === 'f' && (
+        {tab === 'f' && hasFeedbackViewPermission && (
           <div className="p-3 md:p-10 space-y-6 md:space-y-10 font-sans">
             {/* Header / Intro */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">

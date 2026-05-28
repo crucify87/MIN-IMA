@@ -173,7 +173,7 @@ service cloud.firestore {
 
     match /feedbacks/{feedbackId} {
       allow create: if isSignedIn() && isValidFeedback(incoming());
-      allow read: if isApproved();
+      allow read: if isSuperAdmin() || (isApproved() && getUserData().get('canViewFeedback', false) == true);
       allow update, delete: if isSuperAdmin();
     }
   }
