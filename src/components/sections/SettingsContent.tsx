@@ -699,45 +699,6 @@ function SettingsContent({
       <div className="bg-white rounded-[24px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
         {tab === 'p' && (
           <div className="p-3 md:p-10 space-y-6 md:space-y-12">
-            {/* Approval Pending Temporary Items List */}
-            {canEditItems && (
-              (() => {
-                const pendingItems = inventory.filter((i: any) => i.isApproved === false);
-                if (pendingItems.length === 0) return null;
-                return (
-                  <div className="max-w-2xl mx-auto bg-amber-50/40 border border-amber-200/60 rounded-[24px] p-6 space-y-4">
-                    <div>
-                      <h4 className="text-xs md:text-sm font-black text-amber-800 flex items-center gap-2 text-left">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                        승인 대기 임시 품목 ({pendingItems.length}개)
-                      </h4>
-                      <p className="text-[10px] font-bold text-amber-600/80 mt-1 text-left leading-relaxed">
-                        생산일지 작성시 신규로 입력된 품목들입니다. 아래에서 품목을 클릭하면 등록 폼에 자동 입력되며, SKU 및 기타 핵심 정보(단위, 보관위치 등)를 확인하시고 하단 버튼을 클릭하시면 승인 등록됩니다.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                      {pendingItems.map((item: any) => (
-                        <div 
-                          key={item.id} 
-                          onClick={() => handlePendingItemSelection(item)}
-                          className={`flex items-center justify-between p-3.5 bg-white border rounded-xl cursor-pointer hover:border-amber-500 transition-all select-none hover:shadow-xs ${pendingApprovalId === item.id ? 'border-amber-500 ring-2 ring-amber-500/15 bg-amber-50/10' : 'border-slate-100'}`}
-                        >
-                          <div className="text-left space-y-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[8px] font-black leading-none">{item.category}</span>
-                              <span className="text-xs font-black text-slate-800 leading-none">{item.name}</span>
-                            </div>
-                            {item.brand && <p className="text-[9px] font-bold text-slate-400">{item.brand}</p>}
-                          </div>
-                          <span className="text-[9px] font-black text-amber-600 hover:text-amber-700 bg-amber-50 border border-amber-200/50 px-2 py-1 rounded-lg">승인 대기</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()
-            )}
-
             {/* 1. Registration Form (TOP) */}
             {canEditItems ? (
               <div id="item-form" className="max-w-2xl mx-auto space-y-4 md:space-y-10">
