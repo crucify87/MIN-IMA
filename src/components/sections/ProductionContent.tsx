@@ -74,6 +74,7 @@ function ProductionContent({
   const [logDate, setLogDate] = useState(
     new Date().toLocaleDateString("sv-SE"),
   );
+  const [remarks, setRemarks] = useState("");
 
   const [rows, setRows] = useState([
     {
@@ -595,6 +596,7 @@ function ProductionContent({
           yield: yieldRate,
           loss: lossRate,
           linkType: row.linkType || "none",
+          remarks: remarks.trim(),
           updatedAt: serverTimestamp(),
         });
 
@@ -609,6 +611,7 @@ function ProductionContent({
         alert("생산 실적 수정 완료");
         setEditingId(null);
         setShowForm(false);
+        setRemarks("");
         setRows([
           {
             id: Date.now(),
@@ -662,6 +665,7 @@ function ProductionContent({
           yield: yieldRate,
           loss: lossRate,
           linkType: row.linkType || "none",
+          remarks: remarks.trim(),
           createdAt: serverTimestamp(),
         });
 
@@ -677,6 +681,7 @@ function ProductionContent({
       }
       alert("생산 실적 등록 완료");
       setShowForm(false);
+      setRemarks("");
       setRows([
         {
           id: Date.now(),
@@ -701,6 +706,7 @@ function ProductionContent({
     setEditingId(item.id);
     setLine(item.line || "삼산공장");
     setLogDate(item.manufDate);
+    setRemarks(item.remarks || "");
     setRows([
       {
         id: Date.now(),
@@ -1612,6 +1618,20 @@ function ProductionContent({
             </div>
           )}
 
+          {/* 작업 특이사항 */}
+          <div className="space-y-2 pt-2 text-left">
+            <label className="text-[11px] font-black text-outline uppercase tracking-wider block">
+              작업 특이사항
+            </label>
+            <textarea
+              id="production-remarks"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="작업 중 특이사항이나 관리 사항이 있으면 여기에 입력해 주세요 (예: 원육 상태 양호, 온도 관리 주의 등)"
+              className="w-full min-h-[80px] p-4 bg-slate-50 border border-outline-variant/40 rounded-2xl text-xs md:text-sm font-semibold text-[#0f172a] focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all resize-none"
+            />
+          </div>
+
           <div className="flex flex-col md:flex-row gap-6 pt-4">
             {!editingId && (
               <button
@@ -1890,6 +1910,11 @@ function ProductionContent({
                                 </span>
                               )}
                             </div>
+                            {item.remarks && (
+                              <div className="mt-2 px-2.5 py-1.5 bg-amber-50/50 border border-amber-200/30 rounded-xl text-[10px] text-[#854d0e] font-medium max-w-[240px] break-all leading-normal text-left">
+                                <span className="font-black text-[#854d0e] mr-1">특이사항:</span>{item.remarks}
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-6 text-sm">
@@ -2052,6 +2077,12 @@ function ProductionContent({
                         </button>
                       </div>
                     </div>
+
+                    {item.remarks && (
+                      <div className="bg-amber-50/55 border border-amber-200/30 p-3 rounded-2xl text-[11px] text-[#854d0e] font-medium break-all leading-normal text-left">
+                        <span className="font-extrabold text-[#854d0e] mr-1">특이사항:</span>{item.remarks}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
                       <div className="bg-slate-50/70 p-2 rounded-xl flex flex-col justify-center">
