@@ -469,7 +469,33 @@ function ProductionContent({
 
   const updateRow = (id: number, field: string, value: any) => {
     setRows((prevRows) =>
-      prevRows.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
+      prevRows.map((r) => {
+        if (r.id === id) {
+          const updated = { ...r, [field]: value };
+          if (field === "brand") {
+            const newBrand = value;
+            const rawInBrand = inventory.filter(
+              (i: any) => i.category === "원육" && i.brand === newBrand
+            );
+            if (rawInBrand.length > 0) {
+              const oldRawName = r.rawMaterial || "";
+              const match = rawInBrand.find((i: any) => 
+                i.name.toLowerCase().includes(oldRawName.toLowerCase()) || 
+                oldRawName.toLowerCase().includes(i.name.toLowerCase())
+              );
+              if (match) {
+                updated.rawMaterial = match.name;
+              } else {
+                updated.rawMaterial = rawInBrand[0].name;
+              }
+            } else {
+              updated.rawMaterial = "";
+            }
+          }
+          return updated;
+        }
+        return r;
+      })
     );
   };
 
@@ -956,6 +982,16 @@ function ProductionContent({
               const yieldRate = raw > 0 ? (prod / raw) * 100 : 0;
               const lossRate = raw > 0 ? ((raw - prod) / raw) * 100 : 0;
 
+              const resolvedRawItem = inventory.find(
+                (i: any) => i.name === row.rawMaterial && i.category === "원육"
+              );
+              const dynamicRawUnit = (resolvedRawItem?.unit || "KG").toUpperCase();
+
+              const resolvedProdItem = inventory.find(
+                (i: any) => i.name === row.title && i.category !== "원육"
+              );
+              const dynamicProdUnit = (resolvedProdItem?.unit || "KG").toUpperCase();
+
               return (
                 <div
                   key={row.id}
@@ -1098,7 +1134,7 @@ function ProductionContent({
                                           </span>
                                           <span className="text-[10px] font-black text-primary/50">
                                             | {item.currentStock?.toLocaleString()}{" "}
-                                            KG
+                                            {(item.unit || "KG").toUpperCase()}
                                           </span>
                                         </div>
                                       </button>
@@ -1122,7 +1158,7 @@ function ProductionContent({
                                   {inventory
                                     .find((i: any) => i.name === row.title)
                                     ?.currentStock?.toLocaleString() || "0"}{" "}
-                                  KG
+                                  {dynamicProdUnit}
                                 </span>
                               </div>
                             )}
@@ -1167,13 +1203,13 @@ function ProductionContent({
                             {activeRawDropdown === row.id && (
                               <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
                                 {(() => {
-                                  const filteredRaw = rawMaterials.filter((item) =>
-                                    item.name
+                                  const filteredRaw = rawMaterials.filter((item) => {
+                                    const matchBrand = !row.brand || item.brand === row.brand;
+                                    const matchSearch = item.name
                                       .toLowerCase()
-                                      .includes(
-                                        (row.rawMaterial || "").toLowerCase(),
-                                      ),
-                                  );
+                                      .includes((row.rawMaterial || "").toLowerCase());
+                                    return matchBrand && matchSearch;
+                                  });
                                   return filteredRaw.length > 0 ? (
                                     filteredRaw.map((item: any) => (
                                       <button
@@ -1211,7 +1247,7 @@ function ProductionContent({
                                             {Math.round(
                                               item.currentStock || 0,
                                             ).toLocaleString()}{" "}
-                                            KG
+                                            {(item.unit || "KG").toUpperCase()}
                                           </span>
                                         </div>
                                       </button>
@@ -1242,7 +1278,7 @@ function ProductionContent({
                                     <span
                                       className={`text-[10px] font-black ${isLow ? "text-rose-600" : "text-blue-600"}`}
                                     >
-                                      {Math.round(stock).toLocaleString()} KG
+                                      {Math.round(stock).toLocaleString()} {dynamicRawUnit}
                                     </span>
                                   );
                                 })()}
@@ -1330,7 +1366,7 @@ function ProductionContent({
                     <div className="grid grid-cols-2 gap-3 col-span-1 md:col-span-4">
                       <div className="space-y-1">
                         <label className="block text-xs font-black text-slate-500 ml-1">
-                          투입량 (KG)
+                          투입량 ({dynamicRawUnit})
                         </label>
                         {index > 0 && row.linkType === "raw" ? (
                           <div className="h-14 md:h-16 bg-[#e0f2fe]/40 border border-sky-100 rounded-2xl flex flex-col justify-center items-center text-sky-700 shadow-sm w-full cursor-not-allowed">
@@ -1372,7 +1408,7 @@ function ProductionContent({
                       </div>
                       <div className="space-y-1">
                         <label className="block text-xs font-black text-slate-500 ml-1">
-                          생산량 (KG)
+                          생산량 ({dynamicProdUnit})
                         </label>
                         {index > 0 && row.linkType === "product" ? (
                           <div className="h-14 md:h-16 bg-[#fdf2f8]/40 border border-rose-100 rounded-2xl flex flex-col justify-center items-center text-rose-700 shadow-sm w-full cursor-not-allowed">
