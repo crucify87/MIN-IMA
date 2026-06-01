@@ -212,7 +212,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
           '현재고': item.currentStock || 0,
           '안전재고': item.safetyStock || 0,
           '단위': unit,
-          '상태': item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'
+          '상태': item.currentStock < (item.safetyStock || 0) 
+            ? '🔴 부족' 
+            : (item.safetyStock > 0 && item.currentStock >= item.safetyStock && item.currentStock <= item.safetyStock * 1.2)
+              ? '🟡 주의'
+              : '🟢 정상'
         };
       });
 
@@ -695,9 +699,29 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                               ) : '-'}
                             </td>
                             <td className="px-4 py-4">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'}
-                              </span>
+                              {(() => {
+                                const current = item.currentStock || 0;
+                                const safety = item.safetyStock || 0;
+                                if (current < safety) {
+                                  return (
+                                    <span className="px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest bg-rose-50 text-rose-600 inline-flex items-center gap-1">
+                                      🔴 부족
+                                    </span>
+                                  );
+                                } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+                                  return (
+                                    <span className="px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest bg-amber-50 text-amber-600 inline-flex items-center gap-1">
+                                      🟡 주의
+                                    </span>
+                                  );
+                                } else {
+                                  return (
+                                    <span className="px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest bg-emerald-50 text-emerald-600 inline-flex items-center gap-1">
+                                      🟢 정상
+                                    </span>
+                                  );
+                                }
+                              })()}
                             </td>
                             <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-center gap-2">
@@ -857,10 +881,32 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                             <span className="text-[11px] font-black text-slate-400 ml-1">/ {(item.boxes || 0).toLocaleString()} {['KG', 'G'].includes((item.unit || '').toUpperCase()) ? 'BOX' : (item.unit || 'BOX').toUpperCase()}</span>
                           )}
                         </div>
-                        <span className={`px-2.5 py-1 rounded-full text-[8px] font-black tracking-tighter uppercase inline-flex items-center gap-1 shadow-sm ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                          <Package className="w-2.5 h-2.5" />
-                          {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상상태'}
-                        </span>
+                        {(() => {
+                          const current = item.currentStock || 0;
+                          const safety = item.safetyStock || 0;
+                          if (current < safety) {
+                            return (
+                              <span className="px-2.5 py-1 rounded-full text-[8px] font-black bg-rose-500 text-white inline-flex items-center gap-1 shadow-sm uppercase tracking-wider">
+                                <Package className="w-2.5 h-2.5" />
+                                🔴 부족
+                              </span>
+                            );
+                          } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+                            return (
+                              <span className="px-2.5 py-1 rounded-full text-[8px] font-black bg-amber-500 text-white inline-flex items-center gap-1 shadow-sm uppercase tracking-wider">
+                                <Package className="w-2.5 h-2.5" />
+                                🟡 주의
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span className="px-2.5 py-1 rounded-full text-[8px] font-black bg-emerald-500 text-white inline-flex items-center gap-1 shadow-sm uppercase tracking-wider">
+                                <Package className="w-2.5 h-2.5" />
+                                🟢 정상
+                              </span>
+                            );
+                          }
+                        })()}
                       </div>
 
                       {isExpanded && (
@@ -934,6 +980,28 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
             itemsPerPage={ITEMS_PER_PAGE}
             onChange={setCurrentPage} 
           />
+
+          {/* Status Color Badge Legend */}
+          <div className="bg-slate-50 border-t border-outline-variant/30 px-6 py-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
+            <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
+              <span className="text-sm">🟢</span>
+              <span className="font-extrabold text-[#0f172a]">정상</span>
+              <span className="text-slate-400">|</span>
+              <span>여유로운 안전재고 상태</span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
+              <span className="text-sm">🟡</span>
+              <span className="font-extrabold text-amber-700">주의</span>
+              <span className="text-slate-400">|</span>
+              <span>보충 필요 (안전재고의 120% 이하)</span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
+              <span className="text-sm">🔴</span>
+              <span className="font-extrabold text-rose-600">부족</span>
+              <span className="text-slate-400">|</span>
+              <span>즉시 입고 필요 (안전재고 미달)</span>
+            </div>
+          </div>
         </div>
     </section>
   </div>

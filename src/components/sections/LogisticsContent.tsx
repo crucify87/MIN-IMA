@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { 
   ArrowLeft,
+  ArrowUp,
+  ArrowDown,
   Plus,
   X,
   Search,
@@ -1251,9 +1253,17 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                             <div className="text-[10px] opacity-60">{l.time}</div>
                           </td>
                           <td className="px-4 py-6">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black ${l.type === '입고' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                              {l.type}
-                            </span>
+                            {l.type === '입고' ? (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 inline-flex items-center gap-1">
+                                <ArrowUp className="w-3.5 h-3.5 stroke-[3]" />
+                                {l.type}
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-orange-50 text-orange-600 border border-orange-200 inline-flex items-center gap-1">
+                                <ArrowDown className="w-3.5 h-3.5 stroke-[3]" />
+                                {l.type}
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-6 text-sm font-bold text-slate-500">
                             {l.category ? (
@@ -1331,14 +1341,22 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
                   return (
                     <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
-                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${l.type === '입고' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${l.type === '입고' ? 'bg-blue-500' : 'bg-orange-500'}`} />
                       
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase shadow-sm ${l.type === '입고' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
-                              {l.type}
-                            </span>
+                            {l.type === '입고' ? (
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase shadow-sm bg-blue-500 text-white inline-flex items-center gap-0.5">
+                                <ArrowUp className="w-2.5 h-2.5 stroke-[3]" />
+                                {l.type}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase shadow-sm bg-orange-500 text-white inline-flex items-center gap-0.5">
+                                <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
+                                {l.type}
+                              </span>
+                            )}
                             <div className="text-[10px] font-bold text-outline uppercase tracking-tight font-mono">
                               {l.date} <span className="opacity-40">{l.time}</span>
                             </div>

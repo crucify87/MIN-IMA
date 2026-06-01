@@ -916,20 +916,20 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                                 const safety = item.safetyStock || 0;
                                 if (current < safety) {
                                   return (
-                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-rose-100 text-rose-600">
-                                      부족
+                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-rose-100 text-rose-600 inline-flex items-center gap-1">
+                                      🔴 부족
                                     </span>
                                   );
                                 } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
                                   return (
-                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-600">
-                                      보충
+                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 inline-flex items-center gap-1">
+                                      🟡 주의
                                     </span>
                                   );
                                 } else {
                                   return (
-                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">
-                                      정상
+                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600 inline-flex items-center gap-1">
+                                      🟢 정상
                                     </span>
                                   );
                                 }
@@ -967,26 +967,47 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                           const safety = item.safetyStock || 0;
                           if (current < safety) {
                             return (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-rose-100 text-rose-600">
-                                부족
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-rose-100 text-rose-600 inline-flex items-center gap-1">
+                                🔴 부족
                               </span>
                             );
                           } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
                             return (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-blue-100 text-blue-600">
-                                보충
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-amber-100 text-amber-700 inline-flex items-center gap-1">
+                                🟡 주의
                               </span>
                             );
                           } else {
                             return (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-emerald-100 text-emerald-600">
-                                정상
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-emerald-100 text-emerald-600 inline-flex items-center gap-1">
+                                🟢 정상
                               </span>
                             );
                           }
                         })()}
                       </div>
                     ))}
+                  </div>
+                </div>
+                {/* Status Color Badge Legend */}
+                <div className="bg-slate-50 border-t border-outline-variant/30 px-6 py-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
+                  <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
+                    <span className="text-sm">🟢</span>
+                    <span className="font-extrabold text-[#0f172a]">정상</span>
+                    <span className="text-slate-400">|</span>
+                    <span>여유로운 안전재고 상태</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
+                    <span className="text-sm">🟡</span>
+                    <span className="font-extrabold text-amber-700">주의</span>
+                    <span className="text-slate-400">|</span>
+                    <span>보충 필요 (안전재고의 120% 이하)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
+                    <span className="text-sm">🔴</span>
+                    <span className="font-extrabold text-rose-600">부족</span>
+                    <span className="text-slate-400">|</span>
+                    <span>즉시 입고 필요 (안전재고 미달)</span>
                   </div>
                 </div>
               </div>
