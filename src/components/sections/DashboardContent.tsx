@@ -178,7 +178,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           '현재고': i.currentStock || 0,
           '안전재고': i.safetyStock || 0,
           '단위': unit,
-          '상태': i.currentStock < (i.safetyStock || 0) ? '부족' : '정상'
+          '상태': (i.currentStock <= 0 || i.currentStock < (i.safetyStock || 0)) 
+            ? '부족' 
+            : ((i.safetyStock || 0) > 0 && i.currentStock >= (i.safetyStock || 0) && i.currentStock <= (i.safetyStock || 0) * 1.2)
+              ? '주의'
+              : '정상'
         };
       });
 
@@ -227,9 +231,12 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     baseItems.forEach((item: any) => {
       const current = item.currentStock || 0;
       const safety = item.safetyStock || 0;
-      if (current < safety) {
+      const isShortage = current <= 0 || current < safety;
+      const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+
+      if (isShortage) {
         shortage++;
-      } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+      } else if (isReplenish) {
         replenish++;
       } else {
         normal++;
@@ -268,8 +275,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       result = result.filter((item: any) => {
         const current = item.currentStock || 0;
         const safety = item.safetyStock || 0;
-        const isShortage = current < safety;
-        const isReplenish = safety > 0 && current >= safety && current <= safety * 1.2;
+        const isShortage = current <= 0 || current < safety;
+        const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
         
         if (stockStatusFilter === 'shortage') return isShortage;
         if (stockStatusFilter === 'replenish') return isReplenish;
@@ -283,8 +290,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       const getPriority = (item: any) => {
         const current = item.currentStock || 0;
         const safety = item.safetyStock || 0;
-        if (current < safety) return 1;
-        if (safety > 0 && current >= safety && current <= safety * 1.2) return 2;
+        const isShortage = current <= 0 || current < safety;
+        const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+        
+        if (isShortage) return 1;
+        if (isReplenish) return 2;
         return 3;
       };
 
@@ -542,8 +552,18 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     }
       
     const activeProduction = production.filter((p: any) => isInRange(p.manufDate));
-    const productionQty = activeProduction
-      .reduce((acc: number, curr: any) => acc + (Number(curr.production) || 0), 0);
+    const productionValues = activeProduction
+      .reduce((acc: Record<string, number>, curr: any) => {
+        const itemInfo = inventory.find((it: any) => it.name === curr.title);
+        const unit = (itemInfo?.unit || curr.unit || 'KG').toUpperCase();
+        const value = Number(curr.production) || 0;
+        acc[unit] = (acc[unit] || 0) + value;
+        return acc;
+      }, {});
+
+    if (Object.keys(productionValues).length === 0) {
+      productionValues['KG'] = 0;
+    }
 
     // Calculate category totals (regardless of date filters, used for summary cards)
     const categoryTotals = inventory.reduce((acc: Record<string, Record<string, number>>, item: any) => {
@@ -584,7 +604,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       },
       { label: `${activeShift || '조회 기간'}입고`, values: inputValues },
       { label: `${activeShift || '조회 기간'}출고`, values: outputValues, active: true },
-      { label: `${activeShift || '조회 기간'}생산`, value: productionQty, subtitle: '완제품', unit: 'KG' },
+      { label: `${activeShift || '조회 기간'}생산`, values: productionValues, subtitle: '완제품' },
     ];
 
     const secondRow = otherCategories.map(([category, unitMap]) => ({
@@ -914,13 +934,16 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                               {(() => {
                                 const current = item.currentStock || 0;
                                 const safety = item.safetyStock || 0;
-                                if (current < safety) {
+                                const isShortage = current <= 0 || current < safety;
+                                const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+
+                                if (isShortage) {
                                   return (
                                     <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-rose-100 text-rose-600 inline-flex items-center gap-1">
                                       🔴 부족
                                     </span>
                                   );
-                                } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+                                } else if (isReplenish) {
                                   return (
                                     <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 inline-flex items-center gap-1">
                                       🟡 주의
@@ -965,13 +988,16 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                         {(() => {
                           const current = item.currentStock || 0;
                           const safety = item.safetyStock || 0;
-                          if (current < safety) {
+                          const isShortage = current <= 0 || current < safety;
+                          const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+
+                          if (isShortage) {
                             return (
                               <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-rose-100 text-rose-600 inline-flex items-center gap-1">
                                 🔴 부족
                               </span>
                             );
-                          } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+                          } else if (isReplenish) {
                             return (
                               <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-amber-100 text-amber-700 inline-flex items-center gap-1">
                                 🟡 주의
@@ -1070,7 +1096,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                 <tbody className="divide-y divide-outline-variant/10">
                   {paginatedActivity.map((l: any, i: number) => {
                     const itemInfo = inventory.find((inv: any) => inv.name === l.item);
-                    const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
+                    const isShortage = itemInfo ? (itemInfo.currentStock <= 0 || itemInfo.currentStock < (itemInfo.safetyStock || 0)) : false;
                     const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
                     const displayWeightUnit = (() => {
                       if (itemInfo && itemInfo.unit) {
@@ -1191,7 +1217,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             <div className="md:hidden divide-y divide-outline-variant/10 p-2">
               {paginatedActivity.map((l: any, i: number) => {
                 const itemInfo = inventory.find((inv: any) => inv.name === l.item);
-                const isShortage = itemInfo ? itemInfo.currentStock < (itemInfo.safetyStock || 0) : false;
+                const isShortage = itemInfo ? (itemInfo.currentStock <= 0 || itemInfo.currentStock < (itemInfo.safetyStock || 0)) : false;
                 const status = l.type === '입고' ? '보충' : (isShortage ? '부족' : '정상');
                 const displayWeightUnit = (() => {
                   if (itemInfo && itemInfo.unit) {

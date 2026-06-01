@@ -299,8 +299,8 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     baseFiltered.forEach((item: any) => {
       const current = item.currentStock || 0;
       const safety = item.safetyStock || 0;
-      const isShortage = current < safety;
-      const isReplenish = safety > 0 && current >= safety && current <= safety * 1.2;
+      const isShortage = current <= 0 || current < safety;
+      const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
 
       if (isShortage) {
         shortage++;
@@ -326,8 +326,8 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       result = result.filter((item: any) => {
         const current = item.currentStock || 0;
         const safety = item.safetyStock || 0;
-        const isShortage = current < safety;
-        const isReplenish = safety > 0 && current >= safety && current <= safety * 1.2;
+        const isShortage = current <= 0 || current < safety;
+        const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
         
         if (stockStatusFilter === 'shortage') return isShortage;
         if (stockStatusFilter === 'replenish') return isReplenish;
@@ -341,8 +341,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       const getPriority = (item: any) => {
         const current = item.currentStock || 0;
         const safety = item.safetyStock || 0;
-        if (current < safety) return 1;
-        if (safety > 0 && current >= safety && current <= safety * 1.2) return 2;
+        const isShortage = current <= 0 || current < safety;
+        const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+        
+        if (isShortage) return 1;
+        if (isReplenish) return 2;
         return 3;
       };
 
@@ -437,7 +440,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
 
   const summaryStats = useMemo(() => {
     const skuCount = inventory.length;
-    const lowStockCount = inventory.filter((i: any) => i.currentStock < (i.safetyStock || 0)).length;
+    const lowStockCount = inventory.filter((i: any) => i.currentStock <= 0 || i.currentStock < (i.safetyStock || 0)).length;
     
     const now = new Date();
     const startOfWeek = new Date();
@@ -702,13 +705,16 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                               {(() => {
                                 const current = item.currentStock || 0;
                                 const safety = item.safetyStock || 0;
-                                if (current < safety) {
+                                const isShortage = current <= 0 || current < safety;
+                                const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+                                
+                                if (isShortage) {
                                   return (
                                     <span className="px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest bg-rose-50 text-rose-600 inline-flex items-center gap-1">
                                       🔴 부족
                                     </span>
                                   );
-                                } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+                                } else if (isReplenish) {
                                   return (
                                     <span className="px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest bg-amber-50 text-amber-600 inline-flex items-center gap-1">
                                       🟡 주의
@@ -839,7 +845,15 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                   const itemMoves = isExpanded ? getItemHistory(item.name) : [];
                   return (
                     <div key={i} className={`bg-white p-4 rounded-[24px] border ${isExpanded ? 'border-primary shadow-md' : 'border-outline-variant/60 shadow-sm'} space-y-3 relative overflow-hidden group transition-all`}>
-                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                      {(() => {
+                        const current = item.currentStock || 0;
+                        const safety = item.safetyStock || 0;
+                        const isShortage = current <= 0 || current < safety;
+                        const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+                        if (isShortage) return <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500" />;
+                        if (isReplenish) return <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />;
+                        return <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />;
+                      })()}
                       
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedItemId(isExpanded ? null : item.id)}>
@@ -873,7 +887,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
 
                       <div className="flex items-center justify-between pt-3 border-t border-slate-50 cursor-pointer" onClick={() => setExpandedItemId(isExpanded ? null : item.id)}>
                         <div className="flex items-baseline gap-1.5">
-                          <span className={`text-lg font-black tracking-tight ${item.currentStock < (item.safetyStock || 0) ? 'text-rose-600' : 'text-[#0f172a]'}`}>
+                          <span className={`text-lg font-black tracking-tight ${item.currentStock <= 0 || item.currentStock < (item.safetyStock || 0) ? 'text-rose-600' : 'text-[#0f172a]'}`}>
                             {Math.round(item.currentStock || 0).toLocaleString()}
                           </span>
                           <span className="text-[9px] font-bold text-outline">{item.unit}</span>
@@ -884,14 +898,16 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                         {(() => {
                           const current = item.currentStock || 0;
                           const safety = item.safetyStock || 0;
-                          if (current < safety) {
+                          const isShortage = current <= 0 || current < safety;
+                          const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+                          if (isShortage) {
                             return (
                               <span className="px-2.5 py-1 rounded-full text-[8px] font-black bg-rose-500 text-white inline-flex items-center gap-1 shadow-sm uppercase tracking-wider">
                                 <Package className="w-2.5 h-2.5" />
                                 🔴 부족
                               </span>
                             );
-                          } else if (safety > 0 && current >= safety && current <= safety * 1.2) {
+                          } else if (isReplenish) {
                             return (
                               <span className="px-2.5 py-1 rounded-full text-[8px] font-black bg-amber-500 text-white inline-flex items-center gap-1 shadow-sm uppercase tracking-wider">
                                 <Package className="w-2.5 h-2.5" />

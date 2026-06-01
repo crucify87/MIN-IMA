@@ -682,6 +682,33 @@ function SettingsContent({
     }
   };
 
+  const handleResetAllLogistics = async () => {
+    if (!isSuperAdmin) return;
+    if (!window.confirm("⚠️ 정말로 모든 입출고 내역(물류리스트)을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며, 모든 과거 입출고 로그 데이터가 삭제됩니다.")) return;
+    if (!window.confirm("⚠️ [최종 확인] 전체 물류 리스트 초기화를 진행하시겠습니까? 등록된 품목 마스터의 현재고는 유지되며 오직 과거 입출고 내역 로그만 지워집니다.")) return;
+
+    try {
+      const chunks = [];
+      const tempLogs = [...logistics];
+      while (tempLogs.length > 0) {
+        chunks.push(tempLogs.splice(0, 500));
+      }
+
+      for (const chunk of chunks) {
+        const batch = writeBatch(db);
+        chunk.forEach((log: any) => {
+          const logRef = doc(db, 'logistics', log.id);
+          batch.delete(logRef);
+        });
+        await batch.commit();
+      }
+
+      alert("모든 물류 입출고 로그가 정상 초기화되었습니다.");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'logistics');
+    }
+  };
+
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
   const paginatedItems = React.useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -849,24 +876,44 @@ function SettingsContent({
                     {showPartnerOptions && (
                       <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
                         {partners?.length > 0 ? (
-                          partners.map((p: any) => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => {
-                                setItemForm({...itemForm, partner: p.name});
-                                setShowPartnerOptions(false);
-                              }}
-                              className={`w-full h-11 flex items-center justify-between px-5 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.partner === p.name ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
-                            >
-                              <span>{p.name}</span>
-                              {itemForm.partner === p.name && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
-                            </button>
-                          ))
+                          (() => {
+                            const selectedPartners = itemForm.partner
+                              ? itemForm.partner.split(',').map((s: any) => s.trim()).filter(Boolean)
+                              : [];
+                            return partners.map((p: any) => {
+                              const isSelected = selectedPartners.includes(p.name);
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => {
+                                    let newSelected;
+                                    if (isSelected) {
+                                      newSelected = selectedPartners.filter((name: string) => name !== p.name);
+                                    } else {
+                                      newSelected = [...selectedPartners, p.name];
+                                    }
+                                    setItemForm({...itemForm, partner: newSelected.join(', ')});
+                                  }}
+                                  className={`w-full h-11 flex items-center justify-between px-5 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <input 
+                                      type="checkbox" 
+                                      checked={isSelected} 
+                                      onChange={() => {}} // pure click handled by parent button
+                                      className="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary pointer-events-none" 
+                                    />
+                                    <span>{p.name}</span>
+                                  </div>
+                                </button>
+                              );
+                            });
+                          })()
                         ) : (
                           <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">등록된 거래처가 없습니다</div>
                         )}
-                        <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 가능</div>
+                        <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 시 쉼표(,)로 구분 가능</div>
                       </div>
                     )}
                   </div>
@@ -1206,17 +1253,31 @@ function SettingsContent({
                 </div>
 
                 {isSuperAdmin && (
-                  <button
-                    type="button"
-                    onClick={handleResetAllInventory}
-                    className="h-10 px-4 md:px-5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-95"
-                    id="btn-reset-all-inventory"
-                  >
-                    <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    재고 일괄 리셋 (0으로 초기화)
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetAllLogistics}
+                      className="h-10 px-4 md:px-5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-95"
+                      id="btn-reset-all-logistics"
+                    >
+                      <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      물류 내역 일괄 초기화
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleResetAllInventory}
+                      className="h-10 px-4 md:px-5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-95"
+                      id="btn-reset-all-inventory"
+                    >
+                      <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      재고 일괄 리셋 (0으로 초기화)
+                    </button>
+                  </div>
                 )}
               </div>
 

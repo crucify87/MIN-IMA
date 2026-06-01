@@ -50,6 +50,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [showItemDropdown, setShowItemDropdown] = useState(false);
   const [showWeightUnitDropdown, setShowWeightUnitDropdown] = useState(false);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
+  const [showFormPartnerDropdown, setShowFormPartnerDropdown] = useState(false);
   const handleStartDateClick = () => {
     if (startDatePickerRef.current) {
       if ('showPicker' in startDatePickerRef.current) {
@@ -645,6 +646,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       }
       
       setShowForm(false);
+      setShowFormPartnerDropdown(false);
       setForm({ 
         date: new Date().toISOString().split('T')[0], 
         time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), 
@@ -730,7 +732,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
             {canEditItems && (
               <button 
-                onClick={() => setShowForm(!showForm)} 
+                onClick={() => { setShowForm(!showForm); setShowFormPartnerDropdown(false); }} 
                 className="h-11 px-4 sm:px-6 bg-[#0f172a] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap flex-1 sm:flex-none"
               >
                 {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -1019,11 +1021,70 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
              </div>
 
              <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">거래처</label>
-               <select value={form.partner} onChange={e => setForm({...form, partner: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all">
-                 <option value="">거래처 선택</option>
-                 {partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
-                </select>
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1 flex items-center gap-1">
+                 거래처 (다중 선택 가능)
+               </label>
+               <div className="relative group mt-1">
+                 <input
+                   key="logistics-partner-input"
+                   type="text"
+                   placeholder="거래처 선택 또는 직접 입력"
+                   value={form.partner || ''}
+                   onChange={e => setForm({...form, partner: e.target.value})}
+                   onFocus={() => setShowFormPartnerDropdown(true)}
+                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-10"
+                 />
+                 <button
+                   type="button"
+                   onClick={() => setShowFormPartnerDropdown(!showFormPartnerDropdown)}
+                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-outline hover:text-primary transition-colors cursor-pointer"
+                 >
+                   <ChevronDown className={`w-4 h-4 transition-transform ${showFormPartnerDropdown ? 'rotate-180' : ''}`} />
+                 </button>
+               </div>
+               {showFormPartnerDropdown && (
+                 <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                   {partners?.length > 0 ? (
+                     (() => {
+                       const selectedPartners = form.partner
+                         ? form.partner.split(',').map((s: any) => s.trim()).filter(Boolean)
+                         : [];
+                       return partners.map((p: any) => {
+                         const isSelected = selectedPartners.includes(p.name);
+                         return (
+                           <button
+                             key={p.id}
+                             type="button"
+                             onClick={() => {
+                               let newSelected;
+                               if (isSelected) {
+                                 newSelected = selectedPartners.filter((name: string) => name !== p.name);
+                               } else {
+                                 newSelected = [...selectedPartners, p.name];
+                               }
+                               setForm({...form, partner: newSelected.join(', ')});
+                             }}
+                             className={`w-full h-11 flex items-center justify-between px-5 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                           >
+                             <div className="flex items-center gap-2">
+                               <input
+                                 type="checkbox"
+                                 checked={isSelected}
+                                 onChange={() => {}} // handled by click
+                                 className="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary pointer-events-none"
+                                />
+                               <span>{p.name}</span>
+                             </div>
+                           </button>
+                         );
+                       });
+                     })()
+                   ) : (
+                     <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">등록된 거래처가 없습니다</div>
+                   )}
+                   <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 시 쉼표(,)로 구분 가능</div>
+                 </div>
+               )}
               </div>
 
               <div className="flex items-end">
