@@ -561,6 +561,15 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         return acc;
       }, {});
 
+    const hasEAProducts = inventory.some((it: any) => 
+      it.category !== '원육' && 
+      (it.unit || '').toUpperCase() === 'EA' && 
+      it.isApproved !== false
+    );
+    if (hasEAProducts && !productionValues['EA']) {
+      productionValues['EA'] = 0;
+    }
+
     if (Object.keys(productionValues).length === 0) {
       productionValues['KG'] = 0;
     }

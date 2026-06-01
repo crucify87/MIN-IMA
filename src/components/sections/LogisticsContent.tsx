@@ -688,7 +688,10 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     if (!window.confirm(`[${l.item}] 물류 기록을 삭제하시겠습니까? (재고가 같이 조정됩니다)`)) return;
     try {
       await deleteDoc(doc(db, 'logistics', l.id));
-      const item = inventory.find((i: any) => i.name === l.item);
+      let item = inventory.find((i: any) => i.name === l.item && i.category === (l.category || ''));
+      if (!item) {
+        item = inventory.find((i: any) => i.name === l.item);
+      }
       if (item) {
         const itemUnit = (l.unit || item.unit || 'BOX').toUpperCase();
         const isCountBased = ['EA', 'BOX'].includes(itemUnit);
@@ -1154,24 +1157,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             >
               <option value="">전체 거래처</option>
               {partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
-            </select>
-
-            <select 
-              value={filterLocation} 
-              onChange={e => setFilterLocation(e.target.value)}
-              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
-            >
-              <option value="">전체 창고</option>
-              {locationsList.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
-
-            <select 
-              value={filterUnit} 
-              onChange={e => setFilterUnit(e.target.value)}
-              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
-            >
-              <option value="">전체 단위</option>
-              {unitsList.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
 
             <div className="relative group flex-1 md:flex-none md:w-64">
