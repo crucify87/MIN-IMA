@@ -1005,25 +1005,25 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                      <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 py-1">
                        {['BOX', 'EA'].map(u => (
                          <button
-                           key={u}
-                           type="button"
-                           onMouseDown={(e) => {
-                             e.preventDefault();
-                             setForm({...form, unit: u});
-                             setShowUnitDropdown(false);
-                           }}
-                           className="w-full h-9 flex items-center px-4 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
-                         >
-                           {u}
-                         </button>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               </div>
-             </div>
+                             key={u}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setForm({...form, unit: u});
+                              setShowUnitDropdown(false);
+                            }}
+                            className="w-full h-9 flex items-center px-4 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                          >
+                            {u}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-             <div className="space-y-1">
+              <div className="space-y-1 relative">
                <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1 flex items-center gap-1">
                  거래처 (다중 선택 가능)
                </label>
@@ -1052,7 +1052,27 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                        const selectedPartners = form.partner
                          ? form.partner.split(',').map((s: any) => s.trim()).filter(Boolean)
                          : [];
-                       return partners.map((p: any) => {
+                       
+                       const typedText = form.partner || '';
+                       const lastCommaIndex = typedText.lastIndexOf(',');
+                       const searchKeyword = (lastCommaIndex !== -1 ? typedText.substring(lastCommaIndex + 1) : typedText).trim();
+
+                       const currentPartners = partners || [];
+                       const sortedPartners = [...currentPartners].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'ko'));
+                       const filtered = sortedPartners.filter((p: any) => {
+                         if (!searchKeyword) return true;
+                         const isSelected = selectedPartners.includes(p.name);
+                         if (isSelected) return true;
+                         return (p.name || '').toLowerCase().includes(searchKeyword.toLowerCase());
+                       });
+
+                       if (filtered.length === 0) {
+                         return (
+                           <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">검색 결과가 없습니다</div>
+                         );
+                       }
+
+                       return filtered.map((p: any) => {
                          const isSelected = selectedPartners.includes(p.name);
                          return (
                            <button
@@ -1063,9 +1083,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                                if (isSelected) {
                                  newSelected = selectedPartners.filter((name: string) => name !== p.name);
                                } else {
-                                 newSelected = [...selectedPartners, p.name];
+                                 const previousPart = lastCommaIndex !== -1 ? typedText.substring(0, lastCommaIndex) : '';
+                                 const exactPrevious = previousPart
+                                   ? previousPart.split(',').map((s: any) => s.trim()).filter(Boolean)
+                                   : [];
+                                 newSelected = [...exactPrevious, p.name];
                                }
-                               setForm({...form, partner: newSelected.join(', ')});
+                               const finalValue = newSelected.length > 0 ? newSelected.join(', ') + ', ' : '';
+                                setForm({...form, partner: finalValue});
                              }}
                              className={`w-full h-11 flex items-center justify-between px-5 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
                            >
@@ -1088,7 +1113,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                    <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 시 쉼표(,)로 구분 가능</div>
                  </div>
                )}
-              </div>
+             </div>
 
               <div className="flex items-end">
                 <button type="submit" className="w-full h-12 bg-[#0f172a] text-white rounded-xl font-black uppercase shadow-lg shadow-[#0f172a]/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
