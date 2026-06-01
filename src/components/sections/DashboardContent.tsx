@@ -66,6 +66,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     return saved ? parseInt(saved, 10) : 1;
   });
   const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem('dashboard_searchQuery') || '');
+  const [filterCategory, setFilterCategory] = useState(() => sessionStorage.getItem('dashboard_filterCategory') || '');
+  const [filterBrand, setFilterBrand] = useState(() => sessionStorage.getItem('dashboard_filterBrand') || '');
   const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'shortage' | 'replenish' | 'normal'>(() => {
     return (sessionStorage.getItem('dashboard_stockStatusFilter') as any) || 'all';
   });
@@ -75,6 +77,17 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
   const isFirstRender = useRef(true);
 
+  // Dynamic values mapped from inventory items
+  const categories = useMemo(() => {
+    const all = inventory.filter((i: any) => i.isApproved !== false).map((i: any) => i.category).filter(Boolean);
+    return Array.from(new Set(all)) as string[];
+  }, [inventory]);
+
+  const brands = useMemo(() => {
+    const all = inventory.filter((i: any) => i.isApproved !== false).map((i: any) => i.brand).filter(Boolean);
+    return Array.from(new Set(all)) as string[];
+  }, [inventory]);
+
   // Reset pages when filters change to avoid empty views
   useEffect(() => {
     if (isFirstRender.current) {
@@ -83,7 +96,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     }
     setInventoryPage(1);
     setActivityPage(1);
-  }, [filterStartDate, filterEndDate, searchQuery, stockStatusFilter]);
+  }, [filterStartDate, filterEndDate, searchQuery, stockStatusFilter, filterCategory, filterBrand]);
 
   // Sync state changes to sessionStorage
   useEffect(() => {
@@ -109,6 +122,14 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   useEffect(() => {
     sessionStorage.setItem('dashboard_searchQuery', searchQuery);
   }, [searchQuery]);
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_filterCategory', filterCategory);
+  }, [filterCategory]);
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_filterBrand', filterBrand);
+  }, [filterBrand]);
 
   useEffect(() => {
     sessionStorage.setItem('dashboard_stockStatusFilter', stockStatusFilter);
@@ -180,11 +201,24 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   };
 
   const statusCounts = useMemo(() => {
-    let baseItems = !searchQuery ? inventory : inventory.filter((item: any) => 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    let baseItems = inventory;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      baseItems = baseItems.filter((item: any) => 
+        item.name.toLowerCase().includes(q) ||
+        (item.category || '').toLowerCase().includes(q) ||
+        (item.brand || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (filterCategory) {
+      baseItems = baseItems.filter((item: any) => item.category === filterCategory);
+    }
+
+    if (filterBrand) {
+      baseItems = baseItems.filter((item: any) => item.brand === filterBrand);
+    }
 
     let shortage = 0;
     let replenish = 0;
@@ -208,14 +242,27 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       replenish,
       normal
     };
-  }, [inventory, searchQuery]);
+  }, [inventory, searchQuery, filterCategory, filterBrand]);
 
   const filteredInventory = useMemo(() => {
-    let result = !searchQuery ? inventory : inventory.filter((item: any) => 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.brand?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    let result = inventory;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((item: any) => 
+        item.name.toLowerCase().includes(q) ||
+        (item.category || '').toLowerCase().includes(q) ||
+        (item.brand || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (filterCategory) {
+      result = result.filter((item: any) => item.category === filterCategory);
+    }
+
+    if (filterBrand) {
+      result = result.filter((item: any) => item.brand === filterBrand);
+    }
 
     if (stockStatusFilter !== 'all') {
       result = result.filter((item: any) => {
@@ -252,7 +299,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       const timeB = b.updatedAt?.seconds || 0;
       return timeB - timeA;
     });
-  }, [inventory, searchQuery, stockStatusFilter]);
+  }, [inventory, searchQuery, stockStatusFilter, filterCategory, filterBrand]);
 
   const paginatedInventory = useMemo(() => {
     const startIndex = (inventoryPage - 1) * ITEMS_PER_PAGE;
@@ -633,113 +680,20 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   return (
     <div className="space-y-10">
       {/* Dashboard Header */}
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 md:gap-6 px-1 md:px-0">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 md:gap-6 px-1 md:px-0">
         <div className="space-y-1">
           <h1 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter">대시보드</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 md:gap-3">
-          <div className="relative group w-full sm:w-48 lg:w-48">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-            <input 
-              type="text" 
-              placeholder="품목 검색" 
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setInventoryPage(1);
-              }}
-              className="h-11 pl-11 pr-4 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:border-primary transition-all w-full" 
-            />
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
-              <div className="relative group flex-1 sm:flex-none">
-                <input 
-                  ref={startDateInputRef}
-                  type="date"
-                  value={filterStartDate}
-                  onChange={(e) => {
-                    setFilterStartDate(e.target.value);
-                    setActiveShift('');
-                  }}
-                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
-                />
-                <button 
-                  onClick={handleStartDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
-                >
-                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
-                  <span className="font-black">{filterStartDate.split('-').slice(1).join('/')}</span>
-                </button>
-              </div>
-
-              <span className="text-outline font-black text-xs">~</span>
-
-              <div className="relative group flex-1 sm:flex-none">
-                <input 
-                  ref={endDateInputRef}
-                  type="date"
-                  value={filterEndDate}
-                  onChange={(e) => {
-                    setFilterEndDate(e.target.value);
-                    setActiveShift('');
-                  }}
-                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
-                />
-                <button 
-                  onClick={handleEndDateClick}
-                  className="w-full flex items-center justify-center gap-2 px-3 h-11 bg-white border border-outline-variant rounded-xl text-xs font-bold text-on-surface group-hover:border-primary group-hover:ring-2 group-hover:ring-primary/10 transition-all whitespace-nowrap cursor-pointer"
-                >
-                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
-                  <span className="font-black">{filterEndDate.split('-').slice(1).join('/')}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 sm:flex-none flex bg-surface-container p-1 rounded-xl border border-outline-variant h-11 items-center">
-              {[
-                { label: '일간', action: () => {
-                  setFilterStartDate(today);
-                  setFilterEndDate(today);
-                }},
-                { label: '주간', action: () => {
-                  const d = new Date();
-                  d.setDate(d.getDate() - 7);
-                  setFilterStartDate(d.toISOString().split('T')[0]);
-                  setFilterEndDate(today);
-                }},
-                { label: '월간', action: () => {
-                  const d = new Date();
-                  const first = new Date(d.getFullYear(), d.getMonth(), 1);
-                  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-                  setFilterStartDate(first.toISOString().split('T')[0]);
-                  setFilterEndDate(last.toISOString().split('T')[0]);
-                }}
-              ].map((shift) => (
-                <button
-                  key={shift.label}
-                  onClick={() => {
-                    setActiveShift(shift.label);
-                    shift.action();
-                  }}
-                  className={`flex-1 sm:flex-none px-3 md:px-5 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift.label ? 'bg-primary text-white shadow-sm' : 'text-outline hover:text-primary'}`}
-                >
-                  {shift.label}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={handleDownloadExcel}
-              className="flex-none flex items-center justify-center w-11 h-11 sm:w-auto sm:px-4 bg-white border border-outline-variant rounded-xl text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
-              title="엑셀 다운"
-            >
-              <FileDown className="w-4 h-4" />
-              <span className="hidden sm:inline font-black ml-2">엑셀 다운</span>
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadExcel}
+            className="flex-none flex items-center justify-center gap-2 px-4 h-11 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+            title="엑셀 다운"
+          >
+            <FileDown className="w-4 h-4" />
+            <span className="hidden sm:inline font-black">엑셀 다운</span>
+          </button>
         </div>
       </header>
 
@@ -768,73 +722,146 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
       {/* Current Inventory Table */}
       <section className="space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-slate-100/50 p-4 md:p-6 rounded-[24px] border border-outline-variant/30">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
             <h3 className="text-2xl font-black text-on-surface tracking-tight whitespace-nowrap">현재 재고 현황</h3>
             
-            {/* Status Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => { setStockStatusFilter('all'); setInventoryPage(1); }}
-                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-                  stockStatusFilter === 'all'
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'bg-slate-100 text-[#0f172a] hover:bg-slate-200'
-                }`}
-              >
-                전체
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                  {statusCounts.all}
-                </span>
-              </button>
-              <button
-                onClick={() => { setStockStatusFilter('shortage'); setInventoryPage(1); }}
-                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-                  stockStatusFilter === 'shortage'
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-                }`}
-              >
-                부족
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'shortage' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
-                  {statusCounts.shortage}
-                </span>
-              </button>
-              <button
-                onClick={() => { setStockStatusFilter('replenish'); setInventoryPage(1); }}
-                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-                  stockStatusFilter === 'replenish'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                }`}
-              >
-                보충
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'replenish' ? 'bg-white/20 text-blue-100' : 'bg-blue-100 text-blue-600'}`}>
-                  {statusCounts.replenish}
-                </span>
-              </button>
-              <button
-                onClick={() => { setStockStatusFilter('normal'); setInventoryPage(1); }}
-                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-                  stockStatusFilter === 'normal'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                }`}
-              >
-                정상
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'normal' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
-                  {statusCounts.normal}
-                </span>
-              </button>
-            </div>
+            {/* Status Filter Tabs removed as requested */}
           </div>
           
-          <button 
-            onClick={() => onNavigate('inventory')}
-            className="flex items-center gap-1 text-sm font-bold text-outline hover:text-primary transition-colors whitespace-nowrap self-end lg:self-auto"
-          >
-            전체 보기 <ChevronRight className="w-4 h-4" />
-          </button>
+          {/* Actions & Filters horizontally to the right of '현재 재고 현황' */}
+          <div className="flex flex-wrap items-center gap-2 select-none justify-start xl:justify-end flex-1 w-full xl:w-auto">
+            {/* 1. Category Dropdown */}
+            <div className="relative">
+              <select
+                value={filterCategory}
+                onChange={(e) => { setFilterCategory(e.target.value); setInventoryPage(1); }}
+                className="h-10 pl-3 pr-8 bg-white border border-outline-variant/70 rounded-xl text-[11px] font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none min-w-[110px]"
+              >
+                <option value="">전체 카테고리</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDown className="w-3 h-3 text-outline" />
+              </div>
+            </div>
+
+            {/* 2. Brand Dropdown */}
+            <div className="relative">
+              <select
+                value={filterBrand}
+                onChange={(e) => { setFilterBrand(e.target.value); setInventoryPage(1); }}
+                className="h-10 pl-3 pr-8 bg-white border border-outline-variant/70 rounded-xl text-[11px] font-bold focus:border-primary outline-none cursor-pointer shadow-sm appearance-none min-w-[110px]"
+              >
+                <option value="">전체 브랜드</option>
+                {brands.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDown className="w-3 h-3 text-outline" />
+              </div>
+            </div>
+
+            {/* 3. Text Search Input */}
+            <div className="relative group w-full sm:w-40 md:w-44">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+              <input 
+                type="text" 
+                placeholder="품목 검색" 
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setInventoryPage(1);
+                }}
+                className="h-10 pl-9 pr-3 bg-white border border-outline-variant/70 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all w-full" 
+              />
+            </div>
+
+            {/* 4. Date Triggers */}
+            <div className="flex items-center gap-1 shrink-0 max-w-full">
+              <div className="relative group">
+                <input 
+                  ref={startDateInputRef}
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => {
+                    setFilterStartDate(e.target.value);
+                    setActiveShift('');
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
+                />
+                <button 
+                  onClick={handleStartDateClick}
+                  className="flex items-center justify-center gap-1.5 px-2.5 h-10 bg-white border border-outline-variant/70 rounded-xl text-[11px] font-bold text-on-surface hover:border-primary transition-all whitespace-nowrap cursor-pointer hover:shadow-sm"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-black">{filterStartDate.split('-').slice(1).join('/')}</span>
+                </button>
+              </div>
+
+              <span className="text-outline font-black text-xs px-1">~</span>
+
+              <div className="relative group">
+                <input 
+                  ref={endDateInputRef}
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => {
+                    setFilterEndDate(e.target.value);
+                    setActiveShift('');
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none appearance-none"
+                />
+                <button 
+                  onClick={handleEndDateClick}
+                  className="flex items-center justify-center gap-1.5 px-2.5 h-10 bg-white border border-outline-variant/70 rounded-xl text-[11px] font-bold text-on-surface hover:border-primary transition-all whitespace-nowrap cursor-pointer hover:shadow-sm"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-black">{filterEndDate.split('-').slice(1).join('/')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 5. Period switcher Tabs (일간, 주간, 월간) */}
+            <div className="flex bg-[#e2e8f0]/60 p-1 rounded-xl h-10 items-center shrink-0">
+              {[
+                { label: '일간', action: () => {
+                  setFilterStartDate(today);
+                  setFilterEndDate(today);
+                }},
+                { label: '주간', action: () => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 7);
+                  setFilterStartDate(d.toISOString().split('T')[0]);
+                  setFilterEndDate(today);
+                }},
+                { label: '월간', action: () => {
+                  const d = new Date();
+                  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+                  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+                  setFilterStartDate(first.toISOString().split('T')[0]);
+                  setFilterEndDate(last.toISOString().split('T')[0]);
+                }}
+              ].map((shift) => (
+                <button
+                  key={shift.label}
+                  onClick={() => {
+                    setActiveShift(shift.label);
+                    shift.action();
+                  }}
+                  className={`px-3.5 h-full rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap flex items-center justify-center ${activeShift === shift.label ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:text-primary'}`}
+                >
+                  {shift.label}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => onNavigate('inventory')}
+              className="flex items-center gap-1 text-xs font-black text-outline hover:text-primary transition-colors whitespace-nowrap self-end lg:self-auto shrink-0"
+            >
+              전체 보기 <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         
         <div className="bg-surface-container/30 border border-dashed border-outline-variant/50 rounded-[40px] min-h-[240px] flex flex-col items-center justify-center p-2 md:p-12 text-center group">

@@ -23,6 +23,8 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
   const [filterCategory, setFilterCategory] = useState(() => initialCategory || sessionStorage.getItem('inventory_filterCategory') || '');
   const [filterBrand, setFilterBrand] = useState(() => sessionStorage.getItem('inventory_filterBrand') || '');
   const [filterPartner, setFilterPartner] = useState(() => sessionStorage.getItem('inventory_filterPartner') || '');
+  const [filterLocation, setFilterLocation] = useState(() => sessionStorage.getItem('inventory_filterLocation') || '');
+  const [filterUnit, setFilterUnit] = useState(() => sessionStorage.getItem('inventory_filterUnit') || '');
   const [filterStartDate, setFilterStartDate] = useState(() => sessionStorage.getItem('inventory_filterStartDate') || today);
   const [filterEndDate, setFilterEndDate] = useState(() => sessionStorage.getItem('inventory_filterEndDate') || today);
   const startDatePickerRef = React.useRef<HTMLInputElement>(null);
@@ -138,7 +140,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       return;
     }
     setCurrentPage(1);
-  }, [search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate, stockStatusFilter]);
+  }, [search, filterCategory, filterBrand, filterPartner, filterLocation, filterUnit, filterStartDate, filterEndDate, stockStatusFilter]);
 
   React.useEffect(() => {
     if (initialCategory) {
@@ -163,6 +165,14 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
   React.useEffect(() => {
     sessionStorage.setItem('inventory_filterPartner', filterPartner);
   }, [filterPartner]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_filterLocation', filterLocation);
+  }, [filterLocation]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('inventory_filterUnit', filterUnit);
+  }, [filterUnit]);
 
   React.useEffect(() => {
     sessionStorage.setItem('inventory_filterStartDate', filterStartDate);
@@ -244,6 +254,22 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     return Array.from(pts).sort();
   }, [partners, inventory]);
 
+  const locationsList = useMemo(() => {
+    const locs = inventory
+      .filter((i: any) => i.category !== '완제품')
+      .map((i: any) => i.location)
+      .filter(Boolean);
+    return Array.from(new Set(locs)) as string[];
+  }, [inventory]);
+
+  const unitsList = useMemo(() => {
+    const unts = inventory
+      .filter((i: any) => i.category !== '완제품')
+      .map((i: any) => i.unit)
+      .filter(Boolean);
+    return Array.from(new Set(unts)) as string[];
+  }, [inventory]);
+
   const baseFiltered = useMemo(() => {
     return inventory
       .filter((i: any) => i.category !== '완제품')
@@ -254,31 +280,12 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
         const matchesCategory = !filterCategory || i.category === filterCategory;
         const matchesBrand = !filterBrand || i.brand === filterBrand;
         const matchesPartner = !filterPartner || i.partner === filterPartner;
+        const matchesLocation = !filterLocation || i.location === filterLocation;
+        const matchesUnit = !filterUnit || i.unit === filterUnit;
 
-        let itemDate = '';
-        if (i.updatedAt) {
-          if (i.updatedAt.seconds) {
-            itemDate = new Date(i.updatedAt.seconds * 1000).toLocaleDateString('sv-SE');
-          } else if (typeof i.updatedAt.toDate === 'function') {
-            itemDate = i.updatedAt.toDate().toLocaleDateString('sv-SE');
-          } else {
-            const d = new Date(i.updatedAt);
-            if (!isNaN(d.getTime())) {
-              itemDate = d.toLocaleDateString('sv-SE');
-            }
-          }
-        }
-        const updatedAtMatches = itemDate && itemDate >= filterStartDate && itemDate <= filterEndDate;
-
-        const hasLogisticsMatches = logistics.some((log: any) => 
-          log.item === i.name && log.date >= filterStartDate && log.date <= filterEndDate
-        );
-
-        const matchesDate = updatedAtMatches || hasLogisticsMatches;
-
-        return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesDate;
+        return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesLocation && matchesUnit;
       });
-  }, [inventory, search, filterCategory, filterBrand, filterPartner, filterStartDate, filterEndDate, logistics]);
+  }, [inventory, search, filterCategory, filterBrand, filterPartner, filterLocation, filterUnit]);
 
   const statusCounts = useMemo(() => {
     let shortage = 0;
@@ -626,61 +633,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
           </div>
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => { setStockStatusFilter('all'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'all'
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-slate-100 text-[#0f172a] hover:bg-slate-200'
-            }`}
-          >
-            전체
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-              {statusCounts.all}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('shortage'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'shortage'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-            }`}
-          >
-            부족
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'shortage' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
-              {statusCounts.shortage}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('replenish'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'replenish'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-            }`}
-          >
-            보충
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'replenish' ? 'bg-white/20 text-blue-100' : 'bg-blue-100 text-blue-600'}`}>
-              {statusCounts.replenish}
-            </span>
-          </button>
-          <button
-            onClick={() => { setStockStatusFilter('normal'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-              stockStatusFilter === 'normal'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-            }`}
-          >
-            정상
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${stockStatusFilter === 'normal' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
-              {statusCounts.normal}
-            </span>
-          </button>
-        </div>
+
 
         <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
           <div className="w-full">

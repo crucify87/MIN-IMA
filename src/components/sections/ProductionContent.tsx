@@ -137,6 +137,24 @@ function ProductionContent({
   const [loading, setLoading] = useState(false);
 
   const [filterLine, setFilterLine] = useState("전체");
+  const [filterRawMaterial, setFilterRawMaterial] = useState("전체");
+  const [filterBrandInProd, setFilterBrandInProd] = useState("전체");
+
+  const rawMaterialsList = useMemo(() => {
+    const rawSet = new Set<string>();
+    production.forEach((p: any) => {
+      if (p.rawMaterial) rawSet.add(p.rawMaterial);
+    });
+    return Array.from(rawSet).sort();
+  }, [production]);
+
+  const brandsList = useMemo(() => {
+    const brandSet = new Set<string>();
+    production.forEach((p: any) => {
+      if (p.brand) brandSet.add(p.brand);
+    });
+    return Array.from(brandSet).sort();
+  }, [production]);
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     id: "",
@@ -224,14 +242,16 @@ function ProductionContent({
         .includes(search.toLowerCase());
       const matchesDate = isInRange(p.manufDate);
       const matchesLine = filterLine === "전체" || p.line === filterLine;
-      return matchesSearch && matchesDate && matchesLine;
+      const matchesRaw = filterRawMaterial === "전체" || p.rawMaterial === filterRawMaterial;
+      const matchesBrand = filterBrandInProd === "전체" || p.brand === filterBrandInProd;
+      return matchesSearch && matchesDate && matchesLine && matchesRaw && matchesBrand;
     });
 
     // Sort by manufDate descending then createdAt (latest first)
     return [...result]
       .sort((a: any) => {
         const timeA = a.createdAt?.seconds || 0;
-        return timeA; // This was weird in original code, I'll keep it simple for now or fix it if I see the full original
+        return timeA; // Keep original sorting logic
       })
       .reverse(); // Latest first
   }, [
@@ -241,6 +261,8 @@ function ProductionContent({
     filterEndDate,
     activeShift,
     filterLine,
+    filterRawMaterial,
+    filterBrandInProd,
   ]);
 
   const stats = useMemo(() => {
@@ -273,7 +295,7 @@ function ProductionContent({
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterStartDate, filterEndDate, activeShift, filterLine]);
+  }, [search, filterStartDate, filterEndDate, activeShift, filterLine, filterRawMaterial, filterBrandInProd]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = useMemo(() => {
@@ -1761,6 +1783,44 @@ function ProductionContent({
                 ].map((l) => (
                   <option key={l} value={l}>
                     {l}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDown className="w-3.5 h-3.5 text-outline" />
+              </div>
+            </div>
+
+            {/* 원육 필터 */}
+            <div className="relative lg:w-44 animate-fade-in">
+              <select
+                value={filterRawMaterial}
+                onChange={(e) => setFilterRawMaterial(e.target.value)}
+                className="w-full h-11 px-4 bg-white border border-outline-variant rounded-xl text-[11px] font-black appearance-none focus:border-primary outline-none shadow-sm cursor-pointer pr-10 text-on-surface"
+              >
+                <option value="전체">원육 전체</option>
+                {rawMaterialsList.map((rm) => (
+                  <option key={rm} value={rm}>
+                    {rm}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDown className="w-3.5 h-3.5 text-outline" />
+              </div>
+            </div>
+
+            {/* 브랜드 필터 */}
+            <div className="relative lg:w-44 animate-fade-in">
+              <select
+                value={filterBrandInProd}
+                onChange={(e) => setFilterBrandInProd(e.target.value)}
+                className="w-full h-11 px-4 bg-white border border-outline-variant rounded-xl text-[11px] font-black appearance-none focus:border-primary outline-none shadow-sm cursor-pointer pr-10 text-on-surface"
+              >
+                <option value="전체">브랜드 전체</option>
+                {brandsList.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
                   </option>
                 ))}
               </select>

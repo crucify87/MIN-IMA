@@ -216,10 +216,12 @@ export default function App() {
                 {currentView === 'settings' && (
                   <SettingsContent 
                     inventory={inventory} 
+                    logistics={logistics}
                     partners={partners} 
                     allUsers={allUsers} 
                     user={user} 
                     userData={userData}
+                    isSuperAdmin={isSuperAdmin}
                     canEditPrices={canEditPrices} 
                     canEditItems={canEditItems} 
                     canManageUsers={canManageUsers} 

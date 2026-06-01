@@ -41,6 +41,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [filterCategory, setFilterCategory] = useState(() => sessionStorage.getItem('logistics_filterCategory') || '');
   const [filterBrand, setFilterBrand] = useState(() => sessionStorage.getItem('logistics_filterBrand') || '');
   const [filterPartner, setFilterPartner] = useState(() => sessionStorage.getItem('logistics_filterPartner') || '');
+  const [filterLocation, setFilterLocation] = useState(() => sessionStorage.getItem('logistics_filterLocation') || '');
+  const [filterUnit, setFilterUnit] = useState(() => sessionStorage.getItem('logistics_filterUnit') || '');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showItemDropdown, setShowItemDropdown] = useState(false);
@@ -103,6 +105,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   }, [filterPartner]);
 
   React.useEffect(() => {
+    sessionStorage.setItem('logistics_filterLocation', filterLocation);
+  }, [filterLocation]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('logistics_filterUnit', filterUnit);
+  }, [filterUnit]);
+
+  React.useEffect(() => {
     sessionStorage.setItem('logistics_startDate', startDate);
   }, [startDate]);
 
@@ -126,9 +136,25 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     setCurrentPage(1);
     setIncomingPage(1);
     setOutgoingPage(1);
-  }, [search, filterCategory, filterBrand, filterPartner, startDate, endDate, activeRange, stockStatusFilter, typeFilter]);
+  }, [search, filterCategory, filterBrand, filterPartner, filterLocation, filterUnit, startDate, endDate, activeRange, stockStatusFilter, typeFilter]);
 
   const today = new Date().toLocaleDateString('sv-SE');
+
+  const locationsList = useMemo(() => {
+    const locSet = new Set<string>();
+    logistics.forEach((l: any) => {
+      if (l.location) locSet.add(l.location);
+    });
+    return Array.from(locSet).sort();
+  }, [logistics]);
+
+  const unitsList = useMemo(() => {
+    const unitSet = new Set<string>();
+    logistics.forEach((l: any) => {
+      if (l.unit) unitSet.add(l.unit);
+    });
+    return Array.from(unitSet).sort();
+  }, [logistics]);
 
   const baseFiltered = useMemo(() => {
     return logistics
@@ -138,10 +164,12 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         const matchesCategory = !filterCategory || l.category === filterCategory;
         const matchesBrand = !filterBrand || l.brand === filterBrand;
         const matchesPartner = !filterPartner || l.partner === filterPartner;
+        const matchesLocation = !filterLocation || l.location === filterLocation;
+        const matchesUnit = !filterUnit || l.unit === filterUnit;
         const matchesDate = activeRange === '전체' ? true : (l.date >= startDate && l.date <= endDate);
-        return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesDate;
+        return matchesSearch && matchesCategory && matchesBrand && matchesPartner && matchesLocation && matchesUnit && matchesDate;
       });
-  }, [logistics, search, filterCategory, filterBrand, filterPartner, startDate, endDate, activeRange]);
+  }, [logistics, search, filterCategory, filterBrand, filterPartner, filterLocation, filterUnit, startDate, endDate, activeRange]);
 
   const statusCounts = useMemo(() => {
     let shortage = 0;
@@ -1065,6 +1093,24 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               {partners.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
             </select>
 
+            <select 
+              value={filterLocation} 
+              onChange={e => setFilterLocation(e.target.value)}
+              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
+            >
+              <option value="">전체 창고</option>
+              {locationsList.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+
+            <select 
+              value={filterUnit} 
+              onChange={e => setFilterUnit(e.target.value)}
+              className="h-11 md:h-12 px-4 bg-white border border-outline-variant rounded-xl font-bold text-[11px] appearance-none focus:border-primary outline-none shadow-sm cursor-pointer flex-1 md:flex-none"
+            >
+              <option value="">전체 단위</option>
+              {unitsList.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+
             <div className="relative group flex-1 md:flex-none md:w-64">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
               <input 
@@ -1158,52 +1204,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           </div>
         </div>
 
-        {/* Filter Bar */}
-        <div className="bg-slate-50 p-4 rounded-3xl border border-outline-variant/15">
-          {/* Type Filter Tabs (입출구분 필터) */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black text-outline uppercase tracking-wider mr-1">입출종류</span>
-            <button
-              onClick={() => { setTypeFilter('all'); setCurrentPage(1); setIncomingPage(1); setOutgoingPage(1); }}
-              className={`px-3 md:px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-                typeFilter === 'all'
-                  ? 'bg-[#0f172a] text-white shadow-sm'
-                  : 'bg-white text-[#0f172a] hover:bg-slate-50 border border-outline-variant/30'
-              }`}
-            >
-              전체
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${typeFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
-                {typeCounts.all}
-              </span>
-            </button>
-            <button
-              onClick={() => { setTypeFilter('입고'); setCurrentPage(1); setIncomingPage(1); setOutgoingPage(1); }}
-              className={`px-3 md:px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-                typeFilter === '입고'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-              }`}
-            >
-              입고
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${typeFilter === '입고' ? 'bg-white/20 text-emerald-100' : 'bg-emerald-100 text-emerald-600'}`}>
-                {typeCounts.input}
-              </span>
-            </button>
-            <button
-              onClick={() => { setTypeFilter('출고'); setCurrentPage(1); setIncomingPage(1); setOutgoingPage(1); }}
-              className={`px-3 md:px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 ${
-                typeFilter === '출고'
-                  ? 'bg-rose-500 text-white shadow-sm'
-                  : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-              }`}
-            >
-              출고
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${typeFilter === '출고' ? 'bg-white/20 text-rose-100' : 'bg-rose-100 text-rose-600'}`}>
-                {typeCounts.output}
-              </span>
-            </button>
-          </div>
-        </div>
+
 
         <div className="min-h-[400px] flex flex-col rounded-[28px] md:rounded-[48px] border-2 border-dashed border-[#d1d5db] bg-[#f8fafc] p-1.5 md:p-10">
           {paginatedItems.length > 0 ? (
