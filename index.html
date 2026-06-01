@@ -30,6 +30,40 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#ffffff" />
     <title>MIN IMA | 관리시스템</title>
+    <script>
+      // 1. Unregister legacy service workers that can forcefully stick cached assets or index.html
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          let needsReload = false;
+          for (let registration of registrations) {
+            registration.unregister();
+            needsReload = true;
+          }
+          if (needsReload) {
+            console.warn('Stale service worker cleared. Reloading page...');
+            window.location.reload();
+          }
+        });
+      }
+      
+      // 2. Clear old caches synchronously if build ID differs
+      try {
+        const TARGET_BUILD = "2026-06-02-v1";
+        if (localStorage.getItem('min_ima_build_id') !== TARGET_BUILD) {
+          localStorage.clear();
+          if ('caches' in window) {
+            caches.keys().then((keys) => {
+              keys.forEach((k) => caches.delete(k));
+            });
+          }
+          localStorage.setItem('min_ima_build_id', TARGET_BUILD);
+          console.warn('Cache buster executed. Reloading page...');
+          window.location.reload();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
