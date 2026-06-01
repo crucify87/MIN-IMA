@@ -505,36 +505,55 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         }
       }
       
-      const updateInventoryStock = async (name: string, weightDiff: number, boxesDiff: number) => {
+      const updateInventoryStock = async (name: string, weightDiff: number, boxesDiff: number, forceUnit?: string) => {
         let item = inventory.find((i: any) => i.name === name && i.category === resolvedCategory);
         if (!item) {
           item = inventory.find((i: any) => i.name === name);
         }
+        let prevStock = 0;
+        let prevBoxes = 0;
+
+        const activeUnit = (forceUnit || form.unit || (item ? item.unit : 'BOX')).toUpperCase();
+        const isCountBased = ['EA', 'BOX'].includes(activeUnit);
+        const finalWeightDiff = isCountBased ? boxesDiff : weightDiff;
+
         if (item) {
+          prevStock = Number(item.currentStock || 0);
+          prevBoxes = Number(item.boxes || 0);
           await updateDoc(doc(db, 'inventory', item.id), {
-            currentStock: increment(weightDiff),
+            currentStock: increment(finalWeightDiff),
             boxes: increment(boxesDiff),
             brand: form.brand || item.brand || '',
             category: resolvedCategory || item.category || '미분류',
+            unit: activeUnit,
             updatedAt: serverTimestamp()
           });
         } else {
-          // If item doesn't exist in inventory, create it
+          prevStock = 0;
+          prevBoxes = 0;
+          // If item doesn't exist in inventory, create it (as approved)
           await addDoc(collection(db, 'inventory'), {
             name: name,
-            currentStock: weightDiff,
+            currentStock: finalWeightDiff,
             boxes: boxesDiff,
             brand: form.brand || '',
             category: resolvedCategory || '미분류',
             partner: form.partner || '',
             sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
-            unit: 'BOX',
+            unit: activeUnit,
             minStock: 0,
             location: '미지정',
+            isApproved: true,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
         }
+        return {
+          prevStock,
+          nextStock: prevStock + finalWeightDiff,
+          prevBoxes,
+          nextBoxes: prevBoxes + boxesDiff
+        };
       };
 
       if (editingId) {
@@ -544,45 +563,54 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           await updateInventoryStock(
             oldRecord.item, 
             oldRecord.type === '입고' ? -oldRecord.weight : oldRecord.weight,
-            oldRecord.type === '입고' ? -Number(oldRecord.boxes || 0) : Number(oldRecord.boxes || 0)
+            oldRecord.type === '입고' ? -Number(oldRecord.boxes || 0) : Number(oldRecord.boxes || 0),
+            oldRecord.unit
           );
         }
         
+        // Apply new inventory change
+        const stockChanges = await updateInventoryStock(
+          itemName, 
+          form.type === '입고' ? weightNum : -weightNum,
+          form.type === '입고' ? boxesNum : -boxesNum
+        );
+
         await updateDoc(doc(db, 'logistics', editingId), { 
           ...form,
           category: resolvedCategory,
           item: itemName,
           weight: weightNum, 
           boxes: boxesNum,
+          prevStock: stockChanges.prevStock,
+          nextStock: stockChanges.nextStock,
+          prevBoxes: stockChanges.prevBoxes,
+          nextBoxes: stockChanges.nextBoxes,
           updatedAt: serverTimestamp() 
         });
 
-        // Apply new inventory change
-        await updateInventoryStock(
+        alert('수정 완료');
+        setEditingId(null);
+      } else {
+        const stockChanges = await updateInventoryStock(
           itemName, 
           form.type === '입고' ? weightNum : -weightNum,
           form.type === '입고' ? boxesNum : -boxesNum
         );
 
-        alert('수정 완료');
-        setEditingId(null);
-      } else {
         await addDoc(collection(db, 'logistics'), { 
           ...form, 
           category: resolvedCategory,
           item: itemName,
           weight: weightNum, 
           boxes: boxesNum,
+          prevStock: stockChanges.prevStock,
+          nextStock: stockChanges.nextStock,
+          prevBoxes: stockChanges.prevBoxes,
+          nextBoxes: stockChanges.nextBoxes,
           status: '완료', 
           createdAt: serverTimestamp() 
         });
 
-        await updateInventoryStock(
-          itemName, 
-          form.type === '입고' ? weightNum : -weightNum,
-          form.type === '입고' ? boxesNum : -boxesNum
-        );
-        
         alert('등록 완료');
       }
       
@@ -630,9 +658,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       await deleteDoc(doc(db, 'logistics', l.id));
       const item = inventory.find((i: any) => i.name === l.item);
       if (item) {
+        const itemUnit = (l.unit || item.unit || 'BOX').toUpperCase();
+        const isCountBased = ['EA', 'BOX'].includes(itemUnit);
+        const qtyDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
+        const weightDiff = l.type === '입고' ? -l.weight : l.weight;
+        const finalStockDiff = isCountBased ? qtyDiff : weightDiff;
+
         await updateDoc(doc(db, 'inventory', item.id), {
-          currentStock: increment(l.type === '입고' ? -l.weight : l.weight),
-          boxes: increment(l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0)),
+          currentStock: increment(finalStockDiff),
+          boxes: increment(qtyDiff),
           updatedAt: serverTimestamp()
         });
       }
@@ -1231,12 +1265,29 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           <td className="px-4 py-6 text-xs font-bold text-outline">
                             {invItem?.specs || '-'}
                           </td>
-                          <td className="px-4 py-6 font-black text-on-surface">{l.item}</td>
+                          <td className="px-4 py-6 font-black text-on-surface">
+                            <div>{l.item}</div>
+                            {l.prevStock !== undefined && l.nextStock !== undefined && (
+                              <div className="text-[10px] font-bold text-slate-400 mt-1 whitespace-nowrap">
+                                재고변동: {Math.round(l.prevStock).toLocaleString()} → {Math.round(l.nextStock).toLocaleString()} kg
+                              </div>
+                            )}
+                          </td>
                           <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} {displayWeightUnit}
+                            <div>{l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} {displayWeightUnit}</div>
+                            {l.prevStock !== undefined && l.nextStock !== undefined && (
+                              <div className={`text-[10px] font-black ${l.type === '입고' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                ({l.type === '입고' ? '증가' : '감소'})
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
-                            {Number(l.boxes || 0).toLocaleString()} {displayQtyUnit}
+                            <div>{Number(l.boxes || 0).toLocaleString()} {displayQtyUnit}</div>
+                            {l.prevBoxes !== undefined && l.nextBoxes !== undefined && (
+                              <div className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                {l.prevBoxes} → {l.nextBoxes} {displayQtyUnit}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap">
                             {(!l.partner || l.partner === '초기재고등록') ? '' : l.partner}
@@ -1315,6 +1366,23 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                          </div>
                       </div>
                     </div>
+
+                    {l.prevStock !== undefined && l.nextStock !== undefined && (
+                      <div className="bg-slate-50/70 p-2.5 rounded-2xl text-[10px] space-y-1 font-bold border border-outline-variant/30">
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span>변동 전 재고:</span>
+                          <span className="text-on-surface font-black">
+                            {Math.round(l.prevStock).toLocaleString()} kg ({l.prevBoxes || 0} {displayQtyUnit})
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span>변동 후 재고:</span>
+                          <span className={`${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'} font-black`}>
+                            {Math.round(l.nextStock).toLocaleString()} kg ({l.nextBoxes || 0} {displayQtyUnit})
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
                        <p className="text-[9px] font-bold text-slate-400 truncate flex-1 mr-4">

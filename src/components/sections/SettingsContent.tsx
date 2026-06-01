@@ -207,7 +207,7 @@ function SettingsContent({
 
   // Item Form
   const [itemForm, setItemForm] = useState({
-    sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'box', boxes: '', currentStock: '', safetyStock: '',
+    sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '',
     purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: ''
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -391,7 +391,7 @@ function SettingsContent({
           alert('상품 등록이 완료되었습니다.');
         }
       }
-      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'box', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
+      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
   };
 
@@ -428,7 +428,7 @@ function SettingsContent({
       category: item.category || '',
       brand: item.brand || '',
       specs: item.specs || '',
-      unit: item.unit || 'kg',
+      unit: (item.unit || 'KG').toUpperCase(),
       boxes: String(item.boxes || 0),
       currentStock: String(item.currentStock || 0),
       safetyStock: String(item.safetyStock || 0),
@@ -830,7 +830,7 @@ function SettingsContent({
                             key={c}
                             type="button"
                             onClick={() => {
-                              setItemForm({...itemForm, category: c, unit: c === '원육' ? 'box' : itemForm.unit});
+                              setItemForm({...itemForm, category: c, unit: c === '원육' ? 'BOX' : itemForm.unit.toUpperCase()});
                               setShowCategoryOptions(false);
                             }}
                             className={`w-full h-10 md:h-11 flex items-center justify-between px-4 text-xs md:text-sm font-bold hover:bg-[#f1f4f9] transition-colors ${itemForm.category === c ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
@@ -902,7 +902,7 @@ function SettingsContent({
                     </button>
                     {showUnitOptions && (
                       <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                        {['box', 'ea', 'kg', 'g'].map((u) => (
+                        {['BOX', 'EA', 'KG', 'G'].map((u) => (
                           <button
                             key={u}
                             type="button"
@@ -944,7 +944,7 @@ function SettingsContent({
                   </div>
                   {itemForm.category === '원육' && (
                     <div className="space-y-1 font-bold text-xs">
-                      <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 박스 수</label>
+                      <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1">현재 {['KG', 'G'].includes((itemForm.unit || '').toUpperCase()) ? '박스' : (itemForm.unit || 'BOX').toUpperCase()} 수</label>
                       <input 
                         type="text" 
                         value={formatWithCommas(itemForm.boxes)} 
@@ -1059,7 +1059,7 @@ function SettingsContent({
                         type="button"
                         onClick={() => {
                           setEditingItemId(null);
-                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'box', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
+                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
                         }}
                         className="w-full sm:w-36 h-11 md:h-12 bg-rose-50 text-rose-600 rounded-xl font-black text-xs md:text-sm shadow-sm hover:bg-rose-100 transition-all active:scale-[0.98]"
                       >
@@ -1146,7 +1146,7 @@ function SettingsContent({
                             <th className="px-4 py-5 text-center">주거래처</th>
                             <th className="px-4 py-5 text-center">단위</th>
                             <th className="px-4 py-5 text-center">현재고</th>
-                            <th className="px-4 py-5 text-center">현재박스</th>
+                            <th className="px-4 py-5 text-center">현재박스/수량</th>
                             <th className="px-4 py-5 text-center">안전재고</th>
                             <th className="px-4 py-5 text-center">위치</th>
                             <th className="px-6 py-5 text-right">관리</th>
@@ -1182,7 +1182,7 @@ function SettingsContent({
                                 </td>
                                 <td className="px-4 py-5 text-center">
                                   <span className="font-black text-[#0f172a]">
-                                    {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} BOX` : '-'}
+                                    {item.category === '원육' ? `${(item.boxes || 0).toLocaleString()} ${['KG', 'G'].includes((item.unit || '').toUpperCase()) ? 'BOX' : (item.unit || 'BOX').toUpperCase()}` : '-'}
                                   </span>
                                 </td>
                                 <td className="px-4 py-5 text-center text-xs font-bold text-outline">{item.safetyStock?.toLocaleString() || '0'}</td>
@@ -1257,7 +1257,7 @@ function SettingsContent({
                                     </div>
                                     {item.category === '원육' && (
                                       <div className="text-[10px] font-black text-slate-400">
-                                        {(item.boxes || 0).toLocaleString()} BOX
+                                        {(item.boxes || 0).toLocaleString()} {['KG', 'G'].includes((item.unit || '').toUpperCase()) ? 'BOX' : (item.unit || 'BOX').toUpperCase()}
                                       </div>
                                     )}
                                 </div>

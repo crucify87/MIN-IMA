@@ -17,7 +17,7 @@ import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
 
-function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], partners = [], initialCategory }: any) {
+function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [], production = [], partners = [], initialCategory }: any) {
   const today = new Date().toLocaleDateString('sv-SE');
   const [search, setSearch] = useState(() => sessionStorage.getItem('inventory_search') || '');
   const [filterCategory, setFilterCategory] = useState(() => initialCategory || sessionStorage.getItem('inventory_filterCategory') || '');
@@ -27,6 +27,71 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
   const [filterEndDate, setFilterEndDate] = useState(() => sessionStorage.getItem('inventory_filterEndDate') || today);
   const startDatePickerRef = React.useRef<HTMLInputElement>(null);
   const endDatePickerRef = React.useRef<HTMLInputElement>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+
+  const getItemHistory = (itemName: string) => {
+    const history: any[] = [];
+
+    // 1. Collect from logistics
+    logistics.forEach((l: any) => {
+      if (l.item?.trim() === itemName.trim()) {
+        history.push({
+          id: l.id + '-logisticsReady',
+          type: 'logistics',
+          actionType: l.type, // '입고' or '출고'
+          weight: Number(l.weight || 0),
+          boxes: Number(l.boxes || 0),
+          unit: l.unit || 'BOX',
+          prevStock: l.prevStock,
+          nextStock: l.nextStock,
+          prevBoxes: l.prevBoxes,
+          nextBoxes: l.nextBoxes,
+          date: l.date,
+          time: l.time || '',
+          partner: l.partner || '',
+          timestamp: l.createdAt?.seconds ? l.createdAt.seconds * 1000 : (l.createdAt ? new Date(l.createdAt).getTime() : 0)
+        });
+      }
+    });
+
+    // 2. Collect from production
+    production.forEach((p: any) => {
+      const isProduct = p.title?.trim() === itemName.trim();
+      const isRaw = p.rawMaterial?.trim() === itemName.trim();
+
+      if (isProduct || isRaw) {
+        history.push({
+          id: p.id + (isProduct ? '-prodProduct' : '-prodRaw'),
+          type: 'production',
+          actionType: isProduct ? '생산완료' : '원육투입',
+          weight: isProduct ? Number(p.production || 0) : -Number(p.rawQty || 0),
+          boxes: 0,
+          prevStock: isProduct ? p.prodPrevStock : p.rawPrevStock,
+          nextStock: isProduct ? p.prodNextStock : p.rawNextStock,
+          prevBoxes: undefined,
+          nextBoxes: undefined,
+          date: p.manufDate,
+          time: '',
+          partner: p.partner || '',
+          timestamp: p.createdAt?.seconds ? p.createdAt.seconds * 1000 : (p.createdAt ? new Date(p.createdAt).getTime() : 0)
+        });
+      }
+    });
+
+    return history.sort((a, b) => {
+      if (b.timestamp !== a.timestamp) {
+        return b.timestamp - a.timestamp;
+      }
+      const dateA = a.date || '';
+      const dateB = b.date || '';
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
+      const timeA = a.time || '';
+      const timeB = b.time || '';
+      return timeB.localeCompare(timeA);
+    });
+  };
 
   const handleStartDateClick = () => {
     if (startDatePickerRef.current) {
@@ -629,71 +694,153 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                     <th className="px-4 py-5 font-medium">규격</th>
                     <th className="px-4 py-5 font-medium">카테고리</th>
                     <th className="px-4 py-5 font-medium text-right pr-8">현재 재고</th>
-                    <th className="px-4 py-5 font-medium text-right pr-8">박스 수</th>
+                    <th className="px-4 py-5 font-medium text-right pr-8">박스 수/수량</th>
                     <th className="px-4 py-5 font-medium">상태</th>
                     <th className="px-4 py-5 font-medium">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
                   {paginatedItems.length > 0 ? (
-                    paginatedItems.map((item: any, i: number) => (
-                      <tr key={i} className="hover:bg-surface-container/5 transition-colors">
-                        <td className="px-4 py-4 text-[11px] font-bold text-outline tabular-nums whitespace-nowrap">
-                          {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
-                        </td>
-                      <td className="px-4 py-4 text-left">
-                        <div className="font-black text-on-surface text-base leading-tight">{item.name}</div>
-                        {item.brand && <div className="text-[10px] font-bold text-primary mt-1">{item.brand}</div>}
-                      </td>
-                      <td className="px-4 py-4 text-xs font-bold text-outline">
-                        {item.specs || '-'}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="px-2 py-1 bg-surface-container rounded-lg text-[9px] font-black text-outline uppercase">
-                          {item.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 font-black text-lg text-right pr-8">
-                        {Math.round(item.currentStock || 0).toLocaleString()}
-                        <span className="text-[11px] font-semibold text-primary bg-primary/5 dark:bg-primary/10 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
-                          {(item.unit || 'KG').toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 font-black text-lg text-slate-700 text-right pr-8">
-                        {item.category === '원육' ? (
-                          <span>
-                            {(item.boxes || 0).toLocaleString()}
-                            <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
-                              BOX
-                            </span>
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                          {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          {canEditItems ? (
-                            <>
-                              <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-all active:scale-90" title="상세/수정">
-                                <Edit className="w-5 h-5" />
-                              </button>
-                              <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-all active:scale-90" title="삭제">
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            </>
-                          ) : (
-                            <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-all active:scale-90">
-                              <ChevronRight className="w-5 h-5" />
-                            </button>
+                    paginatedItems.map((item: any, i: number) => {
+                      const isExpanded = expandedItemId === item.id;
+                      const itemMoves = isExpanded ? getItemHistory(item.name) : [];
+                      return (
+                        <React.Fragment key={item.id || i}>
+                          <tr className={`hover:bg-surface-container/5 transition-colors cursor-pointer ${isExpanded ? 'bg-slate-50/70 border-l-4 border-l-primary' : ''}`} onClick={() => setExpandedItemId(isExpanded ? null : item.id)}>
+                            <td className="px-4 py-4 text-[11px] font-bold text-outline tabular-nums whitespace-nowrap">
+                              {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
+                            </td>
+                            <td className="px-4 py-4 text-left">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <div className="font-black text-on-surface text-base leading-tight">{item.name}</div>
+                                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-primary' : ''}`} />
+                              </div>
+                              {item.brand && <div className="text-[10px] font-bold text-primary mt-1">{item.brand}</div>}
+                            </td>
+                            <td className="px-4 py-4 text-xs font-bold text-outline">
+                              {item.specs || '-'}
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className="px-2 py-1 bg-surface-container rounded-lg text-[9px] font-black text-outline uppercase">
+                                {item.category}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 font-black text-lg text-right pr-8">
+                              {Math.round(item.currentStock || 0).toLocaleString()}
+                              <span className="text-[11px] font-semibold text-primary bg-primary/5 dark:bg-primary/10 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
+                                {(item.unit || 'KG').toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 font-black text-lg text-slate-700 text-right pr-8">
+                              {item.category === '원육' ? (
+                                <span>
+                                  {(item.boxes || 0).toLocaleString()}
+                                  <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
+                                    {['KG', 'G'].includes((item.unit || '').toUpperCase()) ? 'BOX' : (item.unit || 'BOX').toUpperCase()}
+                                  </span>
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-center gap-2">
+                                {canEditItems ? (
+                                  <>
+                                    <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-all active:scale-90" title="상세/수정">
+                                      <Edit className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={() => handleDeleteItem(item.id, item.name)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-all active:scale-90" title="삭제">
+                                      <Trash2 className="w-5 h-5" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button onClick={() => onNavigate('detail', item)} className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-all active:scale-90">
+                                    <ChevronRight className="w-5 h-5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+
+                          {isExpanded && (
+                            <tr onClick={(e) => e.stopPropagation()}>
+                              <td colSpan={8} className="bg-slate-50/50 p-6 border-b border-outline-variant/30 text-left">
+                                <div className="max-w-4xl mx-auto space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-black text-on-surface flex items-center gap-2">
+                                      <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                                      [{item.name}] 최근 가감 및 변동 이력 (최근 5건)
+                                    </h4>
+                                    <span className="text-[10px] text-slate-400 font-bold">
+                                      변동 전 실재고와 변동 후 결과 비교
+                                    </span>
+                                  </div>
+
+                                  {itemMoves.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                                      {itemMoves.slice(0, 5).map((move: any, moveIdx: number) => {
+                                        const isIncrease = move.weight > 0;
+                                        const typeColor = move.actionType === '입고' || move.actionType === '생산완료' 
+                                          ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
+                                          : 'text-rose-600 bg-rose-50 border-rose-100';
+
+                                        return (
+                                          <div key={move.id || moveIdx} className="bg-white p-3.5 rounded-2xl border border-slate-200/60 shadow-sm space-y-2 flex flex-col justify-between">
+                                            <div className="flex items-center justify-between">
+                                              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${typeColor}`}>
+                                                {move.actionType}
+                                              </span>
+                                              <span className="text-[9px] text-slate-400 font-mono">
+                                                {move.date}
+                                              </span>
+                                            </div>
+
+                                            <div className="space-y-1">
+                                              <div className="text-[10px] text-slate-400 font-bold leading-none">변동량</div>
+                                              <div className={`text-xs font-black ${isIncrease ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                {isIncrease ? '+' : ''}{Math.round(move.weight).toLocaleString()} KG
+                                                {move.boxes !== 0 && move.boxes !== undefined && (
+                                                  <span className="text-[9px] text-slate-400 ml-1">({move.boxes > 0 ? `+${move.boxes}` : move.boxes} {(move.unit || 'BOX').toUpperCase()})</span>
+                                                )}
+                                              </div>
+                                            </div>
+
+                                            {move.prevStock !== undefined && move.nextStock !== undefined ? (
+                                              <div className="pt-2 border-t border-slate-50 space-y-0.5">
+                                                <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                                                  <span>변동 전:</span>
+                                                  <span className="text-slate-600">{Math.round(move.prevStock).toLocaleString()} KG</span>
+                                                </div>
+                                                <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                                                  <span>변동 후:</span>
+                                                  <span className="text-on-surface font-extrabold">{Math.round(move.nextStock).toLocaleString()} KG</span>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div className="pt-2 border-t border-slate-50 text-[10px] text-slate-400 font-medium text-center">
+                                                이력 매칭 중
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div className="bg-white p-8 rounded-2xl border border-slate-200/60 text-center text-xs font-bold text-slate-400 py-10">
+                                      최근 반영된 재고 입출고 또는 생산 가감 이력이 없습니다.
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </React.Fragment>
+                      );
+                    })
                 ) : (
                   <tr>
                     <td colSpan={6} className="py-24 text-center">
@@ -710,54 +857,115 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
 
             <div className="md:hidden space-y-3 p-1">
               {paginatedItems.length > 0 ? (
-                paginatedItems.map((item: any, i: number) => (
-                  <div key={i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden group transition-all active:scale-[0.98] active:bg-slate-50">
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                    
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[8px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg border border-primary/10">
-                            {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '날짜미정'}
-                          </span>
-                          <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[8px] font-black text-outline uppercase">{item.category}</span>
-                        </div>
-                        <h4 className="text-sm font-black text-[#0f172a] leading-tight break-all">{item.name}</h4>
-                        {item.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{item.brand}</div>}
-                        <div className="flex items-center gap-2 flex-wrap opacity-70 mt-1">
-                          <div className="text-[9px] font-black text-outline">{item.specs || '-'}</div>
-                        </div>
-                      </div>
+                paginatedItems.map((item: any, i: number) => {
+                  const isExpanded = expandedItemId === item.id;
+                  const itemMoves = isExpanded ? getItemHistory(item.name) : [];
+                  return (
+                    <div key={i} className={`bg-white p-4 rounded-[24px] border ${isExpanded ? 'border-primary shadow-md' : 'border-outline-variant/60 shadow-sm'} space-y-3 relative overflow-hidden group transition-all`}>
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                       
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => onNavigate('detail', item)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        {canEditItems && (
-                          <button onClick={() => handleDeleteItem(item.id, item.name)} className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
-                            <Trash2 className="w-4 h-4" />
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1 min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedItemId(isExpanded ? null : item.id)}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[8px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg border border-primary/10">
+                              {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '날짜미정'}
+                            </span>
+                            <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[8px] font-black text-outline uppercase">{item.category}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <h4 className="text-sm font-black text-[#0f172a] leading-tight break-all">{item.name}</h4>
+                            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-primary' : ''}`} />
+                          </div>
+                          {item.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{item.brand}</div>}
+                          <div className="flex items-center gap-2 flex-wrap opacity-70 mt-1">
+                            <div className="text-[9px] font-black text-outline">{item.specs || '-'}</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => onNavigate('detail', item)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                            <Edit className="w-4 h-4" />
                           </button>
-                        )}
+                          {canEditItems && (
+                            <button onClick={() => handleDeleteItem(item.id, item.name)} className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className={`text-lg font-black tracking-tight ${item.currentStock < (item.safetyStock || 0) ? 'text-rose-600' : 'text-[#0f172a]'}`}>
-                          {Math.round(item.currentStock || 0).toLocaleString()}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-50 cursor-pointer" onClick={() => setExpandedItemId(isExpanded ? null : item.id)}>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className={`text-lg font-black tracking-tight ${item.currentStock < (item.safetyStock || 0) ? 'text-rose-600' : 'text-[#0f172a]'}`}>
+                            {Math.round(item.currentStock || 0).toLocaleString()}
+                          </span>
+                          <span className="text-[9px] font-bold text-outline">{item.unit}</span>
+                          {item.category === '원육' && (
+                            <span className="text-[11px] font-black text-slate-400 ml-1">/ {(item.boxes || 0).toLocaleString()} {['KG', 'G'].includes((item.unit || '').toUpperCase()) ? 'BOX' : (item.unit || 'BOX').toUpperCase()}</span>
+                          )}
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-[8px] font-black tracking-tighter uppercase inline-flex items-center gap-1 shadow-sm ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                          <Package className="w-2.5 h-2.5" />
+                          {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상상태'}
                         </span>
-                        <span className="text-[9px] font-bold text-outline">{item.unit}</span>
-                        {item.category === '원육' && (
-                          <span className="text-[11px] font-black text-slate-400 ml-1">/ {(item.boxes || 0).toLocaleString()} BOX</span>
-                        )}
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-[8px] font-black tracking-tighter uppercase inline-flex items-center gap-1 shadow-sm ${item.currentStock < (item.safetyStock || 0) ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                        <Package className="w-2.5 h-2.5" />
-                        {item.currentStock < (item.safetyStock || 0) ? '재고부족' : '정상상태'}
-                      </span>
+
+                      {isExpanded && (
+                        <div className="pt-3 border-t border-dashed border-slate-200 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500 font-extrabold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                              최근 재고 가감 변동 이력 (최근 5건)
+                            </span>
+                          </div>
+
+                          {itemMoves.length > 0 ? (
+                            <div className="space-y-2">
+                              {itemMoves.slice(0, 5).map((move: any, moveIdx: number) => {
+                                const isIncrease = move.weight > 0;
+                                const typeColor = move.actionType === '입고' || move.actionType === '생산완료' 
+                                  ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
+                                  : 'text-rose-600 bg-rose-50 border-rose-100';
+
+                                return (
+                                  <div key={move.id || moveIdx} className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-xs text-left">
+                                    <div className="flex justify-between items-center">
+                                      <span className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${typeColor}`}>
+                                        {move.actionType}
+                                      </span>
+                                      <span className="text-[9px] text-slate-400 font-mono">{move.date}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center font-bold">
+                                      <span className="text-slate-500 text-[10px]">실제 가감량</span>
+                                      <span className={isIncrease ? 'text-emerald-600' : 'text-rose-600'}>
+                                        {isIncrease ? '+' : ''}{Math.round(move.weight).toLocaleString()} KG
+                                        {move.boxes !== 0 && move.boxes !== undefined && (
+                                          <span className="text-[9px] text-slate-400 ml-1">({move.boxes > 0 ? `+${move.boxes}` : move.boxes} {(move.unit || 'BOX').toUpperCase()})</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                    {move.prevStock !== undefined && move.nextStock !== undefined && (
+                                      <div className="flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-100 pt-1">
+                                        <span>재고 변동 비교</span>
+                                        <span>
+                                          {Math.round(move.prevStock).toLocaleString()} → <span className="text-on-surface font-extrabold">{Math.round(move.nextStock).toLocaleString()} KG</span>
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="p-4 text-center text-[10px] font-bold text-slate-400">
+                              가감 및 변동 이력이 없습니다.
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="py-12 text-center flex flex-col items-center gap-3 opacity-40">
                   <Package className="w-10 h-10" />

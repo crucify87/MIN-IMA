@@ -528,7 +528,7 @@ function ProductionContent({
         isRaw: boolean = false,
         brandName: string = "",
       ) => {
-        if (!name) return;
+        if (!name) return { prevStock: 0, nextStock: 0 };
         const trimmedName = name.trim();
         const item = inventory.find(
           (i: any) =>
@@ -536,13 +536,16 @@ function ProductionContent({
             (isRaw ? i.category === "원육" : i.category !== "원육") &&
             i.isApproved !== false,
         );
+        let prevStock = 0;
         if (item) {
+          prevStock = Number(item.currentStock || 0);
           await updateDoc(doc(db, "inventory", item.id), {
             currentStock: increment(diff),
             updatedAt: serverTimestamp(),
           });
         } else {
           // If item doesn't exist, create it as approved directly so it appears in the Settings product list
+          prevStock = 0;
           await addDoc(collection(db, "inventory"), {
             name: trimmedName,
             currentStock: diff,
@@ -557,6 +560,10 @@ function ProductionContent({
             updatedAt: serverTimestamp(),
           });
         }
+        return {
+          prevStock,
+          nextStock: prevStock + diff
+        };
       };
 
       if (editingId) {
@@ -585,6 +592,17 @@ function ProductionContent({
           }
         }
 
+        // Apply new inventory change with stock tracking
+        let prodStockInfo = { prevStock: 0, nextStock: 0 };
+        let rawStockInfo = { prevStock: 0, nextStock: 0 };
+
+        if (prodNum > 0) {
+          prodStockInfo = await updateInventoryStock(row.title, prodNum, false, row.brand);
+        }
+        if (rawNum > 0) {
+          rawStockInfo = await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
+        }
+
         // Clean up row data for Firestore
         const { id: _, ...cleanRow } = row;
 
@@ -597,16 +615,12 @@ function ProductionContent({
           loss: lossRate,
           linkType: row.linkType || "none",
           remarks: remarks.trim(),
+          prodPrevStock: prodStockInfo.prevStock,
+          prodNextStock: prodStockInfo.nextStock,
+          rawPrevStock: rawStockInfo.prevStock,
+          rawNextStock: rawStockInfo.nextStock,
           updatedAt: serverTimestamp(),
         });
-
-        // Apply new inventory change
-        if (prodNum > 0) {
-          await updateInventoryStock(row.title, prodNum, false, row.brand);
-        }
-        if (rawNum > 0) {
-          await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
-        }
 
         alert("생산 실적 수정 완료");
         setEditingId(null);
@@ -647,13 +661,24 @@ function ProductionContent({
         const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
         const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
 
+        // Apply inventory change with stock tracking
+        let prodStockInfo = { prevStock: 0, nextStock: 0 };
+        let rawStockInfo = { prevStock: 0, nextStock: 0 };
+
+        if (prodNum > 0) {
+          prodStockInfo = await updateInventoryStock(resolvedTitle, prodNum, false, resolvedBrand);
+        }
+        if (rawNum > 0) {
+          rawStockInfo = await updateInventoryStock(resolvedRawMaterial, -rawNum, true, resolvedBrand);
+        }
+
         // Clean up row data for Firestore
         const { id: _, ...cleanRow } = row;
 
         const itemMaster = inventory.find((it: any) => it.name === resolvedTitle);
         const partner = itemMaster?.partner || "";
 
-        const batchRef = await addDoc(collection(db, "production_batches"), {
+        await addDoc(collection(db, "production_batches"), {
           ...cleanRow,
           title: resolvedTitle,
           rawMaterial: resolvedRawMaterial,
@@ -666,20 +691,14 @@ function ProductionContent({
           loss: lossRate,
           linkType: row.linkType || "none",
           remarks: remarks.trim(),
+          prodPrevStock: prodStockInfo.prevStock,
+          prodNextStock: prodStockInfo.nextStock,
+          rawPrevStock: rawStockInfo.prevStock,
+          rawNextStock: rawStockInfo.nextStock,
           createdAt: serverTimestamp(),
         });
-
-        const batchId = batchRef.id;
-
-        // Apply inventory change
-        if (prodNum > 0) {
-          await updateInventoryStock(resolvedTitle, prodNum, false, resolvedBrand);
-        }
-        if (rawNum > 0) {
-          await updateInventoryStock(resolvedRawMaterial, -rawNum, true, resolvedBrand);
-        }
       }
-      alert("생산 실적 등록 완료");
+      alert("생산 기록 등록 및 재고 가동 처리가 정상 조치되었습니다.");
       setShowForm(false);
       setRemarks("");
       setRows([
@@ -1931,17 +1950,31 @@ function ProductionContent({
                           </div>
                         </td>
                         <td className="px-6 py-6 font-bold text-outline-variant">
-                          {item.linkType === "raw" ? (
-                            <span className="text-[10px] text-sky-600 bg-sky-50/50 px-1.5 py-0.5 rounded font-bold">원육 공유</span>
-                          ) : (
-                            `${Math.round(item.rawQty || 0).toLocaleString()} KG`
+                          <div>
+                            {item.linkType === "raw" ? (
+                              <span className="text-[10px] text-sky-600 bg-sky-50/50 px-1.5 py-0.5 rounded font-bold">원육 공유</span>
+                            ) : (
+                              `${Math.round(item.rawQty || 0).toLocaleString()} KG`
+                            )}
+                          </div>
+                          {item.rawPrevStock !== undefined && item.rawNextStock !== undefined && (
+                            <div className="text-[10px] text-sky-600 font-extrabold mt-1 whitespace-nowrap">
+                              재고: {Math.round(item.rawPrevStock).toLocaleString()} → {Math.round(item.rawNextStock).toLocaleString()} KG
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-6 font-black text-[#0f172a]">
-                          {item.linkType === "product" ? (
-                            <span className="text-[10px] text-rose-600 bg-rose-50/50 px-1.5 py-0.5 rounded font-bold">품목 공유</span>
-                          ) : (
-                            `${Math.round(item.production || 0).toLocaleString()} KG`
+                          <div>
+                            {item.linkType === "product" ? (
+                              <span className="text-[10px] text-rose-600 bg-rose-50/50 px-1.5 py-0.5 rounded font-bold">품목 공유</span>
+                            ) : (
+                              `${Math.round(item.production || 0).toLocaleString()} KG`
+                            )}
+                          </div>
+                          {item.prodPrevStock !== undefined && item.prodNextStock !== undefined && (
+                            <div className="text-[10px] text-emerald-600 font-extrabold mt-1 whitespace-nowrap">
+                              재고: {Math.round(item.prodPrevStock).toLocaleString()} → {Math.round(item.prodNextStock).toLocaleString()} KG
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-6">
@@ -2110,6 +2143,27 @@ function ProductionContent({
                         </div>
                       </div>
                     </div>
+
+                    {(item.prodPrevStock !== undefined || item.rawPrevStock !== undefined) && (
+                      <div className="bg-slate-50/70 p-2.5 rounded-2xl text-[10px] space-y-1 font-bold border border-outline-variant/30 text-left">
+                        {item.rawPrevStock !== undefined && item.rawNextStock !== undefined && (
+                          <div className="flex justify-between items-center text-slate-500">
+                            <span>원육 재고 ({item.rawMaterial}):</span>
+                            <span className="text-sky-600 font-extrabold">
+                              {Math.round(item.rawPrevStock).toLocaleString()} → {Math.round(item.rawNextStock).toLocaleString()} KG
+                            </span>
+                          </div>
+                        )}
+                        {item.prodPrevStock !== undefined && item.prodNextStock !== undefined && (
+                          <div className="flex justify-between items-center text-slate-500">
+                            <span>제품 재고 ({item.title}):</span>
+                            <span className="text-emerald-600 font-extrabold">
+                              {Math.round(item.prodPrevStock).toLocaleString()} → {Math.round(item.prodNextStock).toLocaleString()} KG
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-tighter pt-1 opacity-60">
                       <div className="flex items-center gap-1">
