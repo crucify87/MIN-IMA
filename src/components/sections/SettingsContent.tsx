@@ -9,6 +9,8 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Users,
   Mail,
   Lock,
@@ -120,6 +122,7 @@ function SettingsContent({
   const [isItemsListExpanded, setIsItemsListExpanded] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const [showAllUsers, setShowAllUsers] = useState(false);
+  const [userPage, setUserPage] = useState(1);
 
   // App Settings Form
   const [logoUrl, setLogoUrl] = useState(settings?.logoUrl || '');
@@ -1638,71 +1641,139 @@ function SettingsContent({
                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="relative group w-full sm:w-80">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                    <input type="text" placeholder="이름 또는 이메일 검색..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="w-full h-10 md:h-12 pl-10 pr-4 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
+                    <input 
+                      type="text" 
+                      placeholder="이름 또는 이메일 검색..." 
+                      value={userSearch} 
+                      onChange={(e) => {
+                        setUserSearch(e.target.value);
+                        setUserPage(1);
+                      }} 
+                      className="w-full h-10 md:h-12 pl-10 pr-4 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" 
+                    />
                   </div>
-                  <button onClick={() => setShowAllUsers(!showAllUsers)} className="flex items-center justify-center gap-2 px-6 h-10 md:h-12 bg-white border border-outline-variant rounded-xl text-xs font-black text-[#0f172a] hover:bg-[#f1f4f9] transition-all shadow-sm">
-                    {showAllUsers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    {showAllUsers ? '접기' : '더보기'}
-                  </button>
+                  <div className="flex items-center justify-center gap-2 px-6 h-10 md:h-12 bg-white border border-outline-variant rounded-xl text-xs font-black text-[#0f172a] shadow-sm select-none">
+                    등록 계정: {allUsers.filter((u: any) => u.displayName?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())).length}명
+                  </div>
                </div>
              </div>
 
              <div className="grid grid-cols-1 md:gap-6 space-y-3 md:space-y-0">
-               {allUsers.filter((u: any) => u.displayName?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())).slice(0, showAllUsers ? undefined : 6).map((u: any) => (
-                  <div key={u.id} className="bg-white md:bg-[#f8fafc] p-3 md:p-6 rounded-[20px] md:rounded-[32px] border border-outline-variant/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-8 hover:bg-white hover:border-primary transition-all shadow-sm md:shadow-none">
-                    <div className="flex items-center gap-4 md:gap-6 w-full">
-                      <div className="relative shrink-0">
-                        <img src={u.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200'} className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-3xl border-2 border-white shadow-md object-cover" alt="" />
-                        <div className={`absolute -bottom-1 -right-1 w-4 h-4 md:w-5 md:h-5 rounded-full border-2 md:border-4 border-white ${u.role === 'super_admin' ? 'bg-indigo-500' : u.role === 'admin' ? 'bg-emerald-500' : 'bg-slate-400'}`}></div>
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-base md:text-xl font-black text-[#0f172a] leading-tight truncate">{u.displayName || '이름 없음'}</h4>
-                        <p className="text-[10px] md:text-xs font-bold text-outline-variant flex items-center gap-1 mt-1 truncate">{u.email}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="w-full md:w-auto flex items-center gap-3 md:gap-4 bg-slate-50/50 md:bg-white p-2 md:p-2 rounded-2xl border border-outline-variant/40 shadow-sm">
-                      <div className="relative flex-1 md:flex-none">
-                        <select 
-                          value={u.role || 'user'} 
-                          onChange={(e) => handleUpdateRole(u.id, e.target.value)} 
-                          disabled={!canManageUsers || u.email === 'crucify87@gmail.com'} 
-                          className="w-full md:w-auto bg-transparent h-10 pl-2 md:pl-4 pr-8 font-black text-[11px] md:text-sm outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed appearance-none"
-                        >
-                          <option value="super_admin">최고관리자</option>
-                          <option value="admin">관리자</option>
-                          <option value="user">일반</option>
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-outline pointer-events-none" />
-                      </div>
-                      <div className="h-6 w-px bg-outline-variant/30"></div>
-                      <span className={`px-3 md:px-4 py-1.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${u.role === 'super_admin' ? 'bg-indigo-50 text-indigo-600' : u.role === 'admin' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
-                        {u.role === 'super_admin' ? 'SUPER' : u.role === 'admin' ? 'ADMIN' : 'USER'}
-                      </span>
-                      {canManageUsers && (
-                        <>
-                          <div className="h-6 w-px bg-outline-variant/30"></div>
-                          <label className="flex items-center gap-1.5 cursor-pointer shrink-0 select-none">
-                            <input 
-                              type="checkbox" 
-                              checked={u.canViewFeedback === true || u.role === 'super_admin'} 
-                              disabled={!canManageUsers || u.email === 'crucify87@gmail.com' || u.role === 'super_admin'}
-                              onChange={() => handleToggleFeedbackPermission(u.id, u.canViewFeedback || false)}
-                              className="w-4.5 h-4.5 text-emerald-600 focus:ring-emerald-500 border-outline-variant rounded transition-all cursor-pointer accent-[#059669] disabled:opacity-50"
-                            />
-                            <span className="text-[10px] md:text-xs font-black text-slate-650 whitespace-nowrap">피드백 조회</span>
-                          </label>
-                        </>
-                      )}
-                      {canManageUsers && u.email !== user?.email && u.email !== 'crucify87@gmail.com' && (
-                        <button onClick={() => handleDeleteUser(u.id, u.email)} className="p-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all active:scale-90" title="계정 삭제">
-                          <Trash2 className="w-4.5 h-4.5 md:w-5 md:h-5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+               {(() => {
+                 const filteredUsers = allUsers.filter((u: any) => u.displayName?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()));
+                 const USERS_PER_PAGE = 10;
+                 const paginatedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
+
+                 if (filteredUsers.length === 0) {
+                   return (
+                     <div className="py-16 text-center text-outline text-xs md:text-sm font-black italic">
+                       검색 조건에 맞는 관리자 계정이 존재하지 않습니다.
+                     </div>
+                   );
+                 }
+
+                 return paginatedUsers.map((u: any) => (
+                   <div key={u.id} className="bg-white md:bg-[#f8fafc] p-3 md:p-6 rounded-[20px] md:rounded-[32px] border border-outline-variant/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-8 hover:bg-white hover:border-primary transition-all shadow-sm md:shadow-none">
+                     <div className="flex items-center gap-4 md:gap-6 w-full">
+                       <div className="relative shrink-0">
+                         <img src={u.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200'} className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-3xl border-2 border-white shadow-md object-cover" alt="" />
+                         <div className={`absolute -bottom-1 -right-1 w-4 h-4 md:w-5 md:h-5 rounded-full border-2 md:border-4 border-white ${u.role === 'super_admin' ? 'bg-indigo-500' : u.role === 'admin' ? 'bg-emerald-500' : 'bg-slate-400'}`}></div>
+                       </div>
+                       <div className="min-w-0">
+                         <h4 className="text-base md:text-xl font-black text-[#0f172a] leading-tight truncate">{u.displayName || '이름 없음'}</h4>
+                         <p className="text-[10px] md:text-xs font-bold text-outline-variant flex items-center gap-1 mt-1 truncate">{u.email}</p>
+                       </div>
+                     </div>
+                     
+                     <div className="w-full md:w-auto flex items-center gap-3 md:gap-4 bg-slate-50/50 md:bg-white p-2 md:p-2 rounded-2xl border border-outline-variant/40 shadow-sm">
+                       <div className="relative flex-1 md:flex-none">
+                         <select 
+                           value={u.role || 'user'} 
+                           onChange={(e) => handleUpdateRole(u.id, e.target.value)} 
+                           disabled={!canManageUsers || u.email === 'crucify87@gmail.com'} 
+                           className="w-full md:w-auto bg-transparent h-10 pl-2 md:pl-4 pr-8 font-black text-[11px] md:text-sm outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed appearance-none"
+                         >
+                           <option value="super_admin">최고관리자</option>
+                           <option value="admin">관리자</option>
+                           <option value="user">일반</option>
+                         </select>
+                         <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-outline pointer-events-none" />
+                       </div>
+                       <div className="h-6 w-px bg-outline-variant/30"></div>
+                       <span className={`px-3 md:px-4 py-1.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${u.role === 'super_admin' ? 'bg-indigo-50 text-indigo-600' : u.role === 'admin' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                         {u.role === 'super_admin' ? 'SUPER' : u.role === 'admin' ? 'ADMIN' : 'USER'}
+                       </span>
+                       {canManageUsers && (
+                         <>
+                           <div className="h-6 w-px bg-outline-variant/30"></div>
+                           <label className="flex items-center gap-1.5 cursor-pointer shrink-0 select-none">
+                             <input 
+                               type="checkbox" 
+                               checked={u.canViewFeedback === true || u.role === 'super_admin'} 
+                               disabled={!canManageUsers || u.email === 'crucify87@gmail.com' || u.role === 'super_admin'}
+                               onChange={() => handleToggleFeedbackPermission(u.id, u.canViewFeedback || false)}
+                               className="w-4.5 h-4.5 text-emerald-600 focus:ring-emerald-500 border-outline-variant rounded transition-all cursor-pointer accent-[#059669] disabled:opacity-50"
+                             />
+                             <span className="text-[10px] md:text-xs font-black text-slate-650 whitespace-nowrap">피드백 조회</span>
+                           </label>
+                         </>
+                       )}
+                       {canManageUsers && u.email !== user?.email && u.email !== 'crucify87@gmail.com' && (
+                         <button onClick={() => handleDeleteUser(u.id, u.email)} className="p-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all active:scale-90" title="계정 삭제">
+                           <Trash2 className="w-4.5 h-4.5 md:w-5 md:h-5" />
+                         </button>
+                       )}
+                     </div>
+                   </div>
+                 ));
+               })()}
              </div>
+
+             {/* Dynamic Pagination Controls */}
+             {(() => {
+               const filteredUsers = allUsers.filter((u: any) => u.displayName?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()));
+               const USERS_PER_PAGE = 10;
+               const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+               
+               if (totalPages <= 1) return null;
+
+               return (
+                 <div className="flex items-center justify-center gap-1.5 md:gap-2 pt-6">
+                   <button
+                     onClick={() => setUserPage((prev) => Math.max(prev - 1, 1))}
+                     disabled={userPage === 1}
+                     className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border border-outline-variant/60 bg-white rounded-lg md:rounded-xl text-[#0f172a] hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.95]"
+                     title="이전 페이지"
+                   >
+                     <ChevronLeft className="w-4 h-4" />
+                   </button>
+                   {Array.from({ length: totalPages }).map((_, idx) => {
+                     const pageNum = idx + 1;
+                     return (
+                       <button
+                         key={pageNum}
+                         onClick={() => setUserPage(pageNum)}
+                         className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-xs font-black rounded-lg md:rounded-xl transition-all active:scale-[0.95] ${
+                           userPage === pageNum
+                             ? 'bg-[#0f172a] text-white shadow-md shadow-slate-900/10'
+                             : 'bg-white border border-outline-variant/60 text-[#0f172a] hover:bg-slate-50'
+                         }`}
+                       >
+                         {pageNum}
+                       </button>
+                     );
+                   })}
+                   <button
+                     onClick={() => setUserPage((prev) => Math.min(prev + 1, totalPages))}
+                     disabled={userPage === totalPages}
+                     className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border border-outline-variant/60 bg-white rounded-lg md:rounded-xl text-[#0f172a] hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.95]"
+                     title="다음 페이지"
+                   >
+                     <ChevronRight className="w-4 h-4" />
+                   </button>
+                 </div>
+               );
+             })()}
 
              
              <div className="bg-amber-50 p-6 rounded-[28px] border border-amber-200">
