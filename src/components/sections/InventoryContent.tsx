@@ -213,10 +213,10 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
           '안전재고': item.safetyStock || 0,
           '단위': unit,
           '상태': item.currentStock < (item.safetyStock || 0) 
-            ? '🔴 부족' 
+            ? '부족' 
             : (item.safetyStock > 0 && item.currentStock >= item.safetyStock && item.currentStock <= item.safetyStock * 1.2)
-              ? '🟡 주의'
-              : '🟢 정상'
+              ? '주의'
+              : '정상'
         };
       });
 
@@ -710,20 +710,23 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                 
                                 if (isShortage) {
                                   return (
-                                    <span className="px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest bg-rose-50 text-rose-600 inline-flex items-center gap-1">
-                                      🔴 부족
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/50 animate-pulse">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                      부족
                                     </span>
                                   );
                                 } else if (isReplenish) {
                                   return (
-                                    <span className="px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest bg-amber-50 text-amber-600 inline-flex items-center gap-1">
-                                      🟡 주의
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                      주의
                                     </span>
                                   );
                                 } else {
                                   return (
-                                    <span className="px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest bg-emerald-50 text-emerald-600 inline-flex items-center gap-1">
-                                      🟢 정상
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                      정상
                                     </span>
                                   );
                                 }
@@ -902,23 +905,23 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                           const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
                           if (isShortage) {
                             return (
-                              <span className="px-2.5 py-1 rounded-full text-[8px] font-black bg-rose-500 text-white inline-flex items-center gap-1 shadow-sm uppercase tracking-wider">
-                                <Package className="w-2.5 h-2.5" />
-                                🔴 부족
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/50 animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                부족
                               </span>
                             );
                           } else if (isReplenish) {
                             return (
-                              <span className="px-2.5 py-1 rounded-full text-[8px] font-black bg-amber-500 text-white inline-flex items-center gap-1 shadow-sm uppercase tracking-wider">
-                                <Package className="w-2.5 h-2.5" />
-                                🟡 주의
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/50">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                주의
                               </span>
                             );
                           } else {
                             return (
-                              <span className="px-2.5 py-1 rounded-full text-[8px] font-black bg-emerald-500 text-white inline-flex items-center gap-1 shadow-sm uppercase tracking-wider">
-                                <Package className="w-2.5 h-2.5" />
-                                🟢 정상
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                정상
                               </span>
                             );
                           }
@@ -998,24 +1001,30 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
           />
 
           {/* Status Color Badge Legend */}
-          <div className="bg-slate-50 border-t border-outline-variant/30 px-6 py-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
-            <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
-              <span className="text-sm">🟢</span>
-              <span className="font-extrabold text-[#0f172a]">정상</span>
-              <span className="text-slate-400">|</span>
-              <span>여유로운 안전재고 상태</span>
+          <div className="bg-slate-50/80 border-t border-outline-variant/30 px-6 py-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-2.5">
+            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100/60 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                정상
+              </span>
+              <span className="text-slate-300">|</span>
+              <span className="text-slate-600 font-medium text-[11px]">여유로운 안전재고 상태</span>
             </div>
-            <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
-              <span className="text-sm">🟡</span>
-              <span className="font-extrabold text-amber-700">주의</span>
-              <span className="text-slate-400">|</span>
-              <span>보충 필요 (안전재고의 120% 이하)</span>
+            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100/60 text-amber-700 border border-amber-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                주의
+              </span>
+              <span className="text-slate-300">|</span>
+              <span className="text-slate-600 font-medium text-[11px]">보충 필요 (안전재고의 120% 이하)</span>
             </div>
-            <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
-              <span className="text-sm">🔴</span>
-              <span className="font-extrabold text-rose-600">부족</span>
-              <span className="text-slate-400">|</span>
-              <span>즉시 입고 필요 (안전재고 미달)</span>
+            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100/60 text-rose-700 border border-rose-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                부족
+              </span>
+              <span className="text-slate-300">|</span>
+              <span className="text-slate-600 font-medium text-[11px]">즉시 입고 필요 (안전재고 미달)</span>
             </div>
           </div>
         </div>

@@ -948,20 +948,23 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
                                 if (isShortage) {
                                   return (
-                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-rose-100 text-rose-600 inline-flex items-center gap-1">
-                                      🔴 부족
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/50 animate-pulse">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                      부족
                                     </span>
                                   );
                                 } else if (isReplenish) {
                                   return (
-                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 inline-flex items-center gap-1">
-                                      🟡 주의
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                      주의
                                     </span>
                                   );
                                 } else {
                                   return (
-                                    <span className="px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600 inline-flex items-center gap-1">
-                                      🟢 정상
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                      정상
                                     </span>
                                   );
                                 }
@@ -1002,20 +1005,23 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
                           if (isShortage) {
                             return (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-rose-100 text-rose-600 inline-flex items-center gap-1">
-                                🔴 부족
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/30 shrink-0">
+                                <span className="w-1.2 h-1.2 rounded-full bg-rose-500 animate-pulse" />
+                                부족
                               </span>
                             );
                           } else if (isReplenish) {
                             return (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-amber-100 text-amber-700 inline-flex items-center gap-1">
-                                🟡 주의
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/30 shrink-0">
+                                <span className="w-1.2 h-1.2 rounded-full bg-amber-500" />
+                                주의
                               </span>
                             );
                           } else {
                             return (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 bg-emerald-100 text-emerald-600 inline-flex items-center gap-1">
-                                🟢 정상
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/30 shrink-0">
+                                <span className="w-1.2 h-1.2 rounded-full bg-emerald-500" />
+                                정상
                               </span>
                             );
                           }
@@ -1025,24 +1031,30 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                   </div>
                 </div>
                 {/* Status Color Badge Legend */}
-                <div className="bg-slate-50 border-t border-outline-variant/30 px-6 py-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
-                  <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
-                    <span className="text-sm">🟢</span>
-                    <span className="font-extrabold text-[#0f172a]">정상</span>
-                    <span className="text-slate-400">|</span>
-                    <span>여유로운 안전재고 상태</span>
+                <div className="bg-slate-50/80 border-t border-outline-variant/30 px-6 py-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-2.5">
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100/60 text-emerald-700 border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      정상
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-slate-600 font-medium text-[11px]">여유로운 안전재고 상태</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
-                    <span className="text-sm">🟡</span>
-                    <span className="font-extrabold text-amber-700">주의</span>
-                    <span className="text-slate-400">|</span>
-                    <span>보충 필요 (안전재고의 120% 이하)</span>
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100/60 text-amber-700 border border-amber-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      주의
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-slate-600 font-medium text-[11px]">보충 필요 (안전재고의 120% 이하)</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-slate-500">
-                    <span className="text-sm">🔴</span>
-                    <span className="font-extrabold text-rose-600">부족</span>
-                    <span className="text-slate-400">|</span>
-                    <span>즉시 입고 필요 (안전재고 미달)</span>
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100/60 text-rose-700 border border-rose-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                      부족
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-slate-600 font-medium text-[11px]">즉시 입고 필요 (안전재고 미달)</span>
                   </div>
                 </div>
               </div>
@@ -1189,13 +1201,22 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                           )}
                         </td>
                         <td className="px-4 py-6">
-                          <span className={`text-[10px] font-black px-3 py-1 rounded-full ${
-                            status === '부족' ? 'bg-rose-500 text-white' : 
-                            status === '보충' ? 'bg-blue-500 text-white' : 
-                            'bg-emerald-500 text-white'
-                          }`}>
-                            {status}
-                          </span>
+                          {status === '부족' ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/50">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                              부족
+                            </span>
+                          ) : status === '보충' ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/50">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                              보충
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/50">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              정상
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-6">
                            {canEditItems && (
@@ -1257,13 +1278,22 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                           )}
                           <span className="text-[10px] font-bold text-outline">{l.time}</span>
                       </div>
-                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
-                            status === '부족' ? 'bg-rose-500 text-white' : 
-                            status === '보충' ? 'bg-blue-500 text-white' : 
-                            'bg-emerald-500 text-white'
-                          }`}>
-                            {status}
-                      </span>
+                      {status === '부족' ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/30">
+                          <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
+                          부족
+                        </span>
+                      ) : status === '보충' ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/30">
+                          <span className="w-1 h-1 rounded-full bg-blue-500" />
+                          보충
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/30">
+                          <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                          정상
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex flex-col min-w-0">
