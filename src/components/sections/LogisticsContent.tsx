@@ -368,6 +368,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     item: '', 
     brand: '',
     category: '',
+    specs: '',
     partner: '', 
     unit: 'BOX',
     boxes: '',
@@ -491,9 +492,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     // Only approved items first
     let list = inventory.filter((i: any) => i.isApproved !== false);
     
-    const deDuplicated: any[] = [];
-    const seenNames = new Set<string>();
-    
     // Sort: non-완제품 first, then 완제품
     const sortedList = [...list].sort((a: any, b: any) => {
       const aVal = a.category === '완제품' ? 1 : 0;
@@ -501,17 +499,12 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       return aVal - bVal;
     });
 
-    sortedList.forEach((i: any) => {
-      const name = (i.name || '').trim();
-      if (!name) return;
-      if (!seenNames.has(name)) {
-        seenNames.add(name);
-        deDuplicated.push(i);
-      }
-    });
-
-    if (!form.item) return deDuplicated;
-    return deDuplicated.filter((i: any) => i.name.toLowerCase().includes(form.item.toLowerCase()));
+    if (!form.item) return sortedList;
+    const searchVal = form.item.toLowerCase();
+    return sortedList.filter((i: any) => 
+      (i.name || '').toLowerCase().includes(searchVal) ||
+      (i.specs || '').toLowerCase().includes(searchVal)
+    );
   }, [inventory, form.item]);
 
   const filteredBrands = useMemo(() => {
@@ -529,18 +522,33 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       // Ensure form category is set correctly if it's currently '완제품' or empty
       let resolvedCategory = form.category;
       if (!resolvedCategory || resolvedCategory === '완제품') {
-        const itemObj = inventory.find((i: any) => i.name.trim() === itemName);
+        const itemObj = inventory.find((i: any) => i.name.trim() === itemName && (!form.specs || i.specs === form.specs));
         resolvedCategory = getCorrespondingCategory(itemObj || { name: itemName });
         if (!resolvedCategory) {
           resolvedCategory = '미분류';
         }
       }
       
-      const updateInventoryStock = async (name: string, weightDiff: number, boxesDiff: number, forceUnit?: string) => {
-        let item = inventory.find((i: any) => i.name === name && i.category === resolvedCategory);
+      const updateInventoryStock = async (name: string, weightDiff: number, boxesDiff: number, forceUnit?: string, specsStr?: string) => {
+        const targetSpecs = specsStr !== undefined ? specsStr : form.specs;
+        
+        let item = inventory.find((i: any) => 
+          i.name === name && 
+          i.category === resolvedCategory && 
+          (!targetSpecs || i.specs === targetSpecs)
+        );
+        
+        if (!item) {
+          item = inventory.find((i: any) => 
+            i.name === name && 
+            (!targetSpecs || i.specs === targetSpecs)
+          );
+        }
+        
         if (!item) {
           item = inventory.find((i: any) => i.name === name);
         }
+        
         let prevStock = 0;
         let prevBoxes = 0;
 
@@ -565,6 +573,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           // If item doesn't exist in inventory, create it (as approved)
           await addDoc(collection(db, 'inventory'), {
             name: name,
+            specs: targetSpecs || '',
             currentStock: finalWeightDiff,
             boxes: boxesDiff,
             brand: form.brand || '',
@@ -595,7 +604,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             oldRecord.item, 
             oldRecord.type === '입고' ? -oldRecord.weight : oldRecord.weight,
             oldRecord.type === '입고' ? -Number(oldRecord.boxes || 0) : Number(oldRecord.boxes || 0),
-            oldRecord.unit
+            oldRecord.unit,
+            oldRecord.specs
           );
         }
         
@@ -603,7 +613,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         const stockChanges = await updateInventoryStock(
           itemName, 
           form.type === '입고' ? weightNum : -weightNum,
-          form.type === '입고' ? boxesNum : -boxesNum
+          form.type === '입고' ? boxesNum : -boxesNum,
+          undefined,
+          form.specs
         );
 
         await updateDoc(doc(db, 'logistics', editingId), { 
@@ -625,7 +637,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         const stockChanges = await updateInventoryStock(
           itemName, 
           form.type === '입고' ? weightNum : -weightNum,
-          form.type === '입고' ? boxesNum : -boxesNum
+          form.type === '입고' ? boxesNum : -boxesNum,
+          undefined,
+          form.specs
         );
 
         await addDoc(collection(db, 'logistics'), { 
@@ -654,6 +668,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         item: '', 
         brand: '',
         category: '',
+        specs: '',
         partner: '', 
         unit: 'BOX',
         boxes: '',
@@ -673,6 +688,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       item: l.item,
       brand: l.brand || '',
       category: l.category || '',
+      specs: l.specs || '',
       partner: l.partner,
       unit: l.unit || 'BOX',
       boxes: l.boxes || '',
@@ -688,7 +704,17 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     if (!window.confirm(`[${l.item}] 물류 기록을 삭제하시겠습니까? (재고가 같이 조정됩니다)`)) return;
     try {
       await deleteDoc(doc(db, 'logistics', l.id));
-      let item = inventory.find((i: any) => i.name === l.item && i.category === (l.category || ''));
+      let item = inventory.find((i: any) => 
+        i.name === l.item && 
+        i.category === (l.category || '') && 
+        (!l.specs || i.specs === l.specs)
+      );
+      if (!item) {
+        item = inventory.find((i: any) => 
+          i.name === l.item && 
+          (!l.specs || i.specs === l.specs)
+        );
+      }
       if (!item) {
         item = inventory.find((i: any) => i.name === l.item);
       }
@@ -823,13 +849,18 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                            brand: i.brand || prev.brand,
                            category: getCorrespondingCategory(i) || prev.category,
                            partner: i.partner || prev.partner,
-                           unit: (i.unit || 'BOX').toUpperCase()
+                           unit: (i.unit || 'BOX').toUpperCase(), specs: i.specs || ''
                          }));
                          setShowItemDropdown(false);
                        }}
-                       className="w-full h-10 flex items-center px-4 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                       className="w-full min-h-10 flex items-center justify-between px-4 py-2 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left gap-4"
                      >
-                       {i.name}
+                       <span className="truncate">{i.name}</span>
+                        {i.specs && (
+                          <span className="shrink-0 text-[10px] bg-slate-100/80 text-slate-500 font-bold px-1.5 py-0.5 rounded border border-slate-200/50 whitespace-nowrap">
+                            {i.specs}
+                          </span>
+                        )}
                      </button>
                    ))}
                  </div>
@@ -1301,7 +1332,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                   </thead>
                   <tbody className="divide-y divide-outline-variant/10">
                     {paginatedItems.map((l: any, i: number) => {
-                      const invItem = inventory?.find((inv: any) => inv.name === l.item);
+                      const invItem = inventory?.find((inv: any) => inv.name === l.item && (!l.specs || inv.specs === l.specs));
                       const displayWeightUnit = (() => {
                         if (invItem && invItem.unit) {
                           const u = invItem.unit.toUpperCase();
@@ -1345,7 +1376,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           </td>
                           <td className="px-4 py-6 text-sm font-bold text-primary">{l.brand || '-'}</td>
                           <td className="px-4 py-6 text-xs font-bold text-outline">
-                            {invItem?.specs || '-'}
+                            {l.specs || invItem?.specs || '-'}
                           </td>
                           <td className="px-4 py-6 font-black text-on-surface">
                             <div>{l.item}</div>
@@ -1394,7 +1425,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3 p-1">
                 {paginatedItems.map((l: any, i: number) => {
-                  const invItem = inventory?.find((inv: any) => inv.name === l.item);
+                  const invItem = inventory?.find((inv: any) => inv.name === l.item && (!l.specs || inv.specs === l.specs));
                   const displayWeightUnit = (() => {
                     if (invItem && invItem.unit) {
                       const u = invItem.unit.toUpperCase();
@@ -1479,7 +1510,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                          거래처: <span className="text-on-surface font-black">{(!l.partner || l.partner === '초기재고등록') ? '' : l.partner}</span>
                        </p>
                        <span className="text-[8px] font-black text-primary/70 bg-primary/5 px-2 py-0.5 rounded border border-primary/10 uppercase">
-                         {inventory?.find((i: any) => i.name === l.item)?.specs || '규격미정'}
+                         {l.specs || inventory?.find((i: any) => i.name === l.item && (!l.specs || i.specs === l.specs))?.specs || inventory?.find((i: any) => i.name === l.item)?.specs || '규격미정'}
                        </span>
                     </div>
                   </div>
