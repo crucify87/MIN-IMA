@@ -769,8 +769,12 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                   {itemMoves.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                                       {itemMoves.slice(0, 5).map((move: any, moveIdx: number) => {
-                                        const isIncrease = move.weight > 0;
-                                        const typeColor = move.actionType === '입고' || move.actionType === '생산완료' 
+                                        const isIncrease = move.actionType === '입고' || move.actionType === '생산완료';
+                                        const displayDiff = (move.nextStock !== undefined && move.prevStock !== undefined)
+                                          ? Math.abs(move.nextStock - move.prevStock)
+                                          : Math.abs(move.weight);
+                                        const itemUnit = (item.unit || 'KG').toUpperCase();
+                                        const typeColor = isIncrease 
                                           ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
                                           : 'text-rose-600 bg-rose-50 border-rose-100';
 
@@ -788,9 +792,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                             <div className="space-y-1">
                                               <div className="text-[10px] text-slate-400 font-bold leading-none">변동량</div>
                                               <div className={`text-xs font-black ${isIncrease ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                {isIncrease ? '+' : ''}{Math.round(move.weight).toLocaleString()} KG
-                                                {move.boxes !== 0 && move.boxes !== undefined && (
-                                                  <span className="text-[9px] text-slate-400 ml-1">({move.boxes > 0 ? `+${move.boxes}` : move.boxes} {(move.unit || 'BOX').toUpperCase()})</span>
+                                                {isIncrease ? '+' : '-'}{Math.round(displayDiff).toLocaleString()} {itemUnit}
+                                                {move.boxes !== 0 && move.boxes !== undefined && (move.unit || 'BOX').toUpperCase() !== itemUnit && (
+                                                  <span className="text-[9px] text-slate-400 ml-1">
+                                                    ({isIncrease ? '+' : '-'}{Math.abs(move.boxes)} {(move.unit || 'BOX').toUpperCase()})
+                                                  </span>
                                                 )}
                                               </div>
                                             </div>
@@ -799,11 +805,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                               <div className="pt-2 border-t border-slate-50 space-y-0.5">
                                                 <div className="flex justify-between text-[10px] font-bold text-slate-400">
                                                   <span>변동 전:</span>
-                                                  <span className="text-slate-600">{Math.round(move.prevStock).toLocaleString()} KG</span>
+                                                  <span className="text-slate-600">{Math.round(move.prevStock).toLocaleString()} {itemUnit}</span>
                                                 </div>
                                                 <div className="flex justify-between text-[10px] font-bold text-slate-400">
                                                   <span>변동 후:</span>
-                                                  <span className="text-on-surface font-extrabold">{Math.round(move.nextStock).toLocaleString()} KG</span>
+                                                  <span className="text-on-surface font-extrabold">{Math.round(move.nextStock).toLocaleString()} {itemUnit}</span>
                                                 </div>
                                               </div>
                                             ) : (
@@ -939,40 +945,46 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
 
                           {itemMoves.length > 0 ? (
                             <div className="space-y-2">
-                              {itemMoves.slice(0, 5).map((move: any, moveIdx: number) => {
-                                const isIncrease = move.weight > 0;
-                                const typeColor = move.actionType === '입고' || move.actionType === '생산완료' 
-                                  ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
-                                  : 'text-rose-600 bg-rose-50 border-rose-100';
+                               {itemMoves.slice(0, 5).map((move: any, moveIdx: number) => {
+                                 const isIncrease = move.actionType === '입고' || move.actionType === '생산완료';
+                                 const displayDiff = (move.nextStock !== undefined && move.prevStock !== undefined)
+                                   ? Math.abs(move.nextStock - move.prevStock)
+                                   : Math.abs(move.weight);
+                                 const itemUnit = (item.unit || 'KG').toUpperCase();
+                                 const typeColor = isIncrease 
+                                   ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
+                                   : 'text-rose-600 bg-rose-50 border-rose-100';
 
-                                return (
-                                  <div key={move.id || moveIdx} className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-xs text-left">
-                                    <div className="flex justify-between items-center">
-                                      <span className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${typeColor}`}>
-                                        {move.actionType}
-                                      </span>
-                                      <span className="text-[9px] text-slate-400 font-mono">{move.date}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center font-bold">
-                                      <span className="text-slate-500 text-[10px]">실제 가감량</span>
-                                      <span className={isIncrease ? 'text-emerald-600' : 'text-rose-600'}>
-                                        {isIncrease ? '+' : ''}{Math.round(move.weight).toLocaleString()} KG
-                                        {move.boxes !== 0 && move.boxes !== undefined && (
-                                          <span className="text-[9px] text-slate-400 ml-1">({move.boxes > 0 ? `+${move.boxes}` : move.boxes} {(move.unit || 'BOX').toUpperCase()})</span>
-                                        )}
-                                      </span>
-                                    </div>
-                                    {move.prevStock !== undefined && move.nextStock !== undefined && (
-                                      <div className="flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-100 pt-1">
-                                        <span>재고 변동 비교</span>
-                                        <span>
-                                          {Math.round(move.prevStock).toLocaleString()} → <span className="text-on-surface font-extrabold">{Math.round(move.nextStock).toLocaleString()} KG</span>
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                 return (
+                                   <div key={move.id || moveIdx} className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-xs text-left">
+                                     <div className="flex justify-between items-center">
+                                       <span className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${typeColor}`}>
+                                         {move.actionType}
+                                       </span>
+                                       <span className="text-[9px] text-slate-400 font-mono">{move.date}</span>
+                                     </div>
+                                     <div className="flex justify-between items-center font-bold">
+                                       <span className="text-slate-500 text-[10px]">실제 가감량</span>
+                                       <span className={isIncrease ? 'text-emerald-600' : 'text-rose-600'}>
+                                         {isIncrease ? '+' : '-'}{Math.round(displayDiff).toLocaleString()} {itemUnit}
+                                         {move.boxes !== 0 && move.boxes !== undefined && (move.unit || 'BOX').toUpperCase() !== itemUnit && (
+                                           <span className="text-[9px] text-slate-400 ml-1">
+                                             ({isIncrease ? '+' : '-'}{Math.abs(move.boxes)} {(move.unit || 'BOX').toUpperCase()})
+                                           </span>
+                                         )}
+                                       </span>
+                                     </div>
+                                     {move.prevStock !== undefined && move.nextStock !== undefined && (
+                                       <div className="flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-100 pt-1">
+                                         <span>재고 변동 비교</span>
+                                         <span>
+                                           {Math.round(move.prevStock).toLocaleString()} → <span className="text-on-surface font-extrabold">{Math.round(move.nextStock).toLocaleString()} {itemUnit}</span>
+                                         </span>
+                                       </div>
+                                     )}
+                                   </div>
+                                 );
+                               })}
                             </div>
                           ) : (
                             <div className="p-4 text-center text-[10px] font-bold text-slate-400">

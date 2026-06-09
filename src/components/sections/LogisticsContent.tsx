@@ -1375,6 +1375,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                   <tbody className="divide-y divide-outline-variant/10">
                     {paginatedItems.map((l: any, i: number) => {
                       const invItem = inventory?.find((inv: any) => inv.name === l.item && (!l.specs || inv.specs === l.specs));
+                      const itemUnit = (invItem?.unit || 'KG').toUpperCase();
                       const displayWeightUnit = (() => {
                         if (invItem && invItem.unit) {
                           const u = invItem.unit.toUpperCase();
@@ -1424,7 +1425,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                             <div>{l.item}</div>
                             {l.prevStock !== undefined && l.nextStock !== undefined && (
                               <div className="text-[10px] font-bold text-slate-400 mt-1 whitespace-nowrap">
-                                재고변동: {Math.round(l.prevStock).toLocaleString()} → {Math.round(l.nextStock).toLocaleString()} kg
+                                재고변동: {Math.round(l.prevStock).toLocaleString()} → {Math.round(l.nextStock).toLocaleString()} {itemUnit}
                               </div>
                             )}
                           </td>
@@ -1480,6 +1481,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               <div className="md:hidden space-y-3 p-1">
                 {paginatedItems.map((l: any, i: number) => {
                   const invItem = inventory?.find((inv: any) => inv.name === l.item && (!l.specs || inv.specs === l.specs));
+                  const itemUnit = (invItem?.unit || 'KG').toUpperCase();
                   const displayWeightUnit = (() => {
                     if (invItem && invItem.unit) {
                       const u = invItem.unit.toUpperCase();
@@ -1545,13 +1547,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         <div className="flex justify-between items-center text-slate-500">
                           <span>변동 전 재고:</span>
                           <span className="text-on-surface font-black">
-                            {Math.round(l.prevStock).toLocaleString()} kg ({l.prevBoxes || 0} {displayQtyUnit})
+                            {Math.round(l.prevStock).toLocaleString()} {itemUnit} ({l.prevBoxes || 0} {displayQtyUnit})
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-slate-500">
                           <span>변동 후 재고:</span>
                           <span className={`${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'} font-black`}>
-                            {Math.round(l.nextStock).toLocaleString()} kg ({l.nextBoxes || 0} {displayQtyUnit})
+                            {Math.round(l.nextStock).toLocaleString()} {itemUnit} ({l.nextBoxes || 0} {displayQtyUnit})
                           </span>
                         </div>
                       </div>
