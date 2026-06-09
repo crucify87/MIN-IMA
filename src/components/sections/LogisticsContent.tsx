@@ -950,11 +950,16 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                        className="w-full min-h-10 flex items-center justify-between px-4 py-2 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left gap-4"
                      >
                        <span className="truncate">{i.name}</span>
-                        {i.specs && (
-                          <span className="shrink-0 text-[10px] bg-slate-100/80 text-slate-500 font-bold px-1.5 py-0.5 rounded border border-slate-200/50 whitespace-nowrap">
-                            {i.specs}
-                          </span>
-                        )}
+                       <div className="flex gap-1.5 items-center shrink-0">
+                         {i.specs && (
+                           <span className="text-[10px] bg-slate-100/80 text-slate-500 font-bold px-1.5 py-0.5 rounded border border-slate-200/50 whitespace-nowrap">
+                             {i.specs}
+                           </span>
+                         )}
+                         <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-1.5 py-0.5 rounded border border-blue-100 whitespace-nowrap">
+                           재고: {Math.round(i.currentStock || 0).toLocaleString()} {(i.unit || 'BOX').toUpperCase()}
+                         </span>
+                       </div>
                      </button>
                    ))}
                  </div>
