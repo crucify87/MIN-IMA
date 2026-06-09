@@ -535,7 +535,14 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         }
       }
       
-      const updateInventoryStock = async (name: string, weightDiff: number, boxesDiff: number, forceUnit?: string, specsStr?: string) => {
+      const updateInventoryStock = async (
+        name: string, 
+        weightDiff: number, 
+        boxesDiff: number, 
+        txUnit?: string, 
+        txWeightUnit?: string, 
+        specsStr?: string
+      ) => {
         const targetSpecs = (specsStr !== undefined ? specsStr : form.specs || '').trim();
         const trimmedName = name.trim();
 
@@ -560,19 +567,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           itemDocRef = doc(db, 'inventory', deterministicId);
         }
 
-        const activeUnit = (forceUnit || form.unit || (existingInList ? existingInList.unit : 'BOX')).toUpperCase();
-        const isCountBased = ['EA', 'BOX'].includes(activeUnit);
-        
-        let finalWeightDiff = 0;
-        if (isCountBased) {
-          if (boxesDiff !== 0) {
-            finalWeightDiff = boxesDiff;
-          } else {
-            finalWeightDiff = weightDiff;
-          }
-        } else {
-          finalWeightDiff = weightDiff;
-        }
+        const activeUnit = (txUnit || form.unit || (existingInList ? existingInList.unit : 'BOX')).toUpperCase();
 
         // Perform read-write actions inside an atomic transaction
         const result = await runTransaction(db, async (transaction) => {
@@ -580,34 +575,87 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           
           let prevStock = 0;
           let prevBoxes = 0;
+          let itemMasterUnit = activeUnit;
+          let itemSpecs = targetSpecs;
           
           if (docSnap.exists()) {
             const data = docSnap.data() as any;
             prevStock = Number(data.currentStock || 0);
             prevBoxes = Number(data.boxes || 0);
-            
+            itemMasterUnit = (data.unit || 'BOX').toUpperCase();
+            itemSpecs = (data.specs || '').trim();
+          }
+
+          // Compute converted stock difference based on itemMasterUnit
+          let finalStockDiff = 0;
+          const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
+
+          if (isMasterWeightBased) {
+            const currentTxWeightUnit = (txWeightUnit || form.weightUnit || 'KG').toUpperCase();
+            if (itemMasterUnit === 'KG') {
+              if (currentTxWeightUnit === 'G') {
+                finalStockDiff = weightDiff / 1000;
+              } else {
+                finalStockDiff = weightDiff;
+              }
+            } else if (itemMasterUnit === 'G') {
+              if (currentTxWeightUnit === 'KG') {
+                finalStockDiff = weightDiff * 1000;
+              } else {
+                finalStockDiff = weightDiff;
+              }
+            }
+          } else {
+            const inputCount = (boxesDiff !== 0) ? boxesDiff : weightDiff;
+            const currentTxUnit = (txUnit || form.unit || 'BOX').toUpperCase();
+
+            if (itemMasterUnit === currentTxUnit) {
+              finalStockDiff = inputCount;
+            } else {
+              // Parse pack size from specs if possible to convert between BOX and EA
+              const packSize = (() => {
+                if (!itemSpecs) return 1;
+                const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
+                if (match) {
+                  const num = parseInt(match[1], 10);
+                  if (!isNaN(num) && num > 0) return num;
+                }
+                return 1;
+              })();
+
+              if (itemMasterUnit === 'EA' && currentTxUnit === 'BOX') {
+                finalStockDiff = inputCount * packSize;
+              } else if (itemMasterUnit === 'BOX' && currentTxUnit === 'EA') {
+                finalStockDiff = inputCount / packSize;
+              } else {
+                finalStockDiff = inputCount;
+              }
+            }
+          }
+
+          const finalBoxesDiff = boxesDiff;
+
+          // Update/Set database without overwriting unit for existing products
+          if (docSnap.exists()) {
+            const data = docSnap.data() as any;
             transaction.update(itemDocRef, {
-              currentStock: prevStock + finalWeightDiff,
-              boxes: prevBoxes + boxesDiff,
+              currentStock: prevStock + finalStockDiff,
+              boxes: prevBoxes + finalBoxesDiff,
               brand: form.brand || data.brand || '',
               category: resolvedCategory || data.category || '미분류',
-              unit: activeUnit,
               updatedAt: serverTimestamp()
             });
           } else {
-            prevStock = 0;
-            prevBoxes = 0;
-            
             transaction.set(itemDocRef, {
               name: trimmedName,
               specs: targetSpecs,
-              currentStock: finalWeightDiff,
-              boxes: boxesDiff,
+              currentStock: finalStockDiff,
+              boxes: finalBoxesDiff,
               brand: form.brand || '',
               category: resolvedCategory || '미분류',
               partner: form.partner || '',
               sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
-              unit: activeUnit,
+              unit: itemMasterUnit,
               minStock: 0,
               location: '미지정',
               isApproved: true,
@@ -618,9 +666,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           
           return {
             prevStock,
-            nextStock: prevStock + finalWeightDiff,
+            nextStock: prevStock + finalStockDiff,
             prevBoxes,
-            nextBoxes: prevBoxes + boxesDiff
+            nextBoxes: prevBoxes + finalBoxesDiff
           };
         });
 
@@ -635,7 +683,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             oldRecord.item, 
             oldRecord.type === '입고' ? -oldRecord.weight : oldRecord.weight,
             oldRecord.type === '입고' ? -Number(oldRecord.boxes || 0) : Number(oldRecord.boxes || 0),
-            oldRecord.unit,
+            oldRecord.unit || 'BOX',
+            oldRecord.weightUnit || 'KG',
             oldRecord.specs
           );
         }
@@ -645,7 +694,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           itemName, 
           form.type === '입고' ? weightNum : -weightNum,
           form.type === '입고' ? boxesNum : -boxesNum,
-          undefined,
+          form.unit,
+          form.weightUnit,
           form.specs
         );
 
@@ -669,7 +719,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           itemName, 
           form.type === '입고' ? weightNum : -weightNum,
           form.type === '입고' ? boxesNum : -boxesNum,
-          undefined,
+          form.unit,
+          form.weightUnit,
           form.specs
         );
 
