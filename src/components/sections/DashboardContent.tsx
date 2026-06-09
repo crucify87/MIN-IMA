@@ -14,7 +14,8 @@ import {
   deleteDoc, 
   updateDoc, 
   increment, 
-  serverTimestamp 
+  serverTimestamp,
+  runTransaction
 } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { db } from '../../lib/firebase';
@@ -470,41 +471,65 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
     setLoading(true);
     try {
-      if (isProduction) {
-        // Find the full production record using the original ID
-        const record = production.find((p: any) => p.id === l.originalId);
-        if (record) {
-          await deleteDoc(doc(db, 'production_batches', record.id));
-          
-          // Revert production output
-          const prodItem = inventory.find((i: any) => i.name === record.title);
-          if (prodItem) {
-            await updateDoc(doc(db, 'inventory', prodItem.id), {
-              currentStock: increment(-record.production),
-              updatedAt: serverTimestamp()
-            });
+      await runTransaction(db, async (transaction) => {
+        if (isProduction) {
+          // Find the full production record using the original ID
+          const record = production.find((p: any) => p.id === l.originalId);
+          if (record) {
+            transaction.delete(doc(db, 'production_batches', record.id));
+            
+            // Revert production output
+            const prodItem = inventory.find((i: any) => i.name === record.title);
+            if (prodItem) {
+              const prodRef = doc(db, 'inventory', prodItem.id);
+              const prodSnap = await transaction.get(prodRef);
+              if (prodSnap.exists()) {
+                const currentVal = Number(prodSnap.data().currentStock || 0);
+                transaction.update(prodRef, {
+                  currentStock: currentVal - record.production,
+                  updatedAt: serverTimestamp()
+                });
+              }
+            }
+            
+            // Revert raw material input
+            const rawItem = inventory.find((i: any) => i.name === record.rawMaterial);
+            if (rawItem) {
+              const rawRef = doc(db, 'inventory', rawItem.id);
+              const rawSnap = await transaction.get(rawRef);
+              if (rawSnap.exists()) {
+                const currentVal = Number(rawSnap.data().currentStock || 0);
+                transaction.update(rawRef, {
+                  currentStock: currentVal + record.rawQty,
+                  updatedAt: serverTimestamp()
+                });
+              }
+            }
           }
-          
-          // Revert raw material input
-          const rawItem = inventory.find((i: any) => i.name === record.rawMaterial);
-          if (rawItem) {
-            await updateDoc(doc(db, 'inventory', rawItem.id), {
-              currentStock: increment(record.rawQty),
-              updatedAt: serverTimestamp()
-            });
+        } else {
+          // Logistics delete
+          transaction.delete(doc(db, 'logistics', l.originalId));
+          const item = inventory.find((i: any) => i.name === l.item);
+          if (item) {
+            const itemRef = doc(db, 'inventory', item.id);
+            const itemSnap = await transaction.get(itemRef);
+            if (itemSnap.exists()) {
+              const currentData = itemSnap.data();
+              const currentStock = Number(currentData.currentStock || 0);
+              const diffStock = l.type === '입고' ? -l.weight : l.weight;
+              
+              const currentBoxes = Number(currentData.boxes || 0);
+              const diffBoxes = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
+
+              transaction.update(itemRef, {
+                currentStock: currentStock + diffStock,
+                boxes: currentBoxes + diffBoxes,
+                updatedAt: serverTimestamp()
+              });
+            }
           }
         }
-      } else {
-        // Logistics delete
-        await deleteDoc(doc(db, 'logistics', l.originalId));
-        const item = inventory.find((i: any) => i.name === l.item);
-        if (item) {
-          await updateDoc(doc(db, 'inventory', item.id), {
-            currentStock: increment(l.type === '입고' ? -l.weight : l.weight),
-            updatedAt: serverTimestamp()
-          });
-        }
-      }
+      });
       alert('삭제 완료');
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, isProduction ? 'production_batches' : 'logistics');

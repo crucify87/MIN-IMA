@@ -22,7 +22,8 @@ import {
   serverTimestamp, 
   collection, 
   addDoc, 
-  deleteDoc 
+  deleteDoc,
+  runTransaction
 } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { db } from '../../lib/firebase';
@@ -516,8 +517,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     e.preventDefault();
     try {
       const itemName = form.item.trim();
-      const weightNum = Number(form.weight);
+      const weightNum = Number(form.weight) || 0;
       const boxesNum = Number(form.boxes) || 0;
+
+      if (weightNum === 0 && boxesNum === 0) {
+        alert('중량 혹은 수량 중 하나는 반드시 입력해야 합니다.');
+        return;
+      }
 
       // Ensure form category is set correctly if it's currently '완제품' or empty
       let resolvedCategory = form.category;
@@ -530,70 +536,95 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       }
       
       const updateInventoryStock = async (name: string, weightDiff: number, boxesDiff: number, forceUnit?: string, specsStr?: string) => {
-        const targetSpecs = specsStr !== undefined ? specsStr : form.specs;
-        
-        let item = inventory.find((i: any) => 
-          i.name === name && 
+        const targetSpecs = (specsStr !== undefined ? specsStr : form.specs || '').trim();
+        const trimmedName = name.trim();
+
+        // 1. Differentiate by: name, resolvedCategory, and targetSpecs
+        // Find if we already have it in the client-side inventory list (handles both legacy random IDs and deterministic IDs)
+        const existingInList = inventory.find((i: any) => 
+          i.name.trim() === trimmedName && 
           i.category === resolvedCategory && 
-          (!targetSpecs || i.specs === targetSpecs)
+          (i.specs || '').trim() === targetSpecs
         );
-        
-        if (!item) {
-          item = inventory.find((i: any) => 
-            i.name === name && 
-            (!targetSpecs || i.specs === targetSpecs)
-          );
-        }
-        
-        if (!item) {
-          item = inventory.find((i: any) => i.name === name);
-        }
-        
-        let prevStock = 0;
-        let prevBoxes = 0;
 
-        const activeUnit = (forceUnit || form.unit || (item ? item.unit : 'BOX')).toUpperCase();
-        const isCountBased = ['EA', 'BOX'].includes(activeUnit);
-        const finalWeightDiff = isCountBased ? boxesDiff : weightDiff;
-
-        if (item) {
-          prevStock = Number(item.currentStock || 0);
-          prevBoxes = Number(item.boxes || 0);
-          await updateDoc(doc(db, 'inventory', item.id), {
-            currentStock: increment(finalWeightDiff),
-            boxes: increment(boxesDiff),
-            brand: form.brand || item.brand || '',
-            category: resolvedCategory || item.category || '미분류',
-            unit: activeUnit,
-            updatedAt: serverTimestamp()
-          });
+        let itemDocRef;
+        if (existingInList) {
+          // If already exists in our inventory list, use its actual document ID (supports backward compatibility)
+          itemDocRef = doc(db, 'inventory', existingInList.id);
         } else {
-          prevStock = 0;
-          prevBoxes = 0;
-          // If item doesn't exist in inventory, create it (as approved)
-          await addDoc(collection(db, 'inventory'), {
-            name: name,
-            specs: targetSpecs || '',
-            currentStock: finalWeightDiff,
-            boxes: boxesDiff,
-            brand: form.brand || '',
-            category: resolvedCategory || '미분류',
-            partner: form.partner || '',
-            sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
-            unit: activeUnit,
-            minStock: 0,
-            location: '미지정',
-            isApproved: true,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
+          // Otherwise, generate a 100% duplicate-proof deterministic ID
+          const safeCategory = encodeURIComponent(resolvedCategory).replace(/\./g, '%2E');
+          const safeName = encodeURIComponent(trimmedName).replace(/\./g, '%2E');
+          const safeSpecs = encodeURIComponent(targetSpecs).replace(/\./g, '%2E');
+          const deterministicId = `inv_${safeCategory}_${safeName}_${safeSpecs}`;
+          itemDocRef = doc(db, 'inventory', deterministicId);
         }
-        return {
-          prevStock,
-          nextStock: prevStock + finalWeightDiff,
-          prevBoxes,
-          nextBoxes: prevBoxes + boxesDiff
-        };
+
+        const activeUnit = (forceUnit || form.unit || (existingInList ? existingInList.unit : 'BOX')).toUpperCase();
+        const isCountBased = ['EA', 'BOX'].includes(activeUnit);
+        
+        let finalWeightDiff = 0;
+        if (isCountBased) {
+          if (boxesDiff !== 0) {
+            finalWeightDiff = boxesDiff;
+          } else {
+            finalWeightDiff = weightDiff;
+          }
+        } else {
+          finalWeightDiff = weightDiff;
+        }
+
+        // Perform read-write actions inside an atomic transaction
+        const result = await runTransaction(db, async (transaction) => {
+          const docSnap = await transaction.get(itemDocRef);
+          
+          let prevStock = 0;
+          let prevBoxes = 0;
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data() as any;
+            prevStock = Number(data.currentStock || 0);
+            prevBoxes = Number(data.boxes || 0);
+            
+            transaction.update(itemDocRef, {
+              currentStock: prevStock + finalWeightDiff,
+              boxes: prevBoxes + boxesDiff,
+              brand: form.brand || data.brand || '',
+              category: resolvedCategory || data.category || '미분류',
+              unit: activeUnit,
+              updatedAt: serverTimestamp()
+            });
+          } else {
+            prevStock = 0;
+            prevBoxes = 0;
+            
+            transaction.set(itemDocRef, {
+              name: trimmedName,
+              specs: targetSpecs,
+              currentStock: finalWeightDiff,
+              boxes: boxesDiff,
+              brand: form.brand || '',
+              category: resolvedCategory || '미분류',
+              partner: form.partner || '',
+              sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
+              unit: activeUnit,
+              minStock: 0,
+              location: '미지정',
+              isApproved: true,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+          }
+          
+          return {
+            prevStock,
+            nextStock: prevStock + finalWeightDiff,
+            prevBoxes,
+            nextBoxes: prevBoxes + boxesDiff
+          };
+        });
+
+        return result;
       };
 
       if (editingId) {
@@ -703,7 +734,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const handleDelete = async (l: any) => {
     if (!window.confirm(`[${l.item}] 물류 기록을 삭제하시겠습니까? (재고가 같이 조정됩니다)`)) return;
     try {
-      await deleteDoc(doc(db, 'logistics', l.id));
       let item = inventory.find((i: any) => 
         i.name === l.item && 
         i.category === (l.category || '') && 
@@ -718,19 +748,32 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       if (!item) {
         item = inventory.find((i: any) => i.name === l.item);
       }
-      if (item) {
-        const itemUnit = (l.unit || item.unit || 'BOX').toUpperCase();
-        const isCountBased = ['EA', 'BOX'].includes(itemUnit);
-        const qtyDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
-        const weightDiff = l.type === '입고' ? -l.weight : l.weight;
-        const finalStockDiff = isCountBased ? qtyDiff : weightDiff;
 
-        await updateDoc(doc(db, 'inventory', item.id), {
-          currentStock: increment(finalStockDiff),
-          boxes: increment(qtyDiff),
-          updatedAt: serverTimestamp()
-        });
-      }
+      await runTransaction(db, async (transaction) => {
+        // Delete the logistics record
+        const logRef = doc(db, 'logistics', l.id);
+        transaction.delete(logRef);
+
+        if (item) {
+          const itemRef = doc(db, 'inventory', item.id);
+          const docSnap = await transaction.get(itemRef);
+
+          if (docSnap.exists()) {
+            const currentData = docSnap.data();
+            const itemUnit = (l.unit || currentData.unit || 'BOX').toUpperCase();
+            const isCountBased = ['EA', 'BOX'].includes(itemUnit);
+            const qtyDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
+            const weightDiff = l.type === '입고' ? -l.weight : l.weight;
+            const finalStockDiff = isCountBased ? qtyDiff : weightDiff;
+
+            transaction.update(itemRef, {
+              currentStock: Number(currentData.currentStock || 0) + finalStockDiff,
+              boxes: Number(currentData.boxes || 0) + qtyDiff,
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+      });
       alert('삭제 완료');
     } catch (error) { handleFirestoreError(error, OperationType.DELETE, 'logistics'); }
   };
@@ -947,7 +990,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">중량(KG/G)</label>
                <div className="flex gap-2">
                  <input 
-                    required 
                     type="text" 
                     placeholder="0"
                     value={formatWithCommas(form.weight)} 
@@ -1387,16 +1429,28 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                             )}
                           </td>
                           <td className={`px-4 py-6 font-black text-lg ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            <div>{l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} {displayWeightUnit}</div>
-                            {l.prevStock !== undefined && l.nextStock !== undefined && (
+                            <div>
+                              {Number(l.weight || 0) > 0 ? (
+                                `${l.type === '입고' ? '+' : '-'}${Math.round(Number(l.weight || 0)).toLocaleString()} ${displayWeightUnit}`
+                              ) : (
+                                <span className="opacity-30">-</span>
+                              )}
+                            </div>
+                            {Number(l.weight || 0) > 0 && l.prevStock !== undefined && l.nextStock !== undefined && (
                               <div className={`text-[10px] font-black ${l.type === '입고' ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 ({l.type === '입고' ? '증가' : '감소'})
                               </div>
                             )}
                           </td>
                           <td className="px-4 py-6 text-sm font-bold text-slate-500 whitespace-nowrap uppercase">
-                            <div>{Number(l.boxes || 0).toLocaleString()} {displayQtyUnit}</div>
-                            {l.prevBoxes !== undefined && l.nextBoxes !== undefined && (
+                            <div>
+                              {Number(l.boxes || 0) > 0 ? (
+                                `${Number(l.boxes || 0).toLocaleString()} ${displayQtyUnit}`
+                              ) : (
+                                <span className="opacity-30">-</span>
+                              )}
+                            </div>
+                            {Number(l.boxes || 0) > 0 && l.prevBoxes !== undefined && l.nextBoxes !== undefined && (
                               <div className="text-[10px] font-bold text-slate-400 mt-0.5">
                                 {l.prevBoxes} → {l.nextBoxes} {displayQtyUnit}
                               </div>
@@ -1448,45 +1502,43 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            {l.type === '입고' ? (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase shadow-sm bg-blue-500 text-white inline-flex items-center gap-0.5">
-                                <ArrowUp className="w-2.5 h-2.5 stroke-[3]" />
-                                {l.type}
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase shadow-sm bg-orange-500 text-white inline-flex items-center gap-0.5">
-                                <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
-                                {l.type}
-                              </span>
-                            )}
-                            <div className="text-[10px] font-bold text-outline uppercase tracking-tight font-mono">
-                              {l.date} <span className="opacity-40">{l.time}</span>
-                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black ${l.type === '입고' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                              {l.type}
+                            </span>
+                            <span className="font-bold text-on-surface text-sm truncate">{l.item}</span>
+                            {l.specs && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1 border border-slate-200 rounded">{l.specs}</span>}
                           </div>
-                          <h4 className="text-sm font-black text-[#0f172a] leading-tight break-all">{l.item}</h4>
                           {l.brand && <div className="text-[10px] font-bold text-primary mt-0.5">{l.brand}</div>}
                           <div className="flex items-center gap-1.5 flex-wrap mt-1">
                             <span className="text-[9px] font-bold text-outline opacity-70">{l.category}</span>
-                            <span className="text-[9px] font-black text-slate-400 uppercase">
-                              / {Number(l.boxes || 0).toLocaleString()} {displayQtyUnit}
-                            </span>
+                            {Number(l.boxes || 0) > 0 && (
+                              <span className="text-[9px] font-black text-slate-400 uppercase">
+                                / {Number(l.boxes || 0).toLocaleString()} {displayQtyUnit}
+                              </span>
+                            )}
                           </div>
                         </div>
                         
                         <div className="flex flex-col items-end gap-1 shrink-0">
                            <div className={`text-lg font-black tracking-tighter ${l.type === '입고' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                             {l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} <span className="text-[10px] font-bold text-outline uppercase">{displayWeightUnit}</span>
+                             {Number(l.weight || 0) > 0 ? (
+                               <>
+                                 {l.type === '입고' ? '+' : '-'}{Math.round(Number(l.weight || 0)).toLocaleString()} <span className="text-[10px] font-bold text-outline uppercase">{displayWeightUnit}</span>
+                               </>
+                             ) : (
+                               <span className="opacity-30">-</span>
+                             )}
                            </div>
-                         <div className="flex items-center gap-1">
-                           <button onClick={() => handleEdit(l)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
-                             <Edit className="w-4 h-4" />
-                           </button>
-                           <button onClick={() => setDeleteModal({ isOpen: true, item: l })} className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
-                             <Trash2 className="w-4 h-4" />
-                           </button>
-                         </div>
+                           <div className="flex items-center gap-1">
+                             <button onClick={() => handleEdit(l)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl active:bg-primary/10 active:text-primary transition-all">
+                               <Edit className="w-4 h-4" />
+                             </button>
+                             <button onClick={() => setDeleteModal({ isOpen: true, item: l })} className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl active:bg-rose-100 active:text-rose-600 transition-all">
+                               <Trash2 className="w-4 h-4" />
+                             </button>
+                           </div>
+                        </div>
                       </div>
-                    </div>
 
                     {l.prevStock !== undefined && l.nextStock !== undefined && (
                       <div className="bg-slate-50/70 p-2.5 rounded-2xl text-[10px] space-y-1 font-bold border border-outline-variant/30">

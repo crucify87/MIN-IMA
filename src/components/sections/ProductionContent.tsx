@@ -21,6 +21,7 @@ import {
   collection,
   addDoc,
   deleteDoc,
+  runTransaction,
 } from "firebase/firestore";
 import * as XLSX from "xlsx";
 import { db } from "../../lib/firebase";
@@ -552,40 +553,60 @@ function ProductionContent({
       ) => {
         if (!name) return { prevStock: 0, nextStock: 0 };
         const trimmedName = name.trim();
-        const item = inventory.find(
+        const existingInList = inventory.find(
           (i: any) =>
             i.name.trim() === trimmedName &&
             (isRaw ? i.category === "원육" : i.category !== "원육") &&
             i.isApproved !== false,
         );
-        let prevStock = 0;
-        if (item) {
-          prevStock = Number(item.currentStock || 0);
-          await updateDoc(doc(db, "inventory", item.id), {
-            currentStock: increment(diff),
-            updatedAt: serverTimestamp(),
-          });
+
+        let itemDocRef;
+        if (existingInList) {
+          itemDocRef = doc(db, "inventory", existingInList.id);
         } else {
-          // If item doesn't exist, create it as approved directly so it appears in the Settings product list
-          prevStock = 0;
-          await addDoc(collection(db, "inventory"), {
-            name: trimmedName,
-            currentStock: diff,
-            sku: `${isRaw ? "R" : "P"}-${Math.random().toString(36).substring(7).toUpperCase()}`,
-            category: isRaw ? "원육" : "완제품",
-            brand: brandName || "",
-            unit: "KG",
-            minStock: 0,
-            location: "미지정",
-            isApproved: true,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
+          // Generate deterministic ID safe for Firestore path
+          const safeCategory = isRaw ? "원육" : "완제품";
+          const safeName = encodeURIComponent(trimmedName).replace(/\./g, '%2E');
+          const deterministicId = `inv_${safeCategory}_${safeName}`;
+          itemDocRef = doc(db, "inventory", deterministicId);
         }
-        return {
-          prevStock,
-          nextStock: prevStock + diff
-        };
+
+        const result = await runTransaction(db, async (transaction) => {
+          const docSnap = await transaction.get(itemDocRef);
+          
+          let prevStock = 0;
+          if (docSnap.exists()) {
+            const data = docSnap.data() as any;
+            prevStock = Number(data.currentStock || 0);
+            transaction.update(itemDocRef, {
+              currentStock: prevStock + diff,
+              updatedAt: serverTimestamp(),
+            });
+          } else {
+            prevStock = 0;
+            transaction.set(itemDocRef, {
+              name: trimmedName,
+              specs: '',
+              currentStock: diff,
+              boxes: 0,
+              brand: brandName || '',
+              category: isRaw ? '원육' : '완제품',
+              sku: `${isRaw ? "R" : "P"}-${Math.random().toString(36).substring(7).toUpperCase()}`,
+              unit: 'KG',
+              minStock: 0,
+              location: '미지정',
+              isApproved: true,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          }
+          return {
+            prevStock,
+            nextStock: prevStock + diff
+          };
+        });
+
+        return result;
       };
 
       if (editingId) {
@@ -770,37 +791,58 @@ function ProductionContent({
 
     setLoading(true);
     try {
-      const updateInventoryStock = async (name: string, diff: number, isRaw: boolean = false) => {
-        if (!name) return;
-        const trimmedName = name.trim();
-        const item = inventory.find(
-          (i: any) =>
-            i.name.trim() === trimmedName &&
-            (isRaw ? i.category === "원육" : i.category !== "원육") &&
-            i.isApproved !== false,
-        );
-        if (item) {
-          await updateDoc(doc(db, "inventory", item.id), {
-            currentStock: increment(diff),
-            updatedAt: serverTimestamp(),
-          });
-        }
-      };
-
       const record = production.find((p: any) => p.id === id);
 
-      // Perform deletion
-      await deleteDoc(doc(db, "production_batches", String(id)));
+      // Perform deletion of production batch record and roll back inventories inside a transaction
+      await runTransaction(db, async (transaction) => {
+        // Delete batch record
+        transaction.delete(doc(db, "production_batches", String(id)));
 
-      // Revert inventory changes if record existed
-      if (record) {
-        if (record.production > 0) {
-          await updateInventoryStock(record.title, -record.production, false);
+        if (record) {
+          // Revert finished item stock
+          if (record.production > 0) {
+            const trimmedTitle = record.title.trim();
+            const itemInList = inventory.find(
+              (i: any) =>
+                i.name.trim() === trimmedTitle &&
+                i.category !== "원육" &&
+                i.isApproved !== false,
+            );
+            if (itemInList) {
+              const itemRef = doc(db, "inventory", itemInList.id);
+              const snap = await transaction.get(itemRef);
+              if (snap.exists()) {
+                const currentStock = Number(snap.data().currentStock || 0);
+                transaction.update(itemRef, {
+                  currentStock: currentStock - record.production,
+                  updatedAt: serverTimestamp(),
+                });
+              }
+            }
+          }
+          // Revert raw material stock
+          if (record.rawQty > 0) {
+            const trimmedRaw = record.rawMaterial.trim();
+            const rawInList = inventory.find(
+              (i: any) =>
+                i.name.trim() === trimmedRaw &&
+                i.category === "원육" &&
+                i.isApproved !== false,
+            );
+            if (rawInList) {
+              const rawRef = doc(db, "inventory", rawInList.id);
+              const snap = await transaction.get(rawRef);
+              if (snap.exists()) {
+                const currentStock = Number(snap.data().currentStock || 0);
+                transaction.update(rawRef, {
+                  currentStock: currentStock + record.rawQty,
+                  updatedAt: serverTimestamp(),
+                });
+              }
+            }
+          }
         }
-        if (record.rawQty > 0) {
-          await updateInventoryStock(record.rawMaterial, record.rawQty, true);
-        }
-      }
+      });
 
       if (editingId === id) {
         setEditingId(null);
