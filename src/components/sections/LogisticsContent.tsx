@@ -541,16 +541,23 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         boxesDiff: number, 
         txUnit?: string, 
         txWeightUnit?: string, 
-        specsStr?: string
+        specsStr?: string,
+        itemCategory?: string
       ) => {
         const targetSpecs = (specsStr !== undefined ? specsStr : form.specs || '').trim();
         const trimmedName = name.trim();
 
-        // 1. Differentiate by: name, resolvedCategory, and targetSpecs
+        // Determine proper category for the item being updated
+        let targetCategory = itemCategory;
+        if (!targetCategory) {
+          const found = inventory.find((i: any) => i.name.trim() === trimmedName);
+          targetCategory = found ? found.category : resolvedCategory;
+        }
+
         // Find if we already have it in the client-side inventory list (handles both legacy random IDs and deterministic IDs)
         const existingInList = inventory.find((i: any) => 
           i.name.trim() === trimmedName && 
-          i.category === resolvedCategory && 
+          i.category === targetCategory && 
           (i.specs || '').trim() === targetSpecs
         );
 
@@ -560,7 +567,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           itemDocRef = doc(db, 'inventory', existingInList.id);
         } else {
           // Otherwise, generate a 100% duplicate-proof deterministic ID
-          const safeCategory = encodeURIComponent(resolvedCategory).replace(/\./g, '%2E');
+          const safeCategory = encodeURIComponent(targetCategory).replace(/\./g, '%2E');
           const safeName = encodeURIComponent(trimmedName).replace(/\./g, '%2E');
           const safeSpecs = encodeURIComponent(targetSpecs).replace(/\./g, '%2E');
           const deterministicId = `inv_${safeCategory}_${safeName}_${safeSpecs}`;
@@ -642,7 +649,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               currentStock: prevStock + finalStockDiff,
               boxes: prevBoxes + finalBoxesDiff,
               brand: form.brand || data.brand || '',
-              category: resolvedCategory || data.category || '미분류',
+              category: targetCategory || data.category || '미분류',
               updatedAt: serverTimestamp()
             });
           } else {
@@ -652,7 +659,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               currentStock: finalStockDiff,
               boxes: finalBoxesDiff,
               brand: form.brand || '',
-              category: resolvedCategory || '미분류',
+              category: targetCategory || '미분류',
               partner: form.partner || '',
               sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
               unit: itemMasterUnit,
@@ -685,7 +692,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             oldRecord.type === '입고' ? -Number(oldRecord.boxes || 0) : Number(oldRecord.boxes || 0),
             oldRecord.unit || 'BOX',
             oldRecord.weightUnit || 'KG',
-            oldRecord.specs
+            oldRecord.specs,
+            oldRecord.category
           );
         }
         
@@ -811,15 +819,60 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
           if (docSnap.exists()) {
             const currentData = docSnap.data();
-            const itemUnit = (l.unit || currentData.unit || 'BOX').toUpperCase();
-            const isCountBased = ['EA', 'BOX'].includes(itemUnit);
-            const qtyDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
-            const weightDiff = l.type === '입고' ? -l.weight : l.weight;
-            const finalStockDiff = isCountBased ? qtyDiff : weightDiff;
+            const itemMasterUnit = (currentData.unit || 'BOX').toUpperCase();
+            const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
+            
+            let finalStockDiff = 0;
+            const boxesDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
+            const weightDiff = l.type === '입고' ? -Number(l.weight || 0) : Number(l.weight || 0);
+
+            if (isMasterWeightBased) {
+              const currentTxWeightUnit = (l.weightUnit || 'KG').toUpperCase();
+              if (itemMasterUnit === 'KG') {
+                if (currentTxWeightUnit === 'G') {
+                  finalStockDiff = weightDiff / 1000;
+                } else {
+                  finalStockDiff = weightDiff;
+                }
+              } else if (itemMasterUnit === 'G') {
+                if (currentTxWeightUnit === 'KG') {
+                  finalStockDiff = weightDiff * 1000;
+                } else {
+                  finalStockDiff = weightDiff;
+                }
+              }
+            } else {
+              const inputCount = (boxesDiff !== 0) ? boxesDiff : weightDiff;
+              const currentTxUnit = (l.unit || 'BOX').toUpperCase();
+
+              if (itemMasterUnit === currentTxUnit) {
+                finalStockDiff = inputCount;
+              } else {
+                // Parse pack size from specs to convert between BOX and EA
+                const itemSpecs = (currentData.specs || '').trim();
+                const packSize = (() => {
+                  if (!itemSpecs) return 1;
+                  const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
+                  if (match) {
+                    const num = parseInt(match[1], 10);
+                    if (!isNaN(num) && num > 0) return num;
+                  }
+                  return 1;
+                })();
+
+                if (itemMasterUnit === 'EA' && currentTxUnit === 'BOX') {
+                  finalStockDiff = inputCount * packSize;
+                } else if (itemMasterUnit === 'BOX' && currentTxUnit === 'EA') {
+                  finalStockDiff = inputCount / packSize;
+                } else {
+                  finalStockDiff = inputCount;
+                }
+              }
+            }
 
             transaction.update(itemRef, {
               currentStock: Number(currentData.currentStock || 0) + finalStockDiff,
-              boxes: Number(currentData.boxes || 0) + qtyDiff,
+              boxes: Number(currentData.boxes || 0) + boxesDiff,
               updatedAt: serverTimestamp()
             });
           }
@@ -1439,13 +1492,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         }
                         return (l.weightUnit || 'KG').toUpperCase();
                       })();
-                      const displayQtyUnit = (() => {
-                        if (invItem && invItem.unit) {
-                          const u = invItem.unit.toUpperCase();
-                          if (u !== 'KG' && u !== 'G') return u;
-                        }
-                        return (l.unit || 'BOX').toUpperCase();
-                      })();
+                      const displayQtyUnit = (l.unit || 'BOX').toUpperCase();
 
                       return (
                         <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
@@ -1545,13 +1592,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     }
                     return (l.weightUnit || 'KG').toUpperCase();
                   })();
-                  const displayQtyUnit = (() => {
-                    if (invItem && invItem.unit) {
-                      const u = invItem.unit.toUpperCase();
-                      if (u !== 'KG' && u !== 'G') return u;
-                    }
-                    return (l.unit || 'BOX').toUpperCase();
-                  })();
+                  const displayQtyUnit = (l.unit || 'BOX').toUpperCase();
 
                   return (
                     <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">

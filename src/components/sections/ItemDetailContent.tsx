@@ -11,7 +11,8 @@ import {
   collection, 
   addDoc,
   deleteDoc,
-  increment
+  increment,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { handleFirestoreError } from '../../lib/firestoreUtils';
@@ -100,10 +101,72 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
           }
         }
       } else {
-        await deleteDoc(doc(db, 'logistics', a.originalId));
-        await updateDoc(doc(db, 'inventory', item.id), {
-          currentStock: increment(a.type === '입고' ? -a.weight : a.weight),
-          updatedAt: serverTimestamp()
+        await runTransaction(db, async (transaction) => {
+          const logRef = doc(db, 'logistics', a.originalId);
+          transaction.delete(logRef);
+
+          const itemRef = doc(db, 'inventory', item.id);
+          const docSnap = await transaction.get(itemRef);
+
+          if (docSnap.exists()) {
+            const currentData = docSnap.data();
+            const itemMasterUnit = (currentData.unit || 'BOX').toUpperCase();
+            const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
+            
+            let finalStockDiff = 0;
+            const boxesDiff = a.type === '입고' ? -Number(a.boxes || 0) : Number(a.boxes || 0);
+            const weightDiff = a.type === '입고' ? -Number(a.weight || 0) : Number(a.weight || 0);
+
+            if (isMasterWeightBased) {
+              const currentTxWeightUnit = (a.weightUnit || 'KG').toUpperCase();
+              if (itemMasterUnit === 'KG') {
+                if (currentTxWeightUnit === 'G') {
+                  finalStockDiff = weightDiff / 1000;
+                } else {
+                  finalStockDiff = weightDiff;
+                }
+              } else if (itemMasterUnit === 'G') {
+                if (currentTxWeightUnit === 'KG') {
+                  finalStockDiff = weightDiff * 1000;
+                } else {
+                  finalStockDiff = weightDiff;
+                }
+              }
+            } else {
+              const inputCount = (boxesDiff !== 0) ? boxesDiff : weightDiff;
+              const currentTxUnit = (a.unit || 'BOX').toUpperCase();
+
+              if (itemMasterUnit === currentTxUnit) {
+                finalStockDiff = inputCount;
+              } else {
+                // Parse pack size from specs to convert between BOX and EA
+                const itemSpecs = (currentData.specs || '').trim();
+                const packSize = (() => {
+                  if (!itemSpecs) return 1;
+                  const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
+                  if (match) {
+                    const num = parseInt(match[1], 10);
+                    if (!isNaN(num) && num > 0) return num;
+                  }
+                  return 1;
+                })();
+
+                if (itemMasterUnit === 'EA' && currentTxUnit === 'BOX') {
+                  finalStockDiff = inputCount * packSize;
+                } else if (itemMasterUnit === 'BOX' && currentTxUnit === 'EA') {
+                  finalStockDiff = inputCount / packSize;
+                } else {
+                  finalStockDiff = inputCount;
+                }
+              }
+            }
+
+            transaction.update(itemRef, {
+              currentStock: Number(currentData.currentStock || 0) + finalStockDiff,
+              boxes: Number(currentData.boxes || 0) + boxesDiff,
+              updatedAt: serverTimestamp()
+            });
+          }
         });
       }
       alert('삭제 완료');
@@ -140,6 +203,14 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
           item: item.name,
           partner: '시스템 조정 (Detail)',
           weight: Math.abs(diff),
+          boxes: 0,
+          unit: item.unit || 'BOX',
+          prevStock: item.currentStock,
+          nextStock: Number(stock),
+          prevBoxes: item.boxes || 0,
+          nextBoxes: item.boxes || 0,
+          specs: item.specs || '',
+          category: item.category || '미분류',
           status: '완료',
           createdAt: serverTimestamp(),
           color: diff > 0 ? 'bg-emerald-500' : 'bg-error'

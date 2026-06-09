@@ -265,6 +265,37 @@ function SettingsContent({
         const oldItem = inventory.find((i: any) => i.id === editingItemId);
         await updateDoc(doc(db, 'inventory', editingItemId), data);
 
+        if (oldItem) {
+          const stockDiff = data.currentStock - (oldItem.currentStock || 0);
+          const boxesDiff = data.boxes - (oldItem.boxes || 0);
+          
+          if (stockDiff !== 0 || boxesDiff !== 0) {
+            try {
+              await addDoc(collection(db, 'logistics'), {
+                date: new Date().toLocaleDateString('sv-SE'),
+                time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                type: stockDiff > 0 ? '입고' : '출고',
+                item: data.name,
+                weight: Math.abs(stockDiff),
+                boxes: Math.abs(boxesDiff),
+                unit: data.unit || 'BOX',
+                prevStock: oldItem.currentStock || 0,
+                nextStock: data.currentStock,
+                prevBoxes: oldItem.boxes || 0,
+                nextBoxes: data.boxes,
+                specs: data.specs || '',
+                category: data.category || '미분류',
+                brand: data.brand || '',
+                partner: '시스템 조정 (Settings)',
+                memo: '마스터 아이템 수정 시 재고 수동 조정',
+                createdAt: serverTimestamp()
+              });
+            } catch (logError) {
+              console.error('Failed to create manual adjustment logistics record:', logError);
+            }
+          }
+        }
+
         // If critical fields changed, update related records to maintain data consistency
         const nameChanged = oldItem && oldItem.name !== data.name;
         const catChanged = oldItem && oldItem.category !== data.category;
@@ -352,6 +383,12 @@ function SettingsContent({
                 item: data.name,
                 weight: data.currentStock,
                 boxes: data.boxes,
+                unit: data.unit || 'BOX',
+                prevStock: 0,
+                nextStock: data.currentStock,
+                prevBoxes: 0,
+                nextBoxes: data.boxes,
+                specs: data.specs || '',
                 partner: data.partner || '초기재고등록',
                 category: data.category,
                 brand: data.brand,
@@ -382,6 +419,12 @@ function SettingsContent({
                 item: data.name,
                 weight: data.currentStock,
                 boxes: data.boxes,
+                unit: data.unit || 'BOX',
+                prevStock: 0,
+                nextStock: data.currentStock,
+                prevBoxes: 0,
+                nextBoxes: data.boxes,
+                specs: data.specs || '',
                 partner: data.partner || '초기재고등록',
                 category: data.category,
                 brand: data.brand,

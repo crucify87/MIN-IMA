@@ -515,15 +515,60 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             const itemSnap = await transaction.get(itemRef);
             if (itemSnap.exists()) {
               const currentData = itemSnap.data();
-              const currentStock = Number(currentData.currentStock || 0);
-              const diffStock = l.type === '입고' ? -l.weight : l.weight;
+              const itemMasterUnit = (currentData.unit || 'BOX').toUpperCase();
+              const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
               
-              const currentBoxes = Number(currentData.boxes || 0);
-              const diffBoxes = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
+              let finalStockDiff = 0;
+              const boxesDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
+              const weightDiff = l.type === '입고' ? -Number(l.weight || 0) : Number(l.weight || 0);
+
+              if (isMasterWeightBased) {
+                const currentTxWeightUnit = (l.weightUnit || 'KG').toUpperCase();
+                if (itemMasterUnit === 'KG') {
+                  if (currentTxWeightUnit === 'G') {
+                    finalStockDiff = weightDiff / 1000;
+                  } else {
+                    finalStockDiff = weightDiff;
+                  }
+                } else if (itemMasterUnit === 'G') {
+                  if (currentTxWeightUnit === 'KG') {
+                    finalStockDiff = weightDiff * 1000;
+                  } else {
+                    finalStockDiff = weightDiff;
+                  }
+                }
+              } else {
+                const inputCount = (boxesDiff !== 0) ? boxesDiff : weightDiff;
+                const currentTxUnit = (l.unit || 'BOX').toUpperCase();
+
+                if (itemMasterUnit === currentTxUnit) {
+                  finalStockDiff = inputCount;
+                } else {
+                  // Parse pack size from specs to convert between BOX and EA
+                  const itemSpecs = (currentData.specs || '').trim();
+                  const packSize = (() => {
+                    if (!itemSpecs) return 1;
+                    const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
+                    if (match) {
+                      const num = parseInt(match[1], 10);
+                      if (!isNaN(num) && num > 0) return num;
+                    }
+                    return 1;
+                  })();
+
+                  if (itemMasterUnit === 'EA' && currentTxUnit === 'BOX') {
+                    finalStockDiff = inputCount * packSize;
+                  } else if (itemMasterUnit === 'BOX' && currentTxUnit === 'EA') {
+                    finalStockDiff = inputCount / packSize;
+                  } else {
+                    finalStockDiff = inputCount;
+                  }
+                }
+              }
 
               transaction.update(itemRef, {
-                currentStock: currentStock + diffStock,
-                boxes: currentBoxes + diffBoxes,
+                currentStock: Number(currentData.currentStock || 0) + finalStockDiff,
+                boxes: Number(currentData.boxes || 0) + boxesDiff,
                 updatedAt: serverTimestamp()
               });
             }
