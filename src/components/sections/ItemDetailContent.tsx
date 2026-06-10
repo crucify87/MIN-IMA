@@ -26,6 +26,14 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
   });
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    setStock(item.currentStock);
+    setPriceForm({
+      purchasePrice: item.purchasePrice || 0,
+      salesPrice: item.salesPrice || 0
+    });
+  }, [item]);
+
   const activities = useMemo(() => {
     const combined = [
       ...logistics.filter((l: any) => l.item === item.name).map((l: any) => ({
@@ -102,11 +110,11 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
         }
       } else {
         await runTransaction(db, async (transaction) => {
-          const logRef = doc(db, 'logistics', a.originalId);
-          transaction.delete(logRef);
-
           const itemRef = doc(db, 'inventory', item.id);
           const docSnap = await transaction.get(itemRef);
+
+          const logRef = doc(db, 'logistics', a.originalId);
+          transaction.delete(logRef);
 
           if (docSnap.exists()) {
             const currentData = docSnap.data();

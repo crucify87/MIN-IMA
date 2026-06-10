@@ -385,7 +385,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     });
 
     return combined;
-  }, [logistics, production, filterStartDate, filterEndDate]);
+  }, [logistics, production, filterStartDate, filterEndDate, searchQuery]);
 
   const paginatedActivity = useMemo(() => {
     const startIndex = (activityPage - 1) * ITEMS_PER_PAGE;
@@ -476,51 +476,66 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
           // Find the full production record using the original ID
           const record = production.find((p: any) => p.id === l.originalId);
           if (record) {
-            transaction.delete(doc(db, 'production_batches', record.id));
-            
-            // Revert production output
+            let prodRef = null;
+            let prodSnap = null;
+            let rawRef = null;
+            let rawSnap = null;
+
+            // Revert production output (READ)
             const prodItem = inventory.find((i: any) => i.name === record.title);
             if (prodItem) {
-              const prodRef = doc(db, 'inventory', prodItem.id);
-              const prodSnap = await transaction.get(prodRef);
-              if (prodSnap.exists()) {
-                const currentVal = Number(prodSnap.data().currentStock || 0);
-                transaction.update(prodRef, {
-                  currentStock: currentVal - record.production,
-                  updatedAt: serverTimestamp()
-                });
-              }
+              prodRef = doc(db, 'inventory', prodItem.id);
+              prodSnap = await transaction.get(prodRef);
             }
             
-            // Revert raw material input
+            // Revert raw material input (READ)
             const rawItem = inventory.find((i: any) => i.name === record.rawMaterial);
             if (rawItem) {
-              const rawRef = doc(db, 'inventory', rawItem.id);
-              const rawSnap = await transaction.get(rawRef);
-              if (rawSnap.exists()) {
-                const currentVal = Number(rawSnap.data().currentStock || 0);
-                transaction.update(rawRef, {
-                  currentStock: currentVal + record.rawQty,
-                  updatedAt: serverTimestamp()
-                });
-              }
+              rawRef = doc(db, 'inventory', rawItem.id);
+              rawSnap = await transaction.get(rawRef);
+            }
+
+            // Deletion & updates (WRITES)
+            transaction.delete(doc(db, 'production_batches', record.id));
+            
+            if (prodRef && prodSnap && prodSnap.exists()) {
+              const currentVal = Number(prodSnap.data().currentStock || 0);
+              transaction.update(prodRef, {
+                currentStock: currentVal - record.production,
+                updatedAt: serverTimestamp()
+              });
+            }
+            
+            if (rawRef && rawSnap && rawSnap.exists()) {
+              const currentVal = Number(rawSnap.data().currentStock || 0);
+              transaction.update(rawRef, {
+                currentStock: currentVal + record.rawQty,
+                updatedAt: serverTimestamp()
+              });
             }
           }
         } else {
           // Logistics delete
-          transaction.delete(doc(db, 'logistics', l.originalId));
           const item = inventory.find((i: any) => i.name === l.item);
+          let itemRef = null;
+          let itemSnap = null;
+
           if (item) {
-            const itemRef = doc(db, 'inventory', item.id);
-            const itemSnap = await transaction.get(itemRef);
-            if (itemSnap.exists()) {
-              const currentData = itemSnap.data();
-              const itemMasterUnit = (currentData.unit || 'BOX').toUpperCase();
-              const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
-              
-              let finalStockDiff = 0;
-              const boxesDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
-              const weightDiff = l.type === '입고' ? -Number(l.weight || 0) : Number(l.weight || 0);
+            itemRef = doc(db, 'inventory', item.id);
+            itemSnap = await transaction.get(itemRef);
+          }
+
+          // Writes start here
+          transaction.delete(doc(db, 'logistics', l.originalId));
+
+          if (itemRef && itemSnap && itemSnap.exists()) {
+            const currentData = itemSnap.data();
+            const itemMasterUnit = (currentData.unit || 'BOX').toUpperCase();
+            const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
+            
+            let finalStockDiff = 0;
+            const boxesDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
+            const weightDiff = l.type === '입고' ? -Number(l.weight || 0) : Number(l.weight || 0);
 
               if (isMasterWeightBased) {
                 const currentTxWeightUnit = (l.weightUnit || 'KG').toUpperCase();
@@ -573,7 +588,6 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
               });
             }
           }
-        }
       });
       alert('삭제 완료');
     } catch (error) {

@@ -795,8 +795,10 @@ function ProductionContent({
 
       // Perform deletion of production batch record and roll back inventories inside a transaction
       await runTransaction(db, async (transaction) => {
-        // Delete batch record
-        transaction.delete(doc(db, "production_batches", String(id)));
+        let itemRef = null;
+        let itemSnap = null;
+        let rawRef = null;
+        let rawSnap = null;
 
         if (record) {
           // Revert finished item stock
@@ -809,15 +811,8 @@ function ProductionContent({
                 i.isApproved !== false,
             );
             if (itemInList) {
-              const itemRef = doc(db, "inventory", itemInList.id);
-              const snap = await transaction.get(itemRef);
-              if (snap.exists()) {
-                const currentStock = Number(snap.data().currentStock || 0);
-                transaction.update(itemRef, {
-                  currentStock: currentStock - record.production,
-                  updatedAt: serverTimestamp(),
-                });
-              }
+              itemRef = doc(db, "inventory", itemInList.id);
+              itemSnap = await transaction.get(itemRef);
             }
           }
           // Revert raw material stock
@@ -830,17 +825,29 @@ function ProductionContent({
                 i.isApproved !== false,
             );
             if (rawInList) {
-              const rawRef = doc(db, "inventory", rawInList.id);
-              const snap = await transaction.get(rawRef);
-              if (snap.exists()) {
-                const currentStock = Number(snap.data().currentStock || 0);
-                transaction.update(rawRef, {
-                  currentStock: currentStock + record.rawQty,
-                  updatedAt: serverTimestamp(),
-                });
-              }
+              rawRef = doc(db, "inventory", rawInList.id);
+              rawSnap = await transaction.get(rawRef);
             }
           }
+        }
+
+        // Deletions / Writes start here after all gets/reads are complete
+        transaction.delete(doc(db, "production_batches", String(id)));
+
+        if (itemRef && itemSnap && itemSnap.exists()) {
+          const currentStock = Number(itemSnap.data().currentStock || 0);
+          transaction.update(itemRef, {
+            currentStock: currentStock - record.production,
+            updatedAt: serverTimestamp(),
+          });
+        }
+
+        if (rawRef && rawSnap && rawSnap.exists()) {
+          const currentStock = Number(rawSnap.data().currentStock || 0);
+          transaction.update(rawRef, {
+            currentStock: currentStock + record.rawQty,
+            updatedAt: serverTimestamp(),
+          });
         }
       });
 

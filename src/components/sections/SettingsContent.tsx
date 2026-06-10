@@ -493,9 +493,35 @@ function SettingsContent({
 
   const handleDeleteItem = async (id: string, name: string) => {
     if (!canEditItems) return;
-    if (!window.confirm(`[${name}] 상품을 마스터에서 영구 삭제하시겠습니까? 관련 재고 데이터가 사라집니다.`)) return;
+    if (!window.confirm(`[${name}] 상품을 마스터에서 영구 삭제하시겠습니까? 관련 모든 입출고 내역 및 생산 일지 기록도 함께 삭제됩니다.`)) return;
     try {
-      await deleteDoc(doc(db, 'inventory', id));
+      const batch = writeBatch(db);
+      
+      // 1. Delete the inventory document
+      batch.delete(doc(db, 'inventory', id));
+
+      // 2. Query and delete all related logistics documents
+      const qLog = query(collection(db, 'logistics'), where('item', '==', name));
+      const logSnap = await getDocs(qLog);
+      logSnap.docs.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+
+      // 3. Query and delete all related production batch documents where title is name
+      const qProdTitle = query(collection(db, 'production_batches'), where('title', '==', name));
+      const prodTitleSnap = await getDocs(qProdTitle);
+      prodTitleSnap.docs.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+
+      // 4. Query and delete all related production batch documents where rawMaterial is name
+      const qProdRaw = query(collection(db, 'production_batches'), where('rawMaterial', '==', name));
+      const prodRawSnap = await getDocs(qProdRaw);
+      prodRawSnap.docs.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+
+      await batch.commit();
       alert('삭제 되었습니다.');
     } catch (error) { handleFirestoreError(error, OperationType.DELETE, 'inventory'); }
   };

@@ -809,22 +809,26 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       }
 
       await runTransaction(db, async (transaction) => {
-        // Delete the logistics record
+        let itemRef = null;
+        let docSnap = null;
+
+        if (item) {
+          itemRef = doc(db, 'inventory', item.id);
+          docSnap = await transaction.get(itemRef);
+        }
+
+        // Delete the logistics record (WRITE)
         const logRef = doc(db, 'logistics', l.id);
         transaction.delete(logRef);
 
-        if (item) {
-          const itemRef = doc(db, 'inventory', item.id);
-          const docSnap = await transaction.get(itemRef);
-
-          if (docSnap.exists()) {
-            const currentData = docSnap.data();
-            const itemMasterUnit = (currentData.unit || 'BOX').toUpperCase();
-            const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
-            
-            let finalStockDiff = 0;
-            const boxesDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
-            const weightDiff = l.type === '입고' ? -Number(l.weight || 0) : Number(l.weight || 0);
+        if (itemRef && docSnap && docSnap.exists()) {
+          const currentData = docSnap.data();
+          const itemMasterUnit = (currentData.unit || 'BOX').toUpperCase();
+          const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
+          
+          let finalStockDiff = 0;
+          const boxesDiff = l.type === '입고' ? -Number(l.boxes || 0) : Number(l.boxes || 0);
+          const weightDiff = l.type === '입고' ? -Number(l.weight || 0) : Number(l.weight || 0);
 
             if (isMasterWeightBased) {
               const currentTxWeightUnit = (l.weightUnit || 'KG').toUpperCase();
@@ -876,7 +880,6 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               updatedAt: serverTimestamp()
             });
           }
-        }
       });
       alert('삭제 완료');
     } catch (error) { handleFirestoreError(error, OperationType.DELETE, 'logistics'); }

@@ -184,18 +184,21 @@ export default function App() {
                     initialCategory={typeof selectedItem === 'string' ? selectedItem : null}
                   />
                 )}
-                {currentView === 'detail' && selectedItem && (
-                  <ItemDetailContent 
-                    item={selectedItem} 
-                    logistics={logistics} 
-                    production={production}
-                    inventory={inventory}
-                    onNavigate={handleNavigate} 
-                    canEditItems={canEditItems} 
-                    canViewPrices={canViewPrices} 
-                    canEditPrices={canEditPrices} 
-                  />
-                )}
+                {currentView === 'detail' && selectedItem && (() => {
+                  const freshItem = inventory.find((i: any) => i.id === selectedItem.id) || selectedItem;
+                  return (
+                    <ItemDetailContent 
+                      item={freshItem} 
+                      logistics={logistics} 
+                      production={production}
+                      inventory={inventory}
+                      onNavigate={handleNavigate} 
+                      canEditItems={canEditItems} 
+                      canViewPrices={canViewPrices} 
+                      canEditPrices={canEditPrices} 
+                    />
+                  );
+                })()}
                 {currentView === 'logistics' && (
                   <LogisticsContent 
                     logistics={logistics} 
