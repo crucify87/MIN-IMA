@@ -1099,7 +1099,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
              </div>
 
              <div className="space-y-1 relative">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">중량(KG/G)</label>
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">중량(KG/G/BOX/EA)</label>
                <div className="flex gap-2">
                  <input 
                     type="text" 
@@ -1139,7 +1139,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                    </button>
                    {showWeightUnitDropdown && (
                      <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 py-1">
-                       {['KG', 'G'].map(u => (
+                       {['KG', 'G', 'BOX', 'EA'].map(u => (
                          <button
                            key={u}
                            type="button"
@@ -1160,7 +1160,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
              </div>
 
              <div className="space-y-1 relative">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">수량(EA/BOX)</label>
+               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">수량(EA/BOX/KG/G)</label>
                <div className="flex gap-2">
                  <input 
                    type="text" 
@@ -1188,7 +1188,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                    </button>
                    {showUnitDropdown && (
                      <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 py-1">
-                       {['BOX', 'EA'].map(u => (
+                       {['EA', 'BOX', 'KG', 'G'].map(u => (
                          <button
                              key={u}
                             type="button"
