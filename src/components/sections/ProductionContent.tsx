@@ -1769,13 +1769,6 @@ function ProductionContent({
               </>
             )}
           </div>
-          <DeleteConfirmModal
-            isOpen={deleteModal.isOpen}
-            onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
-            onConfirm={() => handleDelete(deleteModal.id, deleteModal.title)}
-            title="생산 기록 삭제"
-            message={`${deleteModal.title} 생산 기록을 삭제하시겠습니까?\n\n※ 삭제 시 투입된 원육 재고가 복구되고, 생산된 완제품 재고가 차감됩니다. 연동된 물류 기록도 함께 삭제됩니다.`}
-          />
         </motion.div>
       )}
 
@@ -2303,6 +2296,14 @@ function ProductionContent({
           </div>
         </div>
       </section>
+
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={() => handleDelete(deleteModal.id, deleteModal.title)}
+        title="생산 기록 삭제"
+        message={`${deleteModal.title} 생산 기록을 삭제하시겠습니까?\n\n※ 삭제 시 투입된 원육 재고가 복구되고, 생산된 완제품 재고가 차감됩니다. 연동된 물류 기록도 함께 삭제됩니다.`}
+      />
     </div>
   );
 }
