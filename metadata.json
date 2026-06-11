@@ -2,5 +2,5 @@
   "name": "MIN IMA INVENTORY MANAGEMENT",
   "description": "Industrial Inventory & Production Management System (Authorized Personnel Only)",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

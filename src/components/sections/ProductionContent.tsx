@@ -77,6 +77,10 @@ function ProductionContent({
   );
   const [remarks, setRemarks] = useState("");
 
+  const [optionName, setOptionName] = useState("");
+  const [optionQty, setOptionQty] = useState("");
+  const [showOptionDropdown, setShowOptionDropdown] = useState(false);
+
   const [rows, setRows] = useState([
     {
       id: Date.now(),
@@ -126,6 +130,10 @@ function ProductionContent({
         if (brandContainer && !brandContainer.contains(target)) {
           setActiveBrandDropdown(null);
         }
+      }
+      const optionContainer = document.querySelector(`.option-dropdown-container`);
+      if (optionContainer && !optionContainer.contains(target)) {
+        setShowOptionDropdown(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -231,6 +239,10 @@ function ProductionContent({
     return inventory.filter((i: any) => i.category !== "원육" && i.isApproved !== false);
   }, [inventory]);
 
+  const optionInventoryItems = useMemo(() => {
+    return inventory.filter((i: any) => i.category !== "원육" && i.isApproved !== false);
+  }, [inventory]);
+
   const filtered = useMemo(() => {
     const isInRange = (dateStr: string) => {
       if (!dateStr) return false;
@@ -249,12 +261,16 @@ function ProductionContent({
     });
 
     // Sort by manufDate descending then createdAt (latest first)
-    return [...result]
-      .sort((a: any) => {
-        const timeA = a.createdAt?.seconds || 0;
-        return timeA; // Keep original sorting logic
-      })
-      .reverse(); // Latest first
+    return [...result].sort((a: any, b: any) => {
+      const dateA = a.manufDate || "";
+      const dateB = b.manufDate || "";
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
+      const timeA = a.createdAt?.seconds || a.createdAt?.toMillis?.() || (a.createdAt ? new Date(a.createdAt).getTime() : 0) || Date.now();
+      const timeB = b.createdAt?.seconds || b.createdAt?.toMillis?.() || (b.createdAt ? new Date(b.createdAt).getTime() : 0) || Date.now();
+      return timeB - timeA;
+    });
   }, [
     production,
     search,
@@ -619,6 +635,8 @@ function ProductionContent({
         const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
         const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
 
+        const optionQtyNum = Number(String(optionQty).replace(/,/g, "")) || 0;
+
         const oldRecord = production.find((p: any) => p.id === editingId);
         if (oldRecord) {
           // Revert old inventory change
@@ -633,17 +651,30 @@ function ProductionContent({
               oldRecord.brand,
             );
           }
+          // ALSO revert old option inventory change
+          if (oldRecord.optionName && oldRecord.optionQty > 0) {
+            await updateInventoryStock(
+              oldRecord.optionName,
+              oldRecord.optionQty,
+              false,
+              oldRecord.brand || "",
+            );
+          }
         }
 
         // Apply new inventory change with stock tracking
         let prodStockInfo = { prevStock: 0, nextStock: 0 };
         let rawStockInfo = { prevStock: 0, nextStock: 0 };
+        let optionStockInfo = { prevStock: 0, nextStock: 0 };
 
         if (prodNum > 0) {
           prodStockInfo = await updateInventoryStock(row.title, prodNum, false, row.brand);
         }
         if (rawNum > 0) {
           rawStockInfo = await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
+        }
+        if (optionName && optionQtyNum > 0) {
+          optionStockInfo = await updateInventoryStock(optionName, -optionQtyNum, false);
         }
 
         // Clean up row data for Firestore
@@ -662,6 +693,10 @@ function ProductionContent({
           prodNextStock: prodStockInfo.nextStock,
           rawPrevStock: rawStockInfo.prevStock,
           rawNextStock: rawStockInfo.nextStock,
+          optionName: optionName || "",
+          optionQty: optionQtyNum,
+          optionPrevStock: optionStockInfo.prevStock,
+          optionNextStock: optionStockInfo.nextStock,
           updatedAt: serverTimestamp(),
         });
 
@@ -669,6 +704,8 @@ function ProductionContent({
         setEditingId(null);
         setShowForm(false);
         setRemarks("");
+        setOptionName("");
+        setOptionQty("");
         setRows([
           {
             id: Date.now(),
@@ -699,20 +736,27 @@ function ProductionContent({
         const prodNum = isProductLinked ? 0 : Number(row.production) || 0;
         const rawNum = isRawLinked ? 0 : Number(row.rawQty) || 0;
 
-        if (i === 0 && (!row.rawQty || !row.production)) continue;
+        if (i === 0 && prodNum <= 0 && rawNum <= 0) continue;
 
         const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
         const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
 
+        const optionQtyNum = Number(String(optionQty).replace(/,/g, "")) || 0;
+        const hasOption = i === 0 && optionName && optionQtyNum > 0;
+
         // Apply inventory change with stock tracking
         let prodStockInfo = { prevStock: 0, nextStock: 0 };
         let rawStockInfo = { prevStock: 0, nextStock: 0 };
+        let optionStockInfo = { prevStock: 0, nextStock: 0 };
 
         if (prodNum > 0) {
           prodStockInfo = await updateInventoryStock(resolvedTitle, prodNum, false, resolvedBrand);
         }
         if (rawNum > 0) {
           rawStockInfo = await updateInventoryStock(resolvedRawMaterial, -rawNum, true, resolvedBrand);
+        }
+        if (hasOption) {
+          optionStockInfo = await updateInventoryStock(optionName, -optionQtyNum, false);
         }
 
         // Clean up row data for Firestore
@@ -738,12 +782,18 @@ function ProductionContent({
           prodNextStock: prodStockInfo.nextStock,
           rawPrevStock: rawStockInfo.prevStock,
           rawNextStock: rawStockInfo.nextStock,
+          optionName: hasOption ? optionName : "",
+          optionQty: hasOption ? optionQtyNum : 0,
+          optionPrevStock: hasOption ? optionStockInfo.prevStock : 0,
+          optionNextStock: hasOption ? optionStockInfo.nextStock : 0,
           createdAt: serverTimestamp(),
         });
       }
       alert("생산 기록 등록 및 재고 가동 처리가 정상 조치되었습니다.");
       setShowForm(false);
       setRemarks("");
+      setOptionName("");
+      setOptionQty("");
       setRows([
         {
           id: Date.now(),
@@ -769,6 +819,8 @@ function ProductionContent({
     setLine(item.line || "삼산공장");
     setLogDate(item.manufDate);
     setRemarks(item.remarks || "");
+    setOptionName(item.optionName || "");
+    setOptionQty(item.optionQty ? String(item.optionQty) : "");
     setRows([
       {
         id: Date.now(),
@@ -799,6 +851,8 @@ function ProductionContent({
         let itemSnap = null;
         let rawRef = null;
         let rawSnap = null;
+        let optionRef = null;
+        let optionSnap = null;
 
         if (record) {
           // Revert finished item stock
@@ -829,6 +883,20 @@ function ProductionContent({
               rawSnap = await transaction.get(rawRef);
             }
           }
+          // Revert option item stock
+          if (record.optionName && record.optionQty > 0) {
+            const trimmedOption = record.optionName.trim();
+            const optionInList = inventory.find(
+              (i: any) =>
+                i.name.trim() === trimmedOption &&
+                i.category !== "원육" &&
+                i.isApproved !== false,
+            );
+            if (optionInList) {
+              optionRef = doc(db, "inventory", optionInList.id);
+              optionSnap = await transaction.get(optionRef);
+            }
+          }
         }
 
         // Deletions / Writes start here after all gets/reads are complete
@@ -846,6 +914,14 @@ function ProductionContent({
           const currentStock = Number(rawSnap.data().currentStock || 0);
           transaction.update(rawRef, {
             currentStock: currentStock + record.rawQty,
+            updatedAt: serverTimestamp(),
+          });
+        }
+
+        if (optionRef && optionSnap && optionSnap.exists()) {
+          const currentStock = Number(optionSnap.data().currentStock || 0);
+          transaction.update(optionRef, {
+            currentStock: currentStock + Number(record.optionQty || 0),
             updatedAt: serverTimestamp(),
           });
         }
@@ -1708,6 +1784,141 @@ function ProductionContent({
             </div>
           )}
 
+          {/* 추가옵션 가로바 */}
+          <div className="space-y-2 pt-2 text-left">
+            <label className="text-[11px] font-black text-outline uppercase tracking-wider block">
+              추가옵션 품목 (양념 / 소스 등)
+            </label>
+            <div className="bg-slate-50 border border-outline-variant/40 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-stretch md:items-center gap-4">
+              <div className="flex-1 space-y-1 relative option-dropdown-container">
+                <span className="block text-[10px] font-black text-slate-500 ml-1">
+                  옵션 품목 선택
+                </span>
+                <div className="relative">
+                  <input
+                    placeholder="양념 또는 소스 품목 선택"
+                    value={optionName}
+                    onChange={(e) => {
+                      setOptionName(e.target.value);
+                      setShowOptionDropdown(true);
+                    }}
+                    onFocus={() => setShowOptionDropdown(true)}
+                    className="h-12 md:h-14 w-full px-4 md:px-6 bg-white border border-outline-variant rounded-xl font-bold outline-none focus:border-primary transition-all shadow-sm text-xs md:text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOptionDropdown(!showOptionDropdown)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors"
+                  >
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${showOptionDropdown ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {showOptionDropdown && (
+                    <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[70] overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
+                      {optionInventoryItems.length > 0 ? (
+                        optionInventoryItems
+                          .filter((item: any) =>
+                            item.name
+                              .toLowerCase()
+                              .includes((optionName || "").toLowerCase())
+                          )
+                          .map((item: any) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setOptionName(item.name);
+                                setShowOptionDropdown(false);
+                              }}
+                              className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${optionName === item.name ? "bg-primary/5" : ""}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span
+                                  className={`text-sm font-bold ${optionName === item.name ? "text-primary" : "text-slate-600"}`}
+                                >
+                                  {item.name}
+                                </span>
+                                {optionName === item.name && (
+                                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-outline-variant">
+                                  {item.category || "기타"}
+                                </span>
+                                <span className="text-[10px] font-black text-primary/50">
+                                  | 재고: {(item.currentStock || 0).toLocaleString()}{" "}
+                                  {(item.unit || "KG").toUpperCase()}
+                                </span>
+                              </div>
+                            </button>
+                          ))
+                      ) : (
+                        <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">
+                          선택 가능한 품목이 없습니다
+                        </div>
+                      )}
+                      <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">
+                        직접 입력 가능
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="w-full md:w-48 space-y-1">
+                <span className="block text-[10px] font-black text-slate-500 ml-1">
+                  사용량 (수량)
+                </span>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="0"
+                    value={optionQty}
+                    onChange={(e) => setOptionQty(formatWithCommas(e.target.value))}
+                    className="h-12 md:h-14 w-full pl-4 pr-12 bg-white border border-outline-variant rounded-xl font-bold outline-none focus:border-primary transition-all shadow-sm text-right text-xs md:text-sm"
+                  />
+                  <span className="absolute right-4 font-black text-xs text-outline uppercase tracking-wider">
+                    {(() => {
+                      const selectedItem = optionInventoryItems.find((i: any) => i.name === optionName);
+                      return (selectedItem?.unit || "KG").toUpperCase();
+                    })()}
+                  </span>
+                </div>
+              </div>
+
+              {optionName && (
+                <div className="flex flex-col justify-end h-full pt-4 md:pt-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOptionName("");
+                      setOptionQty("");
+                    }}
+                    className="h-12 md:h-14 px-4 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <X className="w-4 h-4" /> 비우기
+                  </button>
+                </div>
+              )}
+            </div>
+            {optionName && (
+              <div className="px-2 flex items-center justify-between">
+                <span className="text-[10px] font-black text-outline uppercase shrink-0">
+                  현재 옵션 품목 재고:
+                </span>
+                <span className="text-[10px] font-black text-[#0f172a]">
+                  {(() => {
+                    const matched = inventory.find((i: any) => i.name === optionName);
+                    return matched ? `${matched.currentStock?.toLocaleString() || "0"} ${(matched.unit || "KG").toUpperCase()}` : "0 KG";
+                  })()}
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* 작업 특이사항 */}
           <div className="space-y-2 pt-2 text-left">
             <label className="text-[11px] font-black text-outline uppercase tracking-wider block">
@@ -1761,6 +1972,9 @@ function ProductionContent({
                   onClick={() => {
                     setEditingId(null);
                     setShowForm(false);
+                    setRemarks("");
+                    setOptionName("");
+                    setOptionQty("");
                   }}
                   className="flex-1 h-16 bg-slate-100 text-slate-600 rounded-2xl font-black text-lg hover:bg-slate-200 transition-all"
                 >
@@ -2036,6 +2250,16 @@ function ProductionContent({
                                 <span className="font-black text-[#854d0e] mr-1">특이사항:</span>{item.remarks}
                               </div>
                             )}
+                            {item.optionName && (
+                              <div className="mt-1.5 px-2.5 py-1.5 bg-blue-50/50 border border-blue-200/30 rounded-xl text-[10px] text-blue-800 font-medium max-w-[240px] break-all leading-normal text-left">
+                                <span className="font-black text-blue-800 mr-1">추가옵션:</span>
+                                {item.optionName} {item.optionQty?.toLocaleString()}{" "}
+                                {(() => {
+                                  const matched = inventory.find((it: any) => it.name === item.optionName);
+                                  return (matched?.unit || "KG").toUpperCase();
+                                })()}
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-6 text-sm">
@@ -2216,6 +2440,17 @@ function ProductionContent({
                     {item.remarks && (
                       <div className="bg-amber-50/55 border border-amber-200/30 p-3 rounded-2xl text-[11px] text-[#854d0e] font-medium break-all leading-normal text-left">
                         <span className="font-extrabold text-[#854d0e] mr-1">특이사항:</span>{item.remarks}
+                      </div>
+                    )}
+
+                    {item.optionName && (
+                      <div className="bg-blue-50/55 border border-blue-200/30 p-3 rounded-2xl text-[11px] text-blue-800 font-medium break-all leading-normal text-left">
+                        <span className="font-extrabold text-blue-800 mr-1">추가옵션:</span>
+                        {item.optionName} {item.optionQty?.toLocaleString()}{" "}
+                        {(() => {
+                          const matched = inventory.find((it: any) => it.name === item.optionName);
+                          return (matched?.unit || "KG").toUpperCase();
+                        })()}
                       </div>
                     )}
 
