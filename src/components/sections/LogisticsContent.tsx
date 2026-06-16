@@ -46,12 +46,24 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const [filterPartner, setFilterPartner] = useState(() => sessionStorage.getItem('logistics_filterPartner') || '');
   const [filterLocation, setFilterLocation] = useState(() => sessionStorage.getItem('logistics_filterLocation') || '');
   const [filterUnit, setFilterUnit] = useState(() => sessionStorage.getItem('logistics_filterUnit') || '');
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [showBrandDropdown, setShowBrandDropdown] = useState(false);
-  const [showItemDropdown, setShowItemDropdown] = useState(false);
-  const [showWeightUnitDropdown, setShowWeightUnitDropdown] = useState(false);
-  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
-  const [showFormPartnerDropdown, setShowFormPartnerDropdown] = useState(false);
+  interface BatchItem {
+    type: '입고' | '출고';
+    item: string;
+    brand: string;
+    category: string;
+    specs: string;
+    partner: string;
+    unit: string;
+    boxes: string;
+    weight: string;
+    weightUnit: string;
+    freightType: '선불' | '착불';
+  }
+
+  const [activeDropdown, setActiveDropdown] = useState<{
+    index: number;
+    type: 'item' | 'category' | 'brand' | 'weightUnit' | 'unit' | 'partner' | null;
+  }>({ index: -1, type: null });
   const handleStartDateClick = () => {
     if (startDatePickerRef.current) {
       if ('showPicker' in startDatePickerRef.current) {
@@ -362,21 +374,23 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     setEndDate(end.toLocaleDateString('sv-SE'));
   }, [activeRange]);
 
-  const [form, setForm] = useState({ 
-    date: new Date().toISOString().split('T')[0], 
-    time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), 
-    type: '입고', 
-    item: '', 
-    brand: '',
-    category: '',
-    specs: '',
-    partner: '', 
-    unit: 'BOX',
-    boxes: '',
-    weight: '', 
-    weightUnit: 'KG',
-    freightType: '선불' 
-  });
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [formTime, setFormTime] = useState(() => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+  const [batchItems, setBatchItems] = useState<BatchItem[]>([
+    {
+      type: '입고',
+      item: '',
+      brand: '',
+      category: '',
+      specs: '',
+      partner: '',
+      unit: 'BOX',
+      boxes: '',
+      weight: '',
+      weightUnit: 'KG',
+      freightType: '선불'
+    }
+  ]);
 
   const formatWithCommas = (value: string | number) => {
     if (value === '' || value === null || value === undefined) return '';
@@ -484,203 +498,222 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     return Array.from(new Set(bnds));
   }, [inventory]);
 
-  const filteredCategories = useMemo(() => {
-    if (!form.category) return categories;
-    return categories.filter(c => c.toLowerCase().includes(form.category.toLowerCase()));
-  }, [categories, form.category]);
-
-  const filteredItems = useMemo(() => {
-    // Only approved items first
+  const getFilteredItemsForIndex = (itemText: string) => {
     let list = inventory.filter((i: any) => i.isApproved !== false);
-    
-    // Sort: non-완제품 first, then 완제품
     const sortedList = [...list].sort((a: any, b: any) => {
       const aVal = a.category === '완제품' ? 1 : 0;
       const bVal = b.category === '완제품' ? 1 : 0;
       return aVal - bVal;
     });
-
-    if (!form.item) return sortedList;
-    const searchVal = form.item.toLowerCase();
+    if (!itemText) return sortedList;
+    const searchVal = itemText.toLowerCase();
     return sortedList.filter((i: any) => 
       (i.name || '').toLowerCase().includes(searchVal) ||
       (i.specs || '').toLowerCase().includes(searchVal)
     );
-  }, [inventory, form.item]);
+  };
 
-  const filteredBrands = useMemo(() => {
-    if (!form.brand) return brands;
-    return brands.filter(b => b.toLowerCase().includes(form.brand.toLowerCase()));
-  }, [brands, form.brand]);
+  const getFilteredCategoriesForIndex = (categoryText: string) => {
+    if (!categoryText) return categories;
+    return categories.filter((c: string) => c.toLowerCase().includes(categoryText.toLowerCase()));
+  };
+
+  const getFilteredBrandsForIndex = (brandText: string) => {
+    if (!brandText) return brands;
+    return brands.filter((b: string) => b.toLowerCase().includes(brandText.toLowerCase()));
+  };
+
+  const handleAddRow = () => {
+    setBatchItems([
+      ...batchItems,
+      {
+        type: '입고',
+        item: '',
+        brand: '',
+        category: '',
+        specs: '',
+        partner: '',
+        unit: 'BOX',
+        boxes: '',
+        weight: '',
+        weightUnit: 'KG',
+        freightType: '선불'
+      }
+    ]);
+  };
+
+  const handleRemoveRow = (idx: number) => {
+    if (batchItems.length <= 1) return;
+    setBatchItems(batchItems.filter((_, i) => i !== idx));
+    if (activeDropdown.index === idx) {
+      setActiveDropdown({ index: -1, type: null });
+    } else if (activeDropdown.index > idx) {
+      setActiveDropdown({ ...activeDropdown, index: activeDropdown.index - 1 });
+    }
+  };
+
+  const updateBatchItem = (idx: number, updates: Partial<BatchItem>) => {
+    setBatchItems(prev => prev.map((item, i) => i === idx ? { ...item, ...updates } : item));
+  };
   
+  const updateInventoryStock = async (
+    name: string, 
+    weightDiff: number, 
+    boxesDiff: number, 
+    txUnit?: string, 
+    txWeightUnit?: string, 
+    specsStr?: string,
+    itemCategory?: string,
+    itemBrand?: string,
+    itemPartner?: string
+  ) => {
+    const targetSpecs = (specsStr !== undefined ? specsStr : '').trim();
+    const trimmedName = name.trim();
+
+    let targetCategory = itemCategory;
+    if (!targetCategory) {
+      const found = inventory.find((i: any) => i.name.trim() === trimmedName);
+      targetCategory = found ? found.category : '미분류';
+    }
+
+    const existingInList = inventory.find((i: any) => 
+      i.name.trim() === trimmedName && 
+      i.category === targetCategory && 
+      (i.specs || '').trim() === targetSpecs
+    );
+
+    let itemDocRef;
+    if (existingInList) {
+      itemDocRef = doc(db, 'inventory', existingInList.id);
+    } else {
+      const safeCategory = encodeURIComponent(targetCategory).replace(/\./g, '%2E');
+      const safeName = encodeURIComponent(trimmedName).replace(/\./g, '%2E');
+      const safeSpecs = encodeURIComponent(targetSpecs).replace(/\./g, '%2E');
+      const deterministicId = `inv_${safeCategory}_${safeName}_${safeSpecs}`;
+      itemDocRef = doc(db, 'inventory', deterministicId);
+    }
+
+    const activeUnit = (txUnit || 'BOX').toUpperCase();
+
+    const result = await runTransaction(db, async (transaction) => {
+      const docSnap = await transaction.get(itemDocRef);
+      
+      let prevStock = 0;
+      let prevBoxes = 0;
+      let itemMasterUnit = activeUnit;
+      let itemSpecs = targetSpecs;
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data() as any;
+        prevStock = Number(data.currentStock || 0);
+        prevBoxes = Number(data.boxes || 0);
+        itemMasterUnit = (data.unit || 'BOX').toUpperCase();
+        itemSpecs = (data.specs || '').trim();
+      }
+
+      let finalStockDiff = 0;
+      const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
+
+      if (isMasterWeightBased) {
+        const currentTxWeightUnit = (txWeightUnit || 'KG').toUpperCase();
+        if (itemMasterUnit === 'KG') {
+          if (currentTxWeightUnit === 'G') {
+            finalStockDiff = weightDiff / 1000;
+          } else {
+            finalStockDiff = weightDiff;
+          }
+        } else if (itemMasterUnit === 'G') {
+          if (currentTxWeightUnit === 'KG') {
+            finalStockDiff = weightDiff * 1000;
+          } else {
+            finalStockDiff = weightDiff;
+          }
+        }
+      } else {
+        const inputCount = (boxesDiff !== 0) ? boxesDiff : weightDiff;
+        const currentTxUnit = (txUnit || 'BOX').toUpperCase();
+
+        if (itemMasterUnit === currentTxUnit) {
+          finalStockDiff = inputCount;
+        } else {
+          const packSize = (() => {
+            if (!itemSpecs) return 1;
+            const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (!isNaN(num) && num > 0) return num;
+            }
+            return 1;
+          })();
+
+          if (itemMasterUnit === 'EA' && currentTxUnit === 'BOX') {
+            finalStockDiff = inputCount * packSize;
+          } else if (itemMasterUnit === 'BOX' && currentTxUnit === 'EA') {
+            finalStockDiff = inputCount / packSize;
+          } else {
+            finalStockDiff = inputCount;
+          }
+        }
+      }
+
+      const finalBoxesDiff = boxesDiff;
+
+      if (docSnap.exists()) {
+        const data = docSnap.data() as any;
+        transaction.update(itemDocRef, {
+          currentStock: prevStock + finalStockDiff,
+          boxes: prevBoxes + finalBoxesDiff,
+          brand: itemBrand || data.brand || '',
+          category: targetCategory || data.category || '미분류',
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        transaction.set(itemDocRef, {
+          name: trimmedName,
+          specs: targetSpecs,
+          currentStock: finalStockDiff,
+          boxes: finalBoxesDiff,
+          brand: itemBrand || '',
+          category: targetCategory || '미분류',
+          partner: itemPartner || '',
+          sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
+          unit: itemMasterUnit,
+          minStock: 0,
+          location: '미지정',
+          isApproved: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      
+      return {
+        prevStock,
+        nextStock: prevStock + finalStockDiff,
+        prevBoxes,
+        nextBoxes: prevBoxes + finalBoxesDiff
+      };
+    });
+
+    return result;
+  };
+
   const handleAdd = async (e: any) => {
     e.preventDefault();
     try {
-      const itemName = form.item.trim();
-      const weightNum = Number(form.weight) || 0;
-      const boxesNum = Number(form.boxes) || 0;
-
-      if (weightNum === 0 && boxesNum === 0) {
-        alert('중량 혹은 수량 중 하나는 반드시 입력해야 합니다.');
-        return;
-      }
-
-      // Ensure form category is set correctly if it's currently '완제품' or empty
-      let resolvedCategory = form.category;
-      if (!resolvedCategory || resolvedCategory === '완제품') {
-        const itemObj = inventory.find((i: any) => i.name.trim() === itemName && (!form.specs || i.specs === form.specs));
-        resolvedCategory = getCorrespondingCategory(itemObj || { name: itemName });
-        if (!resolvedCategory) {
-          resolvedCategory = '미분류';
+      // Pre-validation to prevent partial state corruption
+      for (let i = 0; i < batchItems.length; i++) {
+        const item = batchItems[i];
+        if (!item.item.trim()) {
+          alert(`${i + 1}번째 품목의 품명을 입력해주세요.`);
+          return;
+        }
+        const weightNum = Number(item.weight) || 0;
+        const boxesNum = Number(item.boxes) || 0;
+        if (weightNum === 0 && boxesNum === 0) {
+          alert(`[${item.item || (i + 1) + '번째'}] 중량 혹은 수량 중 하나를 입력해야 등록이 가능합니다.`);
+          return;
         }
       }
-      
-      const updateInventoryStock = async (
-        name: string, 
-        weightDiff: number, 
-        boxesDiff: number, 
-        txUnit?: string, 
-        txWeightUnit?: string, 
-        specsStr?: string,
-        itemCategory?: string
-      ) => {
-        const targetSpecs = (specsStr !== undefined ? specsStr : form.specs || '').trim();
-        const trimmedName = name.trim();
-
-        // Determine proper category for the item being updated
-        let targetCategory = itemCategory;
-        if (!targetCategory) {
-          const found = inventory.find((i: any) => i.name.trim() === trimmedName);
-          targetCategory = found ? found.category : resolvedCategory;
-        }
-
-        // Find if we already have it in the client-side inventory list (handles both legacy random IDs and deterministic IDs)
-        const existingInList = inventory.find((i: any) => 
-          i.name.trim() === trimmedName && 
-          i.category === targetCategory && 
-          (i.specs || '').trim() === targetSpecs
-        );
-
-        let itemDocRef;
-        if (existingInList) {
-          // If already exists in our inventory list, use its actual document ID (supports backward compatibility)
-          itemDocRef = doc(db, 'inventory', existingInList.id);
-        } else {
-          // Otherwise, generate a 100% duplicate-proof deterministic ID
-          const safeCategory = encodeURIComponent(targetCategory).replace(/\./g, '%2E');
-          const safeName = encodeURIComponent(trimmedName).replace(/\./g, '%2E');
-          const safeSpecs = encodeURIComponent(targetSpecs).replace(/\./g, '%2E');
-          const deterministicId = `inv_${safeCategory}_${safeName}_${safeSpecs}`;
-          itemDocRef = doc(db, 'inventory', deterministicId);
-        }
-
-        const activeUnit = (txUnit || form.unit || (existingInList ? existingInList.unit : 'BOX')).toUpperCase();
-
-        // Perform read-write actions inside an atomic transaction
-        const result = await runTransaction(db, async (transaction) => {
-          const docSnap = await transaction.get(itemDocRef);
-          
-          let prevStock = 0;
-          let prevBoxes = 0;
-          let itemMasterUnit = activeUnit;
-          let itemSpecs = targetSpecs;
-          
-          if (docSnap.exists()) {
-            const data = docSnap.data() as any;
-            prevStock = Number(data.currentStock || 0);
-            prevBoxes = Number(data.boxes || 0);
-            itemMasterUnit = (data.unit || 'BOX').toUpperCase();
-            itemSpecs = (data.specs || '').trim();
-          }
-
-          // Compute converted stock difference based on itemMasterUnit
-          let finalStockDiff = 0;
-          const isMasterWeightBased = ['KG', 'G'].includes(itemMasterUnit);
-
-          if (isMasterWeightBased) {
-            const currentTxWeightUnit = (txWeightUnit || form.weightUnit || 'KG').toUpperCase();
-            if (itemMasterUnit === 'KG') {
-              if (currentTxWeightUnit === 'G') {
-                finalStockDiff = weightDiff / 1000;
-              } else {
-                finalStockDiff = weightDiff;
-              }
-            } else if (itemMasterUnit === 'G') {
-              if (currentTxWeightUnit === 'KG') {
-                finalStockDiff = weightDiff * 1000;
-              } else {
-                finalStockDiff = weightDiff;
-              }
-            }
-          } else {
-            const inputCount = (boxesDiff !== 0) ? boxesDiff : weightDiff;
-            const currentTxUnit = (txUnit || form.unit || 'BOX').toUpperCase();
-
-            if (itemMasterUnit === currentTxUnit) {
-              finalStockDiff = inputCount;
-            } else {
-              // Parse pack size from specs if possible to convert between BOX and EA
-              const packSize = (() => {
-                if (!itemSpecs) return 1;
-                const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
-                if (match) {
-                  const num = parseInt(match[1], 10);
-                  if (!isNaN(num) && num > 0) return num;
-                }
-                return 1;
-              })();
-
-              if (itemMasterUnit === 'EA' && currentTxUnit === 'BOX') {
-                finalStockDiff = inputCount * packSize;
-              } else if (itemMasterUnit === 'BOX' && currentTxUnit === 'EA') {
-                finalStockDiff = inputCount / packSize;
-              } else {
-                finalStockDiff = inputCount;
-              }
-            }
-          }
-
-          const finalBoxesDiff = boxesDiff;
-
-          // Update/Set database without overwriting unit for existing products
-          if (docSnap.exists()) {
-            const data = docSnap.data() as any;
-            transaction.update(itemDocRef, {
-              currentStock: prevStock + finalStockDiff,
-              boxes: prevBoxes + finalBoxesDiff,
-              brand: form.brand || data.brand || '',
-              category: targetCategory || data.category || '미분류',
-              updatedAt: serverTimestamp()
-            });
-          } else {
-            transaction.set(itemDocRef, {
-              name: trimmedName,
-              specs: targetSpecs,
-              currentStock: finalStockDiff,
-              boxes: finalBoxesDiff,
-              brand: form.brand || '',
-              category: targetCategory || '미분류',
-              partner: form.partner || '',
-              sku: `NEW-${Math.random().toString(36).substring(7).toUpperCase()}`,
-              unit: itemMasterUnit,
-              minStock: 0,
-              location: '미지정',
-              isApproved: true,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            });
-          }
-          
-          return {
-            prevStock,
-            nextStock: prevStock + finalStockDiff,
-            prevBoxes,
-            nextBoxes: prevBoxes + finalBoxesDiff
-          };
-        });
-
-        return result;
-      };
 
       if (editingId) {
         const oldRecord = logistics.find((l: any) => l.id === editingId);
@@ -698,21 +731,46 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         }
         
         // Apply new inventory change
+        const item = batchItems[0];
+        const itemName = item.item.trim();
+        const weightNum = Number(item.weight) || 0;
+        const boxesNum = Number(item.boxes) || 0;
+
+        let resolvedCategory = item.category;
+        if (!resolvedCategory || resolvedCategory === '완제품') {
+          const itemObj = inventory.find((it: any) => it.name.trim() === itemName && (!item.specs || it.specs === item.specs));
+          resolvedCategory = getCorrespondingCategory(itemObj || { name: itemName });
+          if (!resolvedCategory) {
+            resolvedCategory = '미분류';
+          }
+        }
+
         const stockChanges = await updateInventoryStock(
           itemName, 
-          form.type === '입고' ? weightNum : -weightNum,
-          form.type === '입고' ? boxesNum : -boxesNum,
-          form.unit,
-          form.weightUnit,
-          form.specs
+          item.type === '입고' ? weightNum : -weightNum,
+          item.type === '입고' ? boxesNum : -boxesNum,
+          item.unit,
+          item.weightUnit,
+          item.specs,
+          resolvedCategory,
+          item.brand,
+          item.partner
         );
 
         await updateDoc(doc(db, 'logistics', editingId), { 
-          ...form,
-          category: resolvedCategory,
+          date: formDate,
+          time: formTime,
+          type: item.type,
           item: itemName,
-          weight: weightNum, 
+          brand: item.brand,
+          category: resolvedCategory,
+          specs: item.specs,
+          partner: item.partner,
+          unit: item.unit,
           boxes: boxesNum,
+          weight: weightNum,
+          weightUnit: item.weightUnit,
+          freightType: item.freightType,
           prevStock: stockChanges.prevStock,
           nextStock: stockChanges.nextStock,
           prevBoxes: stockChanges.prevBoxes,
@@ -723,69 +781,100 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         alert('수정 완료');
         setEditingId(null);
       } else {
-        const stockChanges = await updateInventoryStock(
-          itemName, 
-          form.type === '입고' ? weightNum : -weightNum,
-          form.type === '입고' ? boxesNum : -boxesNum,
-          form.unit,
-          form.weightUnit,
-          form.specs
-        );
+        // Multi-add mode
+        for (let i = 0; i < batchItems.length; i++) {
+          const item = batchItems[i];
+          const itemName = item.item.trim();
+          const weightNum = Number(item.weight) || 0;
+          const boxesNum = Number(item.boxes) || 0;
 
-        await addDoc(collection(db, 'logistics'), { 
-          ...form, 
-          category: resolvedCategory,
-          item: itemName,
-          weight: weightNum, 
-          boxes: boxesNum,
-          prevStock: stockChanges.prevStock,
-          nextStock: stockChanges.nextStock,
-          prevBoxes: stockChanges.prevBoxes,
-          nextBoxes: stockChanges.nextBoxes,
-          status: '완료', 
-          createdAt: serverTimestamp() 
-        });
+          let resolvedCategory = item.category;
+          if (!resolvedCategory || resolvedCategory === '완제품') {
+            const itemObj = inventory.find((it: any) => it.name.trim() === itemName && (!item.specs || it.specs === item.specs));
+            resolvedCategory = getCorrespondingCategory(itemObj || { name: itemName });
+            if (!resolvedCategory) {
+              resolvedCategory = '미분류';
+            }
+          }
 
-        alert('등록 완료');
+          const stockChanges = await updateInventoryStock(
+            itemName, 
+            item.type === '입고' ? weightNum : -weightNum,
+            item.type === '입고' ? boxesNum : -boxesNum,
+            item.unit,
+            item.weightUnit,
+            item.specs,
+            resolvedCategory,
+            item.brand,
+            item.partner
+          );
+
+          await addDoc(collection(db, 'logistics'), { 
+            date: formDate,
+            time: formTime,
+            type: item.type,
+            item: itemName,
+            brand: item.brand,
+            category: resolvedCategory,
+            specs: item.specs,
+            partner: item.partner,
+            unit: item.unit,
+            boxes: boxesNum,
+            weight: weightNum,
+            weightUnit: item.weightUnit,
+            freightType: item.freightType,
+            prevStock: stockChanges.prevStock,
+            nextStock: stockChanges.nextStock,
+            prevBoxes: stockChanges.prevBoxes,
+            nextBoxes: stockChanges.nextBoxes,
+            status: '완료', 
+            createdAt: serverTimestamp() 
+          });
+        }
+        alert(`${batchItems.length}개의 물류 내역 등록 완료`);
       }
       
       setShowForm(false);
-      setShowFormPartnerDropdown(false);
-      setForm({ 
-        date: new Date().toISOString().split('T')[0], 
-        time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), 
-        type: '입고', 
-        item: '', 
-        brand: '',
-        category: '',
-        specs: '',
-        partner: '', 
-        unit: 'BOX',
-        boxes: '',
-        weight: '', 
-        weightUnit: 'KG',
-        freightType: '선불' 
-      });
+      setActiveDropdown({ index: -1, type: null });
+      setFormDate(new Date().toISOString().split('T')[0]);
+      setFormTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+      setBatchItems([
+        {
+          type: '입고',
+          item: '',
+          brand: '',
+          category: '',
+          specs: '',
+          partner: '',
+          unit: 'BOX',
+          boxes: '',
+          weight: '',
+          weightUnit: 'KG',
+          freightType: '선불'
+        }
+      ]);
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'logistics'); }
   };
 
   const handleEdit = (l: any) => {
     setEditingId(l.id);
-    setForm({
-      date: l.date,
-      time: l.time,
-      type: l.type,
-      item: l.item,
-      brand: l.brand || '',
-      category: l.category || '',
-      specs: l.specs || '',
-      partner: l.partner,
-      unit: l.unit || 'BOX',
-      boxes: l.boxes || '',
-      weight: l.weight.toString(),
-      weightUnit: l.weightUnit || 'KG',
-      freightType: l.freightType || '선불'
-    });
+    setFormDate(l.date);
+    setFormTime(l.time);
+    setBatchItems([
+      {
+        type: l.type,
+        item: l.item,
+        brand: l.brand || '',
+        category: l.category || '',
+        specs: l.specs || '',
+        partner: l.partner || '',
+        unit: l.unit || 'BOX',
+        boxes: l.boxes?.toString() || '',
+        weight: l.weight?.toString() || '',
+        weightUnit: l.weightUnit || 'KG',
+        freightType: l.freightType || '선불'
+      }
+    ]);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -911,7 +1000,32 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
             {canEditItems && (
               <button 
-                onClick={() => { setShowForm(!showForm); setShowFormPartnerDropdown(false); }} 
+                onClick={() => {
+                  if (showForm) {
+                    setShowForm(false);
+                    setEditingId(null);
+                  } else {
+                    setFormDate(new Date().toISOString().split('T')[0]);
+                    setFormTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+                    setBatchItems([
+                      {
+                        type: '입고',
+                        item: '',
+                        brand: '',
+                        category: '',
+                        specs: '',
+                        partner: '',
+                        unit: 'BOX',
+                        boxes: '',
+                        weight: '',
+                        weightUnit: 'KG',
+                        freightType: '선불'
+                      }
+                    ]);
+                    setShowForm(true);
+                  }
+                  setActiveDropdown({ index: -1, type: null });
+                }} 
                 className="h-11 px-4 sm:px-6 bg-[#0f172a] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap flex-1 sm:flex-none"
               >
                 {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -929,392 +1043,492 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       {/* Form Overlay */}
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-[40px] border-2 border-[#0f172a]/10 shadow-2xl space-y-6">
-          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
-             <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">날짜</label>
-               <input required type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" />
-             </div>
-             
-             <div className="space-y-1">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">구분</label>
-               <div className="flex bg-surface-container p-1 rounded-xl h-12">
-                 {['입고', '출고'].map((t) => (
-                   <button 
-                     key={t}
-                     type="button"
-                     onClick={() => setForm({...form, type: t})}
-                     className={`flex-1 rounded-lg font-black text-xs transition-all ${form.type === t ? 'bg-white text-[#0f172a] shadow-sm' : 'text-outline hover:text-[#0f172a]'}`}
-                   >
-                     {t}
-                   </button>
-                 ))}
-               </div>
-             </div>
+          <form onSubmit={handleAdd} className="space-y-6">
+            {/* Batch Global settings: Date and Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-dashed border-slate-100 pb-5">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">날짜</label>
+                <input required type="date" value={formDate} onChange={e => setFormDate(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all text-xs" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">시간</label>
+                <input required type="time" value={formTime} onChange={e => setFormTime(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all text-xs" />
+              </div>
+            </div>
 
-             <div className="space-y-1 relative">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">품목명 (완제품/원물)</label>
-               <div className="relative">
-                 <input 
-                   required
-                   placeholder="품목 선택 또는 직접 입력"
-                   value={form.item} 
-                   onChange={e => {
-                     const val = e.target.value;
-                     setForm(prev => ({ ...prev, item: val }));
-                     
-                     // Attempt auto-fill if an inventory item is matched
-                     const invItem = inventory.find((it: any) => it.name === val);
-                     if (invItem) {
-                       setForm(prev => ({
-                         ...prev,
-                         brand: invItem.brand || prev.brand,
-                         category: getCorrespondingCategory(invItem) || prev.category,
-                         partner: invItem.partner || prev.partner,
-                         unit: (invItem.unit || 'BOX').toUpperCase()
-                       }));
-                     }
-                   }} 
-                   onFocus={() => setShowItemDropdown(true)}
-                   onBlur={() => setTimeout(() => setShowItemDropdown(false), 205)}
-                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all pr-10" 
-                 />
-                 <button 
-                   type="button" 
-                   onClick={() => setShowItemDropdown(!showItemDropdown)}
-                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
-                 >
-                   <ChevronDown className={`w-4 h-4 transition-transform ${showItemDropdown ? 'rotate-180' : ''}`} />
-                 </button>
-               </div>
-               {showItemDropdown && filteredItems.length > 0 && (
-                 <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-48 overflow-y-auto">
-                   {filteredItems.map((i: any) => (
-                     <button
-                       key={i.id}
-                       type="button"
-                       onClick={() => {
-                         setForm(prev => ({
-                           ...prev,
-                           item: i.name,
-                           brand: i.brand || prev.brand,
-                           category: getCorrespondingCategory(i) || prev.category,
-                           partner: i.partner || prev.partner,
-                           unit: (i.unit || 'BOX').toUpperCase(), specs: i.specs || ''
-                         }));
-                         setShowItemDropdown(false);
-                       }}
-                       className="w-full min-h-10 flex items-center justify-between px-4 py-2 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left gap-4"
-                     >
-                       <span className="truncate">{i.name}</span>
-                       <div className="flex gap-1.5 items-center shrink-0">
-                         {i.specs && (
-                           <span className="text-[10px] bg-slate-100/80 text-slate-500 font-bold px-1.5 py-0.5 rounded border border-slate-200/50 whitespace-nowrap">
-                             {i.specs}
-                           </span>
-                         )}
-                         <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-1.5 py-0.5 rounded border border-blue-100 whitespace-nowrap">
-                           재고: {Math.round(i.currentStock || 0).toLocaleString()} {(i.unit || 'BOX').toUpperCase()}
-                         </span>
-                       </div>
-                     </button>
-                   ))}
-                 </div>
-               )}
-             </div>
+            {/* List of Batch items */}
+            <div className="space-y-6 max-h-[55vh] overflow-y-auto pr-2">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">등록 대기 품목 ({batchItems.length}개)</h3>
+                {!editingId && (
+                  <button
+                    type="button"
+                    onClick={handleAddRow}
+                    className="h-8 px-3 bg-[#e8effd] text-primary text-xs font-bold rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> 품목 추가
+                  </button>
+                )}
+              </div>
 
-             <div className="space-y-1 relative">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">원육 / 생산</label>
-               <div className="relative">
-                 <input 
-                   placeholder="선택 또는 입력"
-                   value={form.category} 
-                   onChange={e => setForm({...form, category: e.target.value})} 
-                   onFocus={() => setShowCategoryDropdown(true)}
-                   onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
-                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all pr-10" 
-                 />
-                 <button 
-                   type="button" 
-                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
-                 >
-                   <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
-                 </button>
-               </div>
-               {showCategoryDropdown && filteredCategories.length > 0 && (
-                 <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-48 overflow-y-auto">
-                   {filteredCategories.map((c: string) => (
-                     <button
-                       key={c}
-                       type="button"
-                       onClick={() => {
-                         setForm({...form, category: c});
-                         setShowCategoryDropdown(false);
-                       }}
-                       className="w-full h-10 flex items-center px-4 text-xs font-bold text-slate-600 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
-                     >
-                       {c}
-                     </button>
-                   ))}
-                 </div>
-               )}
-             </div>
-
-             <div className="space-y-1 relative">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">브랜드</label>
-               <div className="relative">
-                 <input 
-                   placeholder="선택 또는 입력"
-                   value={form.brand} 
-                   onChange={e => setForm({...form, brand: e.target.value})} 
-                   onFocus={() => setShowBrandDropdown(true)}
-                   onBlur={() => setTimeout(() => setShowBrandDropdown(false), 200)}
-                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all pr-10" 
-                 />
-                 <button 
-                   type="button" 
-                   onClick={() => setShowBrandDropdown(!showBrandDropdown)}
-                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
-                 >
-                   <ChevronDown className={`w-4 h-4 transition-transform ${showBrandDropdown ? 'rotate-180' : ''}`} />
-                 </button>
-               </div>
-               {showBrandDropdown && filteredBrands.length > 0 && (
-                 <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-48 overflow-y-auto">
-                   {filteredBrands.map((b: string) => (
-                     <button
-                       key={b}
-                       type="button"
-                       onClick={() => {
-                         setForm({...form, brand: b});
-                         setShowBrandDropdown(false);
-                       }}
-                       className="w-full h-10 flex items-center px-4 text-xs font-bold text-slate-600 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
-                     >
-                       {b}
-                     </button>
-                   ))}
-                 </div>
-               )}
-             </div>
-
-             <div className="space-y-1 relative">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">중량(KG/G/BOX/EA)</label>
-               <div className="flex gap-2">
-                 <input 
-                    type="text" 
-                    placeholder="0"
-                    value={formatWithCommas(form.weight)} 
-                    onChange={e => setForm({...form, weight: (() => {
-                       const val = e.target.value;
-                       let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
-                       const parts = cleaned.split('.');
-                       if (parts.length > 2) {
-                         cleaned = parts[0] + '.' + parts.slice(1).join('');
-                       }
-                       const dotIndex = cleaned.indexOf('.');
-                       if (dotIndex !== -1) {
-                         cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
-                       }
-                       return cleaned;
-                     })()})} 
-                    className="flex-1 h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
-                 />
-                 <div className="relative w-32 shrink-0">
-                   <input
-                     type="text"
-                     placeholder="단위"
-                     value={form.weightUnit}
-                     onChange={e => setForm({...form, weightUnit: e.target.value})}
-                     onFocus={() => setShowWeightUnitDropdown(true)}
-                     onBlur={() => setTimeout(() => setShowWeightUnitDropdown(false), 200)}
-                     className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-8 uppercase"
-                   />
-                   <button
-                     type="button"
-                     onClick={() => setShowWeightUnitDropdown(!showWeightUnitDropdown)}
-                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
-                   >
-                     <ChevronDown className={`w-3 h-3 transition-transform ${showWeightUnitDropdown ? 'rotate-180' : ''}`} />
-                   </button>
-                   {showWeightUnitDropdown && (
-                     <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 py-1">
-                       {['KG', 'G', 'BOX', 'EA'].map(u => (
-                         <button
-                           key={u}
-                           type="button"
-                           onMouseDown={(e) => {
-                             e.preventDefault();
-                             setForm({...form, weightUnit: u});
-                             setShowWeightUnitDropdown(false);
-                           }}
-                           className="w-full h-9 flex items-center px-4 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
-                         >
-                           {u}
-                         </button>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               </div>
-             </div>
-
-             <div className="space-y-1 relative">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">수량(EA/BOX/KG/G)</label>
-               <div className="flex gap-2">
-                 <input 
-                   type="text" 
-                   value={formatWithCommas(form.boxes)} 
-                   onChange={e => setForm({...form, boxes: e.target.value.replace(/[^0-9]/g, '')})} 
-                   className="flex-1 h-12 px-4 bg-surface-container rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all" 
-                   placeholder="0"
-                 />
-                 <div className="relative w-32 shrink-0">
-                   <input
-                     type="text"
-                     placeholder="단위"
-                     value={form.unit}
-                     onChange={e => setForm({...form, unit: e.target.value})}
-                     onFocus={() => setShowUnitDropdown(true)}
-                     onBlur={() => setTimeout(() => setShowUnitDropdown(false), 200)}
-                     className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-8 uppercase"
-                   />
-                   <button
-                     type="button"
-                     onClick={() => setShowUnitDropdown(!showUnitDropdown)}
-                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-primary transition-colors"
-                   >
-                     <ChevronDown className={`w-3 h-3 transition-transform ${showUnitDropdown ? 'rotate-180' : ''}`} />
-                   </button>
-                   {showUnitDropdown && (
-                     <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-outline-variant/10 py-1">
-                       {['EA', 'BOX', 'KG', 'G'].map(u => (
-                         <button
-                             key={u}
+              {batchItems.map((item, idx) => (
+                <div key={idx} className="relative p-6 bg-slate-50/50 rounded-2xl border border-slate-200/50 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                  {/* Item Row Header */}
+                  <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3">
+                    <span className="text-xs font-black text-[#0f172a] bg-slate-100 px-3 py-1 rounded-lg">품목 #{idx + 1}</span>
+                    <div className="flex items-center gap-2">
+                      {/* Sub-type selection */}
+                      <div className="flex bg-slate-200/50 p-0.5 rounded-lg h-9 w-32">
+                        {['입고', '출고'].map((t) => (
+                          <button
+                            key={t}
                             type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setForm({...form, unit: u});
-                              setShowUnitDropdown(false);
-                            }}
-                            className="w-full h-9 flex items-center px-4 text-xs font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                            onClick={() => updateBatchItem(idx, { type: t as any })}
+                            className={`flex-1 rounded font-black text-[10px] transition-all ${item.type === t ? 'bg-white text-[#0f172a] shadow-sm' : 'text-slate-500 hover:text-[#0f172a]'}`}
                           >
-                            {u}
+                            {t}
                           </button>
                         ))}
                       </div>
-                    )}
+
+                      {/* Row Delete button */}
+                      {batchItems.length > 1 && !editingId && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRow(idx)}
+                          className="h-9 w-9 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg transition-all active:scale-90 flex items-center justify-center border border-red-100"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Inputs Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Item Autocomplete select */}
+                    <div className="space-y-1 relative">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">품목명</label>
+                      <div className="relative">
+                        <input 
+                          required
+                          placeholder="선택 또는 직접 입력"
+                          value={item.item} 
+                          onChange={e => {
+                            const val = e.target.value;
+                            updateBatchItem(idx, { item: val });
+                            const invItem = inventory.find((it: any) => it.name.trim() === val.trim());
+                            if (invItem) {
+                              updateBatchItem(idx, {
+                                brand: invItem.brand || item.brand,
+                                category: getCorrespondingCategory(invItem) || item.category,
+                                partner: invItem.partner || item.partner,
+                                unit: (invItem.unit || 'BOX').toUpperCase(),
+                                specs: invItem.specs || item.specs
+                              });
+                            }
+                          }} 
+                          onFocus={() => setActiveDropdown({ index: idx, type: 'item' })}
+                          onBlur={() => setTimeout(() => setActiveDropdown(prev => prev.index === idx && prev.type === 'item' ? { index: -1, type: null } : prev), 220)}
+                          className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-8" 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setActiveDropdown(activeDropdown.index === idx && activeDropdown.type === 'item' ? { index: -1, type: null } : { index: idx, type: 'item' })}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-primary transition-colors"
+                        >
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown.index === idx && activeDropdown.type === 'item' ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
+                      {activeDropdown.index === idx && activeDropdown.type === 'item' && (
+                        (() => {
+                          const list = getFilteredItemsForIndex(item.item);
+                          if (list.length === 0) return null;
+                          return (
+                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 max-h-40 overflow-y-auto">
+                              {list.map((i: any) => (
+                                <button
+                                  key={i.id}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateBatchItem(idx, {
+                                      item: i.name,
+                                      brand: i.brand || item.brand,
+                                      category: getCorrespondingCategory(i) || item.category,
+                                      partner: i.partner || item.partner,
+                                      unit: (i.unit || 'BOX').toUpperCase(),
+                                      specs: i.specs || item.specs
+                                    });
+                                    setActiveDropdown({ index: -1, type: null });
+                                  }}
+                                  className="w-full min-h-9 flex items-center justify-between px-3 py-1.5 text-[11px] font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left gap-2"
+                                >
+                                  <span className="truncate">{i.name}</span>
+                                  <div className="flex gap-1 items-center shrink-0">
+                                    {i.specs && (
+                                      <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-1 py-0.5 rounded border border-slate-200/50 whitespace-nowrap">
+                                        {i.specs}
+                                      </span>
+                                    )}
+                                    <span className="text-[9px] bg-blue-50 text-blue-600 font-bold px-1 py-0.5 rounded border border-blue-100 whitespace-nowrap">
+                                      {Math.round(i.currentStock || 0).toLocaleString()}{(i.unit || 'BOX').toUpperCase()}
+                                    </span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+
+                    {/* Category */}
+                    <div className="space-y-1 relative">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">원육 / 생산</label>
+                      <div className="relative">
+                        <input 
+                          placeholder="선택 또는 입력"
+                          value={item.category} 
+                          onChange={e => updateBatchItem(idx, { category: e.target.value })} 
+                          onFocus={() => setActiveDropdown({ index: idx, type: 'category' })}
+                          onBlur={() => setTimeout(() => setActiveDropdown(prev => prev.index === idx && prev.type === 'category' ? { index: -1, type: null } : prev), 220)}
+                          className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-8" 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setActiveDropdown(activeDropdown.index === idx && activeDropdown.type === 'category' ? { index: -1, type: null } : { index: idx, type: 'category' })}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-primary transition-colors"
+                        >
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown.index === idx && activeDropdown.type === 'category' ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
+                      {activeDropdown.index === idx && activeDropdown.type === 'category' && (
+                        (() => {
+                          const list = getFilteredCategoriesForIndex(item.category);
+                          if (list.length === 0) return null;
+                          return (
+                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 max-h-40 overflow-y-auto">
+                              {list.map((c: string) => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateBatchItem(idx, { category: c });
+                                    setActiveDropdown({ index: -1, type: null });
+                                  }}
+                                  className="w-full h-8 flex items-center px-3 text-[11px] font-bold text-slate-600 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                                >
+                                  {c}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+
+                    {/* Brand */}
+                    <div className="space-y-1 relative">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">브랜드</label>
+                      <div className="relative">
+                        <input 
+                          placeholder="선택 또는 입력"
+                          value={item.brand} 
+                          onChange={e => updateBatchItem(idx, { brand: e.target.value })} 
+                          onFocus={() => setActiveDropdown({ index: idx, type: 'brand' })}
+                          onBlur={() => setTimeout(() => setActiveDropdown(prev => prev.index === idx && prev.type === 'brand' ? { index: -1, type: null } : prev), 220)}
+                          className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-8" 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setActiveDropdown(activeDropdown.index === idx && activeDropdown.type === 'brand' ? { index: -1, type: null } : { index: idx, type: 'brand' })}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-primary transition-colors"
+                        >
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown.index === idx && activeDropdown.type === 'brand' ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
+                      {activeDropdown.index === idx && activeDropdown.type === 'brand' && (
+                        (() => {
+                          const list = getFilteredBrandsForIndex(item.brand);
+                          if (list.length === 0) return null;
+                          return (
+                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 max-h-40 overflow-y-auto">
+                              {list.map((b: string) => (
+                                <button
+                                  key={b}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateBatchItem(idx, { brand: b });
+                                    setActiveDropdown({ index: -1, type: null });
+                                  }}
+                                  className="w-full h-8 flex items-center px-3 text-[11px] font-bold text-slate-600 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                                >
+                                  {b}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+
+                    {/* Specs */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">규격 (예: 25kg/box)</label>
+                      <input 
+                        placeholder="직접 기입"
+                        value={item.specs} 
+                        onChange={e => updateBatchItem(idx, { specs: e.target.value })} 
+                        className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all" 
+                      />
+                    </div>
+
+                    {/* Weight & Unit */}
+                    <div className="space-y-1 relative">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">중량</label>
+                      <div className="flex gap-1.5">
+                        <input 
+                          type="text" 
+                          placeholder="0"
+                          value={formatWithCommas(item.weight)} 
+                          onChange={e => {
+                            const val = e.target.value;
+                            let cleaned = val.replace(/(?!^)-/g, '').replace(/[^0-9.-]/g, '');
+                            const parts = cleaned.split('.');
+                            if (parts.length > 2) {
+                              cleaned = parts[0] + '.' + parts.slice(1).join('');
+                            }
+                            const dotIndex = cleaned.indexOf('.');
+                            if (dotIndex !== -1) {
+                              cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1, dotIndex + 3);
+                            }
+                            updateBatchItem(idx, { weight: cleaned });
+                          }} 
+                          className="flex-1 h-11 px-3 bg-white border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all" 
+                        />
+                        <div className="relative w-20 shrink-0">
+                          <input
+                            type="text"
+                            placeholder="단위"
+                            value={item.weightUnit}
+                            readOnly
+                            onFocus={() => setActiveDropdown({ index: idx, type: 'weightUnit' })}
+                            onBlur={() => setTimeout(() => setActiveDropdown(prev => prev.index === idx && prev.type === 'weightUnit' ? { index: -1, type: null } : prev), 220)}
+                            className="w-full h-11 px-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] focus:ring-2 ring-primary/20 outline-none transition-all pr-6 uppercase cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setActiveDropdown(activeDropdown.index === idx && activeDropdown.type === 'weightUnit' ? { index: -1, type: null } : { index: idx, type: 'weightUnit' })}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                          {activeDropdown.index === idx && activeDropdown.type === 'weightUnit' && (
+                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-slate-100 py-0.5">
+                              {['KG', 'G', 'BOX', 'EA'].map(u => (
+                                <button
+                                  key={u}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateBatchItem(idx, { weightUnit: u });
+                                    setActiveDropdown({ index: -1, type: null });
+                                  }}
+                                  className="w-full h-8 flex items-center px-2.5 text-[11px] font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                                >
+                                  {u}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Boxes & Unit */}
+                    <div className="space-y-1 relative">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">수량</label>
+                      <div className="flex gap-1.5">
+                        <input 
+                          type="text" 
+                          placeholder="0"
+                          value={formatWithCommas(item.boxes)} 
+                          onChange={e => updateBatchItem(idx, { boxes: e.target.value.replace(/[^0-9]/g, '') })} 
+                          className="flex-1 h-11 px-3 bg-white border border-[#cbd5e1] rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all" 
+                        />
+                        <div className="relative w-20 shrink-0">
+                          <input
+                            type="text"
+                            placeholder="단위"
+                            value={item.unit}
+                            readOnly
+                            onFocus={() => setActiveDropdown({ index: idx, type: 'unit' })}
+                            onBlur={() => setTimeout(() => setActiveDropdown(prev => prev.index === idx && prev.type === 'unit' ? { index: -1, type: null } : prev), 220)}
+                            className="w-full h-11 px-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[11px] focus:ring-2 ring-primary/20 outline-none transition-all pr-6 uppercase cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setActiveDropdown(activeDropdown.index === idx && activeDropdown.type === 'unit' ? { index: -1, type: null } : { index: idx, type: 'unit' })}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                          {activeDropdown.index === idx && activeDropdown.type === 'unit' && (
+                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-slate-100 py-0.5">
+                              {['BOX', 'EA', 'KG', 'G'].map(u => (
+                                <button
+                                  key={u}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateBatchItem(idx, { unit: u });
+                                    setActiveDropdown({ index: -1, type: null });
+                                  }}
+                                  className="w-full h-8 flex items-center px-2.5 text-[11px] font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
+                                >
+                                  {u}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Partner autocomplete check dropdown */}
+                    <div className="space-y-1 relative">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">거래처 (다중 선택)</label>
+                      <div className="relative">
+                        <input
+                          placeholder="거래처 선택 또는 직접 입력"
+                          value={item.partner || ''}
+                          onChange={e => updateBatchItem(idx, { partner: e.target.value })}
+                          onFocus={() => setActiveDropdown({ index: idx, type: 'partner' })}
+                          onBlur={() => setTimeout(() => setActiveDropdown(prev => prev.index === idx && prev.type === 'partner' ? { index: -1, type: null } : prev), 220)}
+                          className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-8"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setActiveDropdown(activeDropdown.index === idx && activeDropdown.type === 'partner' ? { index: -1, type: null } : { index: idx, type: 'partner' })}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5 transition-transform" />
+                        </button>
+                      </div>
+                      {activeDropdown.index === idx && activeDropdown.type === 'partner' && (
+                        <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 max-h-44 overflow-y-auto">
+                          {partners?.length > 0 ? (
+                            (() => {
+                              const selectedPartners = item.partner
+                                ? item.partner.split(',').map((s: any) => s.trim()).filter(Boolean)
+                                : [];
+                              
+                              const typedText = item.partner || '';
+                              const lastCommaIndex = typedText.lastIndexOf(',');
+                              const searchKeyword = (lastCommaIndex !== -1 ? typedText.substring(lastCommaIndex + 1) : typedText).trim();
+
+                              const currentPartners = partners || [];
+                              const sortedPartners = [...currentPartners].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'ko'));
+                              const filtered = sortedPartners.filter((p: any) => {
+                                if (!searchKeyword) return true;
+                                const isSelected = selectedPartners.includes(p.name);
+                                if (isSelected) return true;
+                                return (p.name || '').toLowerCase().includes(searchKeyword.toLowerCase());
+                              });
+
+                              if (filtered.length === 0) {
+                                return (
+                                  <div className="px-4 py-3 text-[10px] font-bold text-slate-400 text-center">검색 결과가 없습니다</div>
+                                );
+                              }
+
+                              return filtered.map((p: any) => {
+                                const isSelected = selectedPartners.includes(p.name);
+                                return (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      let newSelected;
+                                      if (isSelected) {
+                                        newSelected = selectedPartners.filter((name: string) => name !== p.name);
+                                      } else {
+                                        const previousPart = lastCommaIndex !== -1 ? typedText.substring(0, lastCommaIndex) : '';
+                                        const exactPrevious = previousPart
+                                          ? previousPart.split(',').map((s: any) => s.trim()).filter(Boolean)
+                                          : [];
+                                        newSelected = [...exactPrevious, p.name];
+                                      }
+                                      const finalValue = newSelected.length > 0 ? newSelected.join(', ') + ', ' : '';
+                                      updateBatchItem(idx, { partner: finalValue });
+                                    }}
+                                    className={`w-full h-9 flex items-center justify-between px-3 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        readOnly
+                                        className="w-3.5 h-3.5 rounded text-primary border-slate-300 focus:ring-primary pointer-events-none"
+                                      />
+                                      <span>{p.name}</span>
+                                    </div>
+                                  </button>
+                                );
+                              });
+                            })()
+                          ) : (
+                            <div className="px-4 py-3 text-[10px] font-bold text-slate-400 text-center">등록된 거래처가 없습니다</div>
+                          )}
+                          <div className="px-3 py-1.5 bg-slate-50 text-[8px] font-black text-slate-400 uppercase text-center border-t border-slate-100">직접 입력 시 쉼표(,) 구분</div>
+                        </div>
+                      )}
+                    </div>
+
+
                   </div>
                 </div>
-              </div>
+              ))}
+            </div>
 
-              <div className="space-y-1 relative">
-               <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1 flex items-center gap-1">
-                 거래처 (다중 선택 가능)
-               </label>
-               <div className="relative group mt-1">
-                 <input
-                   key="logistics-partner-input"
-                   type="text"
-                   placeholder="거래처 선택 또는 직접 입력"
-                   value={form.partner || ''}
-                   onChange={e => setForm({...form, partner: e.target.value})}
-                   onFocus={() => setShowFormPartnerDropdown(true)}
-                   className="w-full h-12 px-4 bg-surface-container rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all pr-10"
-                 />
-                 <button
-                   type="button"
-                   onClick={() => setShowFormPartnerDropdown(!showFormPartnerDropdown)}
-                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-outline hover:text-primary transition-colors cursor-pointer"
-                 >
-                   <ChevronDown className={`w-4 h-4 transition-transform ${showFormPartnerDropdown ? 'rotate-180' : ''}`} />
-                 </button>
-               </div>
-               {showFormPartnerDropdown && (
-                 <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-outline-variant/10 animate-in fade-in slide-in-from-top-2 duration-200 max-h-56 overflow-y-auto">
-                   {partners?.length > 0 ? (
-                     (() => {
-                       const selectedPartners = form.partner
-                         ? form.partner.split(',').map((s: any) => s.trim()).filter(Boolean)
-                         : [];
-                       
-                       const typedText = form.partner || '';
-                       const lastCommaIndex = typedText.lastIndexOf(',');
-                       const searchKeyword = (lastCommaIndex !== -1 ? typedText.substring(lastCommaIndex + 1) : typedText).trim();
-
-                       const currentPartners = partners || [];
-                       const sortedPartners = [...currentPartners].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'ko'));
-                       const filtered = sortedPartners.filter((p: any) => {
-                         if (!searchKeyword) return true;
-                         const isSelected = selectedPartners.includes(p.name);
-                         if (isSelected) return true;
-                         return (p.name || '').toLowerCase().includes(searchKeyword.toLowerCase());
-                       });
-
-                       if (filtered.length === 0) {
-                         return (
-                           <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">검색 결과가 없습니다</div>
-                         );
-                       }
-
-                       return filtered.map((p: any) => {
-                         const isSelected = selectedPartners.includes(p.name);
-                         return (
-                           <button
-                             key={p.id}
-                             type="button"
-                             onClick={() => {
-                               let newSelected;
-                               if (isSelected) {
-                                 newSelected = selectedPartners.filter((name: string) => name !== p.name);
-                               } else {
-                                 const previousPart = lastCommaIndex !== -1 ? typedText.substring(0, lastCommaIndex) : '';
-                                 const exactPrevious = previousPart
-                                   ? previousPart.split(',').map((s: any) => s.trim()).filter(Boolean)
-                                   : [];
-                                 newSelected = [...exactPrevious, p.name];
-                               }
-                               const finalValue = newSelected.length > 0 ? newSelected.join(', ') + ', ' : '';
-                                setForm({...form, partner: finalValue});
-                             }}
-                             className={`w-full h-11 flex items-center justify-between px-5 text-xs font-bold hover:bg-[#f1f4f9] transition-colors ${isSelected ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
-                           >
-                             <div className="flex items-center gap-2">
-                               <input
-                                 type="checkbox"
-                                 checked={isSelected}
-                                 onChange={() => {}} // handled by click
-                                 className="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary pointer-events-none"
-                                />
-                               <span>{p.name}</span>
-                             </div>
-                           </button>
-                         );
-                       });
-                     })()
-                   ) : (
-                     <div className="px-5 py-4 text-[10px] font-bold text-outline text-center">등록된 거래처가 없습니다</div>
-                   )}
-                   <div className="px-5 py-2 bg-slate-50 text-[9px] font-black text-outline/50 uppercase text-center border-t border-outline-variant/10">직접 입력 시 쉼표(,)로 구분 가능</div>
-                 </div>
-               )}
-             </div>
-
-              <div className="flex items-end">
-                <button type="submit" className="w-full h-12 bg-[#0f172a] text-white rounded-xl font-black uppercase shadow-lg shadow-[#0f172a]/20 hover:bg-slate-800 transition-all active:scale-[0.98]">
-                  {editingId ? '수정 내용 저장' : '등록 완료'}
+            {/* Bottom Form Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
+              <span className="text-xs text-slate-400 font-bold hidden sm:inline">※ 중량 혹은 수량을 채워 항목을 완성해주세요.</span>
+              <div className="flex gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingId(null);
+                  }}
+                  className="flex-1 sm:flex-none h-12 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl transition-all text-sm cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 sm:flex-none h-12 px-8 bg-[#0f172a] hover:bg-slate-800 text-white font-black rounded-xl transition-all text-sm cursor-pointer shadow-lg shadow-[#0f172a]/10"
+                >
+                  {editingId ? '수정 내용 저장' : `일괄 등록 완료 (${batchItems.length}개)`}
                 </button>
               </div>
-           </form>
-           <DeleteConfirmModal
+            </div>
+          </form>
+        </motion.div>
+      )}
+
+      {/* Persistent Standalone Delete Modal */}
+      <DeleteConfirmModal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
         onConfirm={() => handleDelete(deleteModal.item)}
         title="물류 기록 삭제"
         message={`${deleteModal.item?.item} (${deleteModal.item?.type}) 기록을 삭제하시겠습니까?\n\n※ 삭제 시 해당 품목의 재고가 반창 처리됩니다.`}
       />
-    </motion.div>
-       )}
 
       {/* Summary Stats */}
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
