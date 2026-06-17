@@ -19,6 +19,7 @@ import {
   Upload,
   AlertTriangle,
   MapPin,
+  Scale,
   MessageSquarePlus
 } from 'lucide-react';
 import { 
@@ -213,7 +214,7 @@ function SettingsContent({
   // Item Form
   const [itemForm, setItemForm] = useState({
     sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '',
-    purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: ''
+    purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '', avgWeight: ''
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [pendingApprovalId, setPendingApprovalId] = useState<string | null>(null);
@@ -258,6 +259,7 @@ function SettingsContent({
         boxes: Number(itemForm.boxes) || 0,
         purchasePrice: Number(itemForm.purchasePrice) || 0,
         salesPrice: Number(itemForm.salesPrice) || 0,
+        avgWeight: Number(itemForm.avgWeight) || 0,
         updatedAt: serverTimestamp()
       };
 
@@ -439,7 +441,7 @@ function SettingsContent({
           alert('상품 등록이 완료되었습니다.');
         }
       }
-      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
+      setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '', avgWeight: '' });
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
   };
 
@@ -462,7 +464,8 @@ function SettingsContent({
       expiryDate: item.expiryDate || '',
       location: item.location || '',
       detailLocation: item.detailLocation || '',
-      partner: item.partner || ''
+      partner: item.partner || '',
+      avgWeight: String(item.avgWeight || '')
     });
     const el = document.getElementById('item-form');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -486,7 +489,8 @@ function SettingsContent({
       expiryDate: item.expiryDate || '',
       location: item.location || '',
       detailLocation: item.detailLocation || '',
-      partner: item.partner || ''
+      partner: item.partner || '',
+      avgWeight: String(item.avgWeight || '')
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1269,7 +1273,20 @@ function SettingsContent({
                     </div>
                   </div>
 
-                  {/* Row 7: Storage Location */}
+                  {/* Row 7: Average Weight */}
+                  <div className="space-y-1 flex flex-col">
+                    <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1.5">
+                       <Scale className="w-3.5 h-3.5 text-primary" /> 박스당 평균 무게 (KG)
+                    </label>
+                    <input 
+                      placeholder="예: 20.5 (원육의 경우 설정)" 
+                      value={itemForm.avgWeight || ''} 
+                      onChange={e => setItemForm({...itemForm, avgWeight: e.target.value.replace(/[^0-9.]/g, '')})} 
+                      className="w-full h-10 md:h-12 px-3.5 bg-slate-50/50 border border-outline-variant/60 rounded-xl font-bold focus:border-primary focus:bg-white outline-none transition-all placeholder:text-outline-variant/40 text-xs shadow-sm" 
+                    />
+                  </div>
+
+                  {/* Row 8: Storage Location */}
                   <div className="space-y-1 flex flex-col">
                     <label className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-tight ml-1 flex items-center gap-1.5">
                        <MapPin className="w-3.5 h-3.5 text-primary" /> 보관 위치
@@ -1291,7 +1308,7 @@ function SettingsContent({
                         type="button"
                         onClick={() => {
                           setEditingItemId(null);
-                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '' });
+                          setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '', avgWeight: '' });
                         }}
                         className="w-full sm:w-36 h-11 md:h-12 bg-rose-50 text-rose-600 rounded-xl font-black text-xs md:text-sm shadow-sm hover:bg-rose-100 transition-all active:scale-[0.98]"
                       >

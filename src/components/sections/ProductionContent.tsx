@@ -88,6 +88,7 @@ function ProductionContent({
       rawMaterial: "",
       brand: "",
       rawQty: "",
+      rawBoxes: "",
       production: "",
       manufDate: new Date().toLocaleDateString("sv-SE"),
       expiryDate: "",
@@ -515,6 +516,33 @@ function ProductionContent({
       prevRows.map((r) => {
         if (r.id === id) {
           const updated = { ...r, [field]: value };
+          
+          const inv = inventory.find(
+            (i: any) => i.name === (field === "rawMaterial" ? value : r.rawMaterial)
+          );
+          const avgWeight = inv?.avgWeight ? Number(inv.avgWeight) : 0;
+          
+          if (field === "rawMaterial") {
+            if (avgWeight > 0 && r.rawQty) {
+              updated.rawBoxes = String(Math.round((Number(r.rawQty) / avgWeight) * 100) / 100);
+            } else {
+              updated.rawBoxes = "";
+            }
+          } else if (field === "rawQty") {
+            if (avgWeight > 0) {
+              const weightVal = Number(value) || 0;
+              updated.rawBoxes = weightVal > 0 ? String(Math.round((weightVal / avgWeight) * 100) / 100) : "";
+            } else {
+              updated.rawBoxes = "";
+            }
+          } else if (field === "rawBoxes") {
+            if (avgWeight > 0) {
+              const boxesVal = Number(value) || 0;
+              const weightVal = Math.round((boxesVal * avgWeight) * 100) / 100;
+              updated.rawQty = boxesVal > 0 ? String(weightVal) : "";
+            }
+          }
+          
           if (field === "brand") {
             const newBrand = value;
             const rawInBrand = inventory.filter(
@@ -528,11 +556,22 @@ function ProductionContent({
               );
               if (match) {
                 updated.rawMaterial = match.name;
+                const newInv = inventory.find((it: any) => it.name === match.name);
+                const newAvg = newInv?.avgWeight ? Number(newInv.avgWeight) : 0;
+                if (newAvg > 0 && r.rawQty) {
+                  updated.rawBoxes = String(Math.round((Number(r.rawQty) / newAvg) * 100) / 100);
+                }
               } else {
                 updated.rawMaterial = rawInBrand[0].name;
+                const newInv = inventory.find((it: any) => it.name === rawInBrand[0].name);
+                const newAvg = newInv?.avgWeight ? Number(newInv.avgWeight) : 0;
+                if (newAvg > 0 && r.rawQty) {
+                  updated.rawBoxes = String(Math.round((Number(r.rawQty) / newAvg) * 100) / 100);
+                }
               }
             } else {
               updated.rawMaterial = "";
+              updated.rawBoxes = "";
             }
           }
           return updated;
@@ -594,10 +633,21 @@ function ProductionContent({
           if (docSnap.exists()) {
             const data = docSnap.data() as any;
             prevStock = Number(data.currentStock || 0);
-            transaction.update(itemDocRef, {
+            
+            const updatePayload: any = {
               currentStock: prevStock + diff,
               updatedAt: serverTimestamp(),
-            });
+            };
+            
+            const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
+            if (isRaw && avgWeight > 0) {
+              const prevBoxes = Number(data.boxes || 0);
+              const boxesDiff = diff / avgWeight;
+              const nextBoxes = Math.round((prevBoxes + boxesDiff) * 100) / 100;
+              updatePayload.boxes = Math.max(0, nextBoxes);
+            }
+            
+            transaction.update(itemDocRef, updatePayload);
           } else {
             prevStock = 0;
             transaction.set(itemDocRef, {
@@ -801,6 +851,7 @@ function ProductionContent({
           rawMaterial: "",
           brand: "",
           rawQty: "",
+          rawBoxes: "",
           production: "",
           manufDate: logDate,
           expiryDate: "",
@@ -821,14 +872,21 @@ function ProductionContent({
     setRemarks(item.remarks || "");
     setOptionName(item.optionName || "");
     setOptionQty(item.optionQty ? String(item.optionQty) : "");
+    const inv = inventory.find((i: any) => i.name === item.rawMaterial);
+    const avgWeight = inv?.avgWeight ? Number(inv.avgWeight) : 0;
+    const rawBoxesVal = (avgWeight > 0 && item.rawQty)
+      ? String(Math.round((Number(item.rawQty) / avgWeight) * 100) / 100)
+      : "";
+
     setRows([
       {
         id: Date.now(),
         title: item.title,
         rawMaterial: item.rawMaterial,
         brand: item.brand || "",
-        rawQty: item.rawQty,
-        production: item.production,
+        rawQty: String(item.rawQty || ""),
+        rawBoxes: rawBoxesVal,
+        production: String(item.production || ""),
         manufDate: item.manufDate,
         expiryDate: item.expiryDate || "",
         linkType: item.linkType || "none",
@@ -911,11 +969,19 @@ function ProductionContent({
         }
 
         if (rawRef && rawSnap && rawSnap.exists()) {
-          const currentStock = Number(rawSnap.data().currentStock || 0);
-          transaction.update(rawRef, {
+          const rawData = rawSnap.data();
+          const currentStock = Number(rawData.currentStock || 0);
+          const updatePayload: any = {
             currentStock: currentStock + record.rawQty,
             updatedAt: serverTimestamp(),
-          });
+          };
+          const avgWeight = Number(rawData.avgWeight) || 0;
+          if (avgWeight > 0) {
+            const currentBoxes = Number(rawData.boxes || 0);
+            const boxesDiff = record.rawQty / avgWeight;
+            updatePayload.boxes = Math.max(0, Math.round((currentBoxes + boxesDiff) * 100) / 100);
+          }
+          transaction.update(rawRef, updatePayload);
         }
 
         if (optionRef && optionSnap && optionSnap.exists()) {
@@ -1441,26 +1507,64 @@ function ProductionContent({
                         )}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 col-span-1 md:col-span-4">
-                      <div className="space-y-1">
-                        <label className="block text-xs font-black text-slate-500 ml-1">
-                          투입량 ({dynamicRawUnit})
-                        </label>
-                        {index > 0 && row.linkType === "raw" ? (
-                          <div className="h-14 md:h-16 bg-[#e0f2fe]/40 border border-sky-100 rounded-2xl flex flex-col justify-center items-center text-sky-700 shadow-sm w-full cursor-not-allowed">
-                            <span className="font-extrabold text-[#0f172a] text-sm">0</span>
-                            <span className="text-[8px] font-black text-sky-600 -mt-0.5 px-1 py-0.5 bg-sky-50 rounded">첫행에서 차감</span>
+                    {(() => {
+                      const inv = inventory.find((i: any) => i.name === row.rawMaterial);
+                      const avgWeight = inv?.avgWeight ? Number(inv.avgWeight) : 0;
+                      return (
+                        <div className={`grid ${avgWeight > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-3 col-span-1 md:col-span-4`}>
+                          <div className="space-y-1">
+                            <label className="block text-xs font-black text-slate-500 ml-1">
+                              투입량 ({dynamicRawUnit})
+                            </label>
+                            {index > 0 && row.linkType === "raw" ? (
+                              <div className="h-14 md:h-16 bg-[#e0f2fe]/40 border border-sky-100 rounded-2xl flex flex-col justify-center items-center text-sky-700 shadow-sm w-full cursor-not-allowed">
+                                <span className="font-extrabold text-[#0f172a] text-sm">0</span>
+                                <span className="text-[8px] font-black text-sky-600 -mt-0.5 px-1 py-0.5 bg-sky-50 rounded">첫행에서 차감</span>
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder="0"
+                                value={formatWithCommas(row.rawQty)}
+                                onChange={(e) =>
+                                  updateRow(
+                                    row.id,
+                                    "rawQty",
+                                    (() => {
+                                      const val = e.target.value;
+                                      let cleaned = val
+                                        .replace(/(?!^)-/g, "")
+                                        .replace(/[^0-9.-]/g, "");
+                                      const parts = cleaned.split(".");
+                                      if (parts.length > 2) {
+                                        cleaned =
+                                          parts[0] + "." + parts.slice(1).join("");
+                                      }
+                                      const dotIndex = cleaned.indexOf(".");
+                                      if (dotIndex !== -1) {
+                                        cleaned =
+                                          cleaned.substring(0, dotIndex + 1) +
+                                          cleaned.substring(dotIndex + 1, dotIndex + 3);
+                                      }
+                                      return cleaned;
+                                    })(),
+                                  )
+                                }
+                                className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full"
+                              />
+                            )}
                           </div>
-                        ) : (
-                          <input
-                            type="text"
-                            placeholder="0"
-                            value={formatWithCommas(row.rawQty)}
-                            onChange={(e) =>
-                              updateRow(
-                                row.id,
-                                "rawQty",
-                                (() => {
+
+                          {avgWeight > 0 && (
+                            <div className="space-y-1">
+                              <label className="block text-xs font-black text-slate-500 ml-1">
+                                차감 박스 수 (BOX)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="0"
+                                value={formatWithCommas(row.rawBoxes)}
+                                onChange={(e) => {
                                   const val = e.target.value;
                                   let cleaned = val
                                     .replace(/(?!^)-/g, "")
@@ -1476,57 +1580,58 @@ function ProductionContent({
                                       cleaned.substring(0, dotIndex + 1) +
                                       cleaned.substring(dotIndex + 1, dotIndex + 3);
                                   }
-                                  return cleaned;
-                                })(),
-                              )
-                            }
-                            className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full"
-                          />
-                        )}
-                      </div>
-                      <div className="space-y-1">
-                        <label className="block text-xs font-black text-slate-500 ml-1">
-                          생산량 ({dynamicProdUnit})
-                        </label>
-                        {index > 0 && row.linkType === "product" ? (
-                          <div className="h-14 md:h-16 bg-[#fdf2f8]/40 border border-rose-100 rounded-2xl flex flex-col justify-center items-center text-rose-700 shadow-sm w-full cursor-not-allowed">
-                            <span className="font-extrabold text-[#0f172a] text-sm">0</span>
-                            <span className="text-[8px] font-black text-rose-600 -mt-0.5 px-1 py-0.5 bg-rose-50 rounded">첫행에 등록</span>
+                                  updateRow(row.id, "rawBoxes", cleaned);
+                                }}
+                                className="h-14 md:h-16 px-4 md:px-6 bg-[#ebf5ff] text-primary border border-primary/20 rounded-2xl font-black text-center outline-none focus:border-primary transition-all shadow-sm w-full"
+                              />
+                            </div>
+                          )}
+
+                          <div className="space-y-1">
+                            <label className="block text-xs font-black text-slate-500 ml-1">
+                              생산량 ({dynamicProdUnit})
+                            </label>
+                            {index > 0 && row.linkType === "product" ? (
+                              <div className="h-14 md:h-16 bg-[#fdf2f8]/40 border border-rose-100 rounded-2xl flex flex-col justify-center items-center text-rose-700 shadow-sm w-full cursor-not-allowed">
+                                <span className="font-extrabold text-[#0f172a] text-sm">0</span>
+                                <span className="text-[8px] font-black text-rose-600 -mt-0.5 px-1 py-0.5 bg-rose-50 rounded">첫행에 등록</span>
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder="0"
+                                value={formatWithCommas(row.production)}
+                                onChange={(e) =>
+                                  updateRow(
+                                    row.id,
+                                    "production",
+                                    (() => {
+                                      const val = e.target.value;
+                                      let cleaned = val
+                                        .replace(/(?!^)-/g, "")
+                                        .replace(/[^0-9.-]/g, "");
+                                      const parts = cleaned.split(".");
+                                      if (parts.length > 2) {
+                                        cleaned =
+                                          parts[0] + "." + parts.slice(1).join("");
+                                      }
+                                      const dotIndex = cleaned.indexOf(".");
+                                      if (dotIndex !== -1) {
+                                        cleaned =
+                                          cleaned.substring(0, dotIndex + 1) +
+                                          cleaned.substring(dotIndex + 1, dotIndex + 3);
+                                      }
+                                      return cleaned;
+                                    })(),
+                                  )
+                                }
+                                className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full"
+                              />
+                            )}
                           </div>
-                        ) : (
-                          <input
-                            type="text"
-                            placeholder="0"
-                            value={formatWithCommas(row.production)}
-                            onChange={(e) =>
-                              updateRow(
-                                row.id,
-                                "production",
-                                (() => {
-                                  const val = e.target.value;
-                                  let cleaned = val
-                                    .replace(/(?!^)-/g, "")
-                                    .replace(/[^0-9.-]/g, "");
-                                  const parts = cleaned.split(".");
-                                  if (parts.length > 2) {
-                                    cleaned =
-                                      parts[0] + "." + parts.slice(1).join("");
-                                  }
-                                  const dotIndex = cleaned.indexOf(".");
-                                  if (dotIndex !== -1) {
-                                    cleaned =
-                                      cleaned.substring(0, dotIndex + 1) +
-                                      cleaned.substring(dotIndex + 1, dotIndex + 3);
-                                  }
-                                  return cleaned;
-                                })(),
-                              )
-                            }
-                            className="h-14 md:h-16 px-4 md:px-6 bg-white border border-outline-variant rounded-2xl font-bold text-center outline-none focus:border-primary transition-all shadow-sm w-full"
-                          />
-                        )}
-                      </div>
-                    </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

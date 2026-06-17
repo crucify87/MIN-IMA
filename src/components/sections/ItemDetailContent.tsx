@@ -356,6 +356,13 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
               </>
             )}
 
+            {item.category === '원육' && Number(item.avgWeight || 0) > 0 && (
+              <div className="space-y-1 pb-4 border-b border-outline-variant/30">
+                <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">박스당 평균 무게</p>
+                <p className="text-xl font-black text-on-surface">{Number(item.avgWeight).toLocaleString()} KG</p>
+              </div>
+            )}
+
             {/* 7. Storage Location */}
             <div className="space-y-1 pb-4 border-b border-outline-variant/30">
               <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] mb-1">보관 위치</p>
