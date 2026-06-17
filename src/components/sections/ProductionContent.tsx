@@ -79,6 +79,7 @@ function ProductionContent({
 
   const [optionName, setOptionName] = useState("");
   const [optionQty, setOptionQty] = useState("");
+  const [optionUnit, setOptionUnit] = useState("KG");
   const [showOptionDropdown, setShowOptionDropdown] = useState(false);
 
   const [rows, setRows] = useState([
@@ -605,6 +606,7 @@ function ProductionContent({
         diff: number,
         isRaw: boolean = false,
         brandName: string = "",
+        sourceUnit: string = "",
       ) => {
         if (!name) return { prevStock: 0, nextStock: 0 };
         const trimmedName = name.trim();
@@ -634,20 +636,73 @@ function ProductionContent({
             const data = docSnap.data() as any;
             prevStock = Number(data.currentStock || 0);
             
+            const itemMasterUnit = (data.unit || 'KG').toUpperCase();
+            const currentTxUnit = (sourceUnit || itemMasterUnit).toUpperCase();
+            
+            let convertedDiff = diff;
+            
+            if (itemMasterUnit !== currentTxUnit) {
+              const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
+              const itemSpecs = (data.specs || '').trim();
+              const packSize = (() => {
+                if (!itemSpecs) return 1;
+                const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
+                if (match) {
+                  const num = parseInt(match[1], 10);
+                  if (!isNaN(num) && num > 0) return num;
+                }
+                return 1;
+              })();
+
+              const isWeight = (u: string) => ['KG', 'G'].includes(u);
+              
+              if (isWeight(itemMasterUnit) && isWeight(currentTxUnit)) {
+                if (itemMasterUnit === 'KG' && currentTxUnit === 'G') convertedDiff = diff / 1000;
+                else if (itemMasterUnit === 'G' && currentTxUnit === 'KG') convertedDiff = diff * 1000;
+              } else if (!isWeight(itemMasterUnit) && !isWeight(currentTxUnit)) {
+                if (itemMasterUnit === 'EA' && currentTxUnit === 'BOX') convertedDiff = diff * packSize;
+                else if (itemMasterUnit === 'BOX' && currentTxUnit === 'EA') convertedDiff = diff / packSize;
+              } else {
+                // Mixed conversion
+                const boxWeightKG = avgWeight > 0 ? avgWeight : 1; 
+                const eaWeightKG = boxWeightKG / packSize;
+                
+                let valueInKG = 0;
+                if (currentTxUnit === 'KG') valueInKG = diff;
+                else if (currentTxUnit === 'G') valueInKG = diff / 1000;
+                else if (currentTxUnit === 'BOX') valueInKG = diff * boxWeightKG;
+                else if (currentTxUnit === 'EA') valueInKG = diff * eaWeightKG;
+                
+                if (itemMasterUnit === 'KG') {
+                  convertedDiff = valueInKG;
+                } else if (itemMasterUnit === 'G') {
+                  convertedDiff = valueInKG * 1000;
+                } else if (itemMasterUnit === 'BOX') {
+                  convertedDiff = valueInKG / boxWeightKG;
+                } else if (itemMasterUnit === 'EA') {
+                  convertedDiff = valueInKG / eaWeightKG;
+                }
+              }
+            }
+            
             const updatePayload: any = {
-              currentStock: prevStock + diff,
+              currentStock: prevStock + convertedDiff,
               updatedAt: serverTimestamp(),
             };
             
             const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
             if (isRaw && avgWeight > 0) {
               const prevBoxes = Number(data.boxes || 0);
-              const boxesDiff = diff / avgWeight;
+              const boxesDiff = convertedDiff / avgWeight;
               const nextBoxes = Math.round((prevBoxes + boxesDiff) * 100) / 100;
               updatePayload.boxes = Math.max(0, nextBoxes);
             }
             
             transaction.update(itemDocRef, updatePayload);
+            return {
+              prevStock,
+              nextStock: prevStock + convertedDiff
+            };
           } else {
             prevStock = 0;
             transaction.set(itemDocRef, {
@@ -658,18 +713,18 @@ function ProductionContent({
               brand: brandName || '',
               category: isRaw ? '원육' : '완제품',
               sku: `${isRaw ? "R" : "P"}-${Math.random().toString(36).substring(7).toUpperCase()}`,
-              unit: 'KG',
+              unit: sourceUnit || 'KG',
               minStock: 0,
               location: '미지정',
               isApproved: true,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
             });
+            return {
+              prevStock,
+              nextStock: diff
+            };
           }
-          return {
-            prevStock,
-            nextStock: prevStock + diff
-          };
         });
 
         return result;
@@ -708,6 +763,7 @@ function ProductionContent({
               oldRecord.optionQty,
               false,
               oldRecord.brand || "",
+              oldRecord.optionUnit || "",
             );
           }
         }
@@ -724,7 +780,7 @@ function ProductionContent({
           rawStockInfo = await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
         }
         if (optionName && optionQtyNum > 0) {
-          optionStockInfo = await updateInventoryStock(optionName, -optionQtyNum, false);
+          optionStockInfo = await updateInventoryStock(optionName, -optionQtyNum, false, "", optionUnit);
         }
 
         // Clean up row data for Firestore
@@ -745,6 +801,7 @@ function ProductionContent({
           rawNextStock: rawStockInfo.nextStock,
           optionName: optionName || "",
           optionQty: optionQtyNum,
+          optionUnit: optionUnit,
           optionPrevStock: optionStockInfo.prevStock,
           optionNextStock: optionStockInfo.nextStock,
           updatedAt: serverTimestamp(),
@@ -756,6 +813,7 @@ function ProductionContent({
         setRemarks("");
         setOptionName("");
         setOptionQty("");
+        setOptionUnit("KG");
         setRows([
           {
             id: Date.now(),
@@ -806,7 +864,7 @@ function ProductionContent({
           rawStockInfo = await updateInventoryStock(resolvedRawMaterial, -rawNum, true, resolvedBrand);
         }
         if (hasOption) {
-          optionStockInfo = await updateInventoryStock(optionName, -optionQtyNum, false);
+          optionStockInfo = await updateInventoryStock(optionName, -optionQtyNum, false, "", optionUnit);
         }
 
         // Clean up row data for Firestore
@@ -834,6 +892,7 @@ function ProductionContent({
           rawNextStock: rawStockInfo.nextStock,
           optionName: hasOption ? optionName : "",
           optionQty: hasOption ? optionQtyNum : 0,
+          optionUnit: hasOption ? optionUnit : "",
           optionPrevStock: hasOption ? optionStockInfo.prevStock : 0,
           optionNextStock: hasOption ? optionStockInfo.nextStock : 0,
           createdAt: serverTimestamp(),
@@ -844,6 +903,7 @@ function ProductionContent({
       setRemarks("");
       setOptionName("");
       setOptionQty("");
+      setOptionUnit("KG");
       setRows([
         {
           id: Date.now(),
@@ -872,6 +932,7 @@ function ProductionContent({
     setRemarks(item.remarks || "");
     setOptionName(item.optionName || "");
     setOptionQty(item.optionQty ? String(item.optionQty) : "");
+    setOptionUnit(item.optionUnit || "KG");
     const inv = inventory.find((i: any) => i.name === item.rawMaterial);
     const avgWeight = inv?.avgWeight ? Number(inv.avgWeight) : 0;
     const rawBoxesVal = (avgWeight > 0 && item.rawQty)
@@ -985,9 +1046,58 @@ function ProductionContent({
         }
 
         if (optionRef && optionSnap && optionSnap.exists()) {
-          const currentStock = Number(optionSnap.data().currentStock || 0);
+          const optionData = optionSnap.data();
+          const itemMasterUnit = (optionData.unit || 'KG').toUpperCase();
+          const currentTxUnit = (record.optionUnit || 'BOX').toUpperCase();
+          
+          let convertedQty = Number(record.optionQty || 0);
+          if (itemMasterUnit !== currentTxUnit) {
+            const avgWeight = Number(optionData.avgWeight) || 0;
+            const itemSpecs = (optionData.specs || '').trim();
+            const packSize = (() => {
+              if (!itemSpecs) return 1;
+              const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
+              if (match) {
+                const num = parseInt(match[1], 10);
+                if (!isNaN(num) && num > 0) return num;
+              }
+              return 1;
+            })();
+
+            const isWeight = (u: string) => ['KG', 'G'].includes(u);
+            
+            if (isWeight(itemMasterUnit) && isWeight(currentTxUnit)) {
+              if (itemMasterUnit === 'KG' && currentTxUnit === 'G') convertedQty = convertedQty / 1000;
+              if (itemMasterUnit === 'G' && currentTxUnit === 'KG') convertedQty = convertedQty * 1000;
+            } else if (!isWeight(itemMasterUnit) && !isWeight(currentTxUnit)) {
+              if (itemMasterUnit === 'EA' && currentTxUnit === 'BOX') convertedQty = convertedQty * packSize;
+              if (itemMasterUnit === 'BOX' && currentTxUnit === 'EA') convertedQty = convertedQty / packSize;
+            } else {
+              // Mixed conversion
+              const boxWeightKG = avgWeight > 0 ? avgWeight : 1; 
+              const eaWeightKG = boxWeightKG / packSize;
+              
+              let valueInKG = 0;
+              if (currentTxUnit === 'KG') valueInKG = convertedQty;
+              else if (currentTxUnit === 'G') valueInKG = convertedQty / 1000;
+              else if (currentTxUnit === 'BOX') valueInKG = convertedQty * boxWeightKG;
+              else if (currentTxUnit === 'EA') valueInKG = convertedQty * eaWeightKG;
+              
+              if (itemMasterUnit === 'KG') {
+                convertedQty = valueInKG;
+              } else if (itemMasterUnit === 'G') {
+                convertedQty = valueInKG * 1000;
+              } else if (itemMasterUnit === 'BOX') {
+                convertedQty = valueInKG / boxWeightKG;
+              } else if (itemMasterUnit === 'EA') {
+                convertedQty = valueInKG / eaWeightKG;
+              }
+            }
+          }
+
+          const currentStock = Number(optionData.currentStock || 0);
           transaction.update(optionRef, {
-            currentStock: currentStock + Number(record.optionQty || 0),
+            currentStock: currentStock + convertedQty,
             updatedAt: serverTimestamp(),
           });
         }
@@ -1935,6 +2045,7 @@ function ProductionContent({
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 setOptionName(item.name);
+                                setOptionUnit((item.unit || "KG").toUpperCase());
                                 setShowOptionDropdown(false);
                               }}
                               className={`w-full h-11 flex flex-col justify-center px-5 text-left hover:bg-[#f1f4f9] transition-colors ${optionName === item.name ? "bg-primary/5" : ""}`}
@@ -1973,7 +2084,7 @@ function ProductionContent({
                 </div>
               </div>
 
-              <div className="w-full md:w-48 space-y-1">
+              <div className="w-full md:w-60 space-y-1">
                 <span className="block text-[10px] font-black text-slate-500 ml-1">
                   사용량 (수량)
                 </span>
@@ -1983,14 +2094,20 @@ function ProductionContent({
                     placeholder="0"
                     value={optionQty}
                     onChange={(e) => setOptionQty(formatWithCommas(e.target.value))}
-                    className="h-12 md:h-14 w-full pl-4 pr-12 bg-white border border-outline-variant rounded-xl font-bold outline-none focus:border-primary transition-all shadow-sm text-right text-xs md:text-sm"
+                    className="h-12 md:h-14 w-full pl-4 pr-24 bg-white border border-outline-variant rounded-xl font-bold outline-none focus:border-primary transition-all shadow-sm text-right text-xs md:text-sm"
                   />
-                  <span className="absolute right-4 font-black text-xs text-outline uppercase tracking-wider">
-                    {(() => {
-                      const selectedItem = optionInventoryItems.find((i: any) => i.name === optionName);
-                      return (selectedItem?.unit || "KG").toUpperCase();
-                    })()}
-                  </span>
+                  <div className="absolute right-1.5 top-1.5 bottom-1.5 bg-slate-100 rounded-lg border border-outline-variant/30 px-1 flex items-center col-span-1">
+                    <select
+                      value={optionUnit}
+                      onChange={(e) => setOptionUnit(e.target.value)}
+                      className="bg-transparent text-xs font-black text-slate-700 uppercase tracking-tight focus:outline-none cursor-pointer px-1 w-20 h-full text-center"
+                    >
+                      <option value="KG">KG</option>
+                      <option value="G">G</option>
+                      <option value="BOX">BOX</option>
+                      <option value="EA">EA</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -2001,6 +2118,7 @@ function ProductionContent({
                     onClick={() => {
                       setOptionName("");
                       setOptionQty("");
+                      setOptionUnit("KG");
                     }}
                     className="h-12 md:h-14 px-4 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                   >
@@ -2080,6 +2198,7 @@ function ProductionContent({
                     setRemarks("");
                     setOptionName("");
                     setOptionQty("");
+                    setOptionUnit("KG");
                   }}
                   className="flex-1 h-16 bg-slate-100 text-slate-600 rounded-2xl font-black text-lg hover:bg-slate-200 transition-all"
                 >
@@ -2359,7 +2478,7 @@ function ProductionContent({
                               <div className="mt-1.5 px-2.5 py-1.5 bg-blue-50/50 border border-blue-200/30 rounded-xl text-[10px] text-blue-800 font-medium max-w-[240px] break-all leading-normal text-left">
                                 <span className="font-black text-blue-800 mr-1">추가옵션:</span>
                                 {item.optionName} {item.optionQty?.toLocaleString()}{" "}
-                                {(() => {
+                                {item.optionUnit ? item.optionUnit.toUpperCase() : (() => {
                                   const matched = inventory.find((it: any) => it.name === item.optionName);
                                   return (matched?.unit || "KG").toUpperCase();
                                 })()}
@@ -2552,7 +2671,7 @@ function ProductionContent({
                       <div className="bg-blue-50/55 border border-blue-200/30 p-3 rounded-2xl text-[11px] text-blue-800 font-medium break-all leading-normal text-left">
                         <span className="font-extrabold text-blue-800 mr-1">추가옵션:</span>
                         {item.optionName} {item.optionQty?.toLocaleString()}{" "}
-                        {(() => {
+                        {item.optionUnit ? item.optionUnit.toUpperCase() : (() => {
                           const matched = inventory.find((it: any) => it.name === item.optionName);
                           return (matched?.unit || "KG").toUpperCase();
                         })()}
