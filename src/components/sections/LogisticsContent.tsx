@@ -1105,7 +1105,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                   </div>
 
                   {/* Inputs Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Item Autocomplete select */}
                     <div className="space-y-1 relative">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">품목명</label>
@@ -1275,16 +1275,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                       )}
                     </div>
 
-                    {/* Specs */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">규격 (예: 25kg/box)</label>
-                      <input 
-                        placeholder="직접 기입"
-                        value={item.specs} 
-                        onChange={e => updateBatchItem(idx, { specs: e.target.value })} 
-                        className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 ring-primary/20 outline-none transition-all" 
-                      />
-                    </div>
+
 
                     {/* Weight & Unit */}
                     <div className="space-y-1 relative">
