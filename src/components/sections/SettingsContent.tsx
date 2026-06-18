@@ -288,7 +288,7 @@ function SettingsContent({
                 specs: data.specs || '',
                 category: data.category || '미분류',
                 brand: data.brand || '',
-                partner: '시스템 조정 (Settings)',
+                partner: '',
                 memo: '마스터 아이템 수정 시 재고 수동 조정',
                 createdAt: serverTimestamp()
               });
