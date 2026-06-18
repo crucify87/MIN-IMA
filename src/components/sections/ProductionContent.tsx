@@ -691,10 +691,9 @@ function ProductionContent({
             };
             
             const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
-            if (isRaw && avgWeight > 0) {
-              const prevBoxes = Number(data.boxes || 0);
-              const boxesDiff = convertedDiff / avgWeight;
-              const nextBoxes = Math.round((prevBoxes + boxesDiff) * 100) / 100;
+            if (avgWeight > 0) {
+              const nextStock = prevStock + convertedDiff;
+              const nextBoxes = Math.round((nextStock / avgWeight) * 100) / 100;
               updatePayload.boxes = Math.max(0, nextBoxes);
             }
             
@@ -705,11 +704,17 @@ function ProductionContent({
             };
           } else {
             prevStock = 0;
+            const refAvgWeight = Number(existingInList?.avgWeight) || 0;
+            let finalBoxes = 0;
+            if (refAvgWeight > 0) {
+              finalBoxes = Math.max(0, Math.round((diff / refAvgWeight) * 100) / 100);
+            }
+
             transaction.set(itemDocRef, {
               name: trimmedName,
               specs: '',
               currentStock: diff,
-              boxes: 0,
+              boxes: finalBoxes,
               brand: brandName || '',
               category: isRaw ? '원육' : '완제품',
               sku: `${isRaw ? "R" : "P"}-${Math.random().toString(36).substring(7).toUpperCase()}`,
@@ -1022,25 +1027,31 @@ function ProductionContent({
         transaction.delete(doc(db, "production_batches", String(id)));
 
         if (itemRef && itemSnap && itemSnap.exists()) {
-          const currentStock = Number(itemSnap.data().currentStock || 0);
-          transaction.update(itemRef, {
-            currentStock: currentStock - record.production,
+          const itemData = itemSnap.data();
+          const currentStock = Number(itemData.currentStock || 0);
+          const nextStock = currentStock - record.production;
+          const updatePayload: any = {
+            currentStock: nextStock,
             updatedAt: serverTimestamp(),
-          });
+          };
+          const avgWeight = Number(itemData.avgWeight) || 0;
+          if (avgWeight > 0) {
+            updatePayload.boxes = Math.max(0, Math.round((nextStock / avgWeight) * 100) / 100);
+          }
+          transaction.update(itemRef, updatePayload);
         }
 
         if (rawRef && rawSnap && rawSnap.exists()) {
           const rawData = rawSnap.data();
           const currentStock = Number(rawData.currentStock || 0);
+          const nextStock = currentStock + record.rawQty;
           const updatePayload: any = {
-            currentStock: currentStock + record.rawQty,
+            currentStock: nextStock,
             updatedAt: serverTimestamp(),
           };
           const avgWeight = Number(rawData.avgWeight) || 0;
           if (avgWeight > 0) {
-            const currentBoxes = Number(rawData.boxes || 0);
-            const boxesDiff = record.rawQty / avgWeight;
-            updatePayload.boxes = Math.max(0, Math.round((currentBoxes + boxesDiff) * 100) / 100);
+            updatePayload.boxes = Math.max(0, Math.round((nextStock / avgWeight) * 100) / 100);
           }
           transaction.update(rawRef, updatePayload);
         }
@@ -1096,10 +1107,16 @@ function ProductionContent({
           }
 
           const currentStock = Number(optionData.currentStock || 0);
-          transaction.update(optionRef, {
-            currentStock: currentStock + convertedQty,
+          const nextStock = currentStock + convertedQty;
+          const updatePayload: any = {
+            currentStock: nextStock,
             updatedAt: serverTimestamp(),
-          });
+          };
+          const avgWeight = Number(optionData.avgWeight) || 0;
+          if (avgWeight > 0) {
+            updatePayload.boxes = Math.max(0, Math.round((nextStock / avgWeight) * 100) / 100);
+          }
+          transaction.update(optionRef, updatePayload);
         }
       });
 

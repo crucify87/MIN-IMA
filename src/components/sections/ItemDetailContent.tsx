@@ -190,11 +190,16 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
     setLoading(true);
     try {
       const diff = Number(stock) - item.currentStock;
+      const avgWeight = Number(item.avgWeight) || 0;
       
       const updateData: any = { 
         currentStock: Number(stock), 
         updatedAt: serverTimestamp() 
       };
+
+      if (avgWeight > 0) {
+        updateData.boxes = Math.round((Number(stock) / avgWeight) * 100) / 100;
+      }
 
       if (canEditPrices) {
         updateData.purchasePrice = Number(priceForm.purchasePrice);
@@ -204,6 +209,10 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
       await updateDoc(doc(db, 'inventory', String(item.id)), updateData);
       
       if (diff !== 0) {
+        const nextBoxes = avgWeight > 0 ? Math.round((Number(stock) / avgWeight) * 100) / 100 : item.boxes || 0;
+        const prevBoxes = item.boxes || 0;
+        const boxesDiff = nextBoxes - prevBoxes;
+
         await addDoc(collection(db, 'logistics'), {
           date: new Date().toLocaleDateString('sv-SE'),
           time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
@@ -211,12 +220,12 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
           item: item.name,
           partner: '',
           weight: Math.abs(diff),
-          boxes: 0,
+          boxes: Math.abs(boxesDiff),
           unit: item.unit || 'BOX',
           prevStock: item.currentStock,
           nextStock: Number(stock),
-          prevBoxes: item.boxes || 0,
-          nextBoxes: item.boxes || 0,
+          prevBoxes: prevBoxes,
+          nextBoxes: nextBoxes,
           specs: item.specs || '',
           category: item.category || '미분류',
           status: '완료',

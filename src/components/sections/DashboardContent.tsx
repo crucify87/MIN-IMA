@@ -500,18 +500,30 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             
             if (prodRef && prodSnap && prodSnap.exists()) {
               const currentVal = Number(prodSnap.data().currentStock || 0);
-              transaction.update(prodRef, {
-                currentStock: currentVal - record.production,
+              const nextVal = currentVal - record.production;
+              const updatePayload: any = {
+                currentStock: nextVal,
                 updatedAt: serverTimestamp()
-              });
+              };
+              const avgWeight = Number(prodSnap.data().avgWeight) || 0;
+              if (avgWeight > 0) {
+                updatePayload.boxes = Math.max(0, Math.round((nextVal / avgWeight) * 100) / 100);
+              }
+              transaction.update(prodRef, updatePayload);
             }
             
             if (rawRef && rawSnap && rawSnap.exists()) {
               const currentVal = Number(rawSnap.data().currentStock || 0);
-              transaction.update(rawRef, {
-                currentStock: currentVal + record.rawQty,
+              const nextVal = currentVal + record.rawQty;
+              const updatePayload: any = {
+                currentStock: nextVal,
                 updatedAt: serverTimestamp()
-              });
+              };
+              const avgWeight = Number(rawSnap.data().avgWeight) || 0;
+              if (avgWeight > 0) {
+                updatePayload.boxes = Math.max(0, Math.round((nextVal / avgWeight) * 100) / 100);
+              }
+              transaction.update(rawRef, updatePayload);
             }
           }
         } else {
@@ -581,11 +593,18 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                 }
               }
 
-              transaction.update(itemRef, {
-                currentStock: Number(currentData.currentStock || 0) + finalStockDiff,
-                boxes: Number(currentData.boxes || 0) + boxesDiff,
+              const nextVal = Number(currentData.currentStock || 0) + finalStockDiff;
+              const updatePayload: any = {
+                currentStock: nextVal,
                 updatedAt: serverTimestamp()
-              });
+              };
+              const avgWeight = Number(currentData.avgWeight) || 0;
+              if (avgWeight > 0) {
+                updatePayload.boxes = Math.max(0, Math.round((nextVal / avgWeight) * 100) / 100);
+              } else {
+                updatePayload.boxes = Number(currentData.boxes || 0) + boxesDiff;
+              }
+              transaction.update(itemRef, updatePayload);
             }
           }
       });

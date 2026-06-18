@@ -656,13 +656,22 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         }
       }
 
-      const finalBoxesDiff = boxesDiff;
+      const docAvgWeight = docSnap.exists() ? (Number((docSnap.data() as any).avgWeight) || 0) : 0;
+      const refAvgWeight = Number((existingInList as any)?.avgWeight) || 0;
+      const avgWeight = docAvgWeight || refAvgWeight;
+
+      const nextStock = prevStock + finalStockDiff;
+      let nextBoxes = prevBoxes + boxesDiff;
+
+      if (avgWeight > 0) {
+        nextBoxes = Math.round((nextStock / avgWeight) * 100) / 100;
+      }
 
       if (docSnap.exists()) {
         const data = docSnap.data() as any;
         transaction.update(itemDocRef, {
-          currentStock: prevStock + finalStockDiff,
-          boxes: prevBoxes + finalBoxesDiff,
+          currentStock: nextStock,
+          boxes: nextBoxes,
           brand: itemBrand || data.brand || '',
           category: targetCategory || data.category || '미분류',
           updatedAt: serverTimestamp()
@@ -671,8 +680,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         transaction.set(itemDocRef, {
           name: trimmedName,
           specs: targetSpecs,
-          currentStock: finalStockDiff,
-          boxes: finalBoxesDiff,
+          currentStock: nextStock,
+          boxes: nextBoxes,
           brand: itemBrand || '',
           category: targetCategory || '미분류',
           partner: itemPartner || '',
@@ -688,9 +697,9 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       
       return {
         prevStock,
-        nextStock: prevStock + finalStockDiff,
+        nextStock,
         prevBoxes,
-        nextBoxes: prevBoxes + finalBoxesDiff
+        nextBoxes
       };
     });
 

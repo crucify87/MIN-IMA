@@ -263,6 +263,10 @@ function SettingsContent({
         updatedAt: serverTimestamp()
       };
 
+      if (data.avgWeight > 0) {
+        data.boxes = Math.round((data.currentStock / data.avgWeight) * 100) / 100;
+      }
+
       if (editingItemId) {
         const oldItem = inventory.find((i: any) => i.id === editingItemId);
         await updateDoc(doc(db, 'inventory', editingItemId), data);
