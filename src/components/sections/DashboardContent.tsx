@@ -516,7 +516,8 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             }
             
             if (rawRef && rawSnap && rawSnap.exists()) {
-              const currentVal = Number(rawSnap.data().currentStock || 0);
+              const rawData = rawSnap.data();
+              const currentVal = Number(rawData.currentStock || 0);
               let nextVal = currentVal + record.rawQty;
               if (nextVal < 0) {
                 nextVal = 0;
@@ -525,9 +526,11 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                 currentStock: nextVal,
                 updatedAt: serverTimestamp()
               };
-              const avgWeight = Number(rawSnap.data().avgWeight) || 0;
+              const avgWeight = Number(rawData.avgWeight) || 0;
+              const currentBoxes = Number(rawData.boxes || 0);
+              const recordBoxes = Number(record.rawBoxes) || (avgWeight > 0 ? (record.rawQty / avgWeight) : 0);
               if (avgWeight > 0) {
-                updatePayload.boxes = Math.max(0, Math.round((nextVal / avgWeight) * 100) / 100);
+                updatePayload.boxes = Math.max(0, Math.round((currentBoxes + recordBoxes) * 100) / 100);
               }
               transaction.update(rawRef, updatePayload);
             }

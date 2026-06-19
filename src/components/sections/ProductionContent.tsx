@@ -537,11 +537,7 @@ function ProductionContent({
               updated.rawBoxes = "";
             }
           } else if (field === "rawBoxes") {
-            if (avgWeight > 0) {
-              const boxesVal = Number(value) || 0;
-              const weightVal = Math.round((boxesVal * avgWeight) * 100) / 100;
-              updated.rawQty = boxesVal > 0 ? String(weightVal) : "";
-            }
+            // Do not override rawQty automatically when manually editing box deductions to allow direct input.
           }
           
           if (field === "brand") {
@@ -607,6 +603,7 @@ function ProductionContent({
         isRaw: boolean = false,
         brandName: string = "",
         sourceUnit: string = "",
+        customBoxesDiff: number | null = null,
       ) => {
         if (!name) return { prevStock: 0, nextStock: 0 };
         const trimmedName = name.trim();
@@ -694,11 +691,18 @@ function ProductionContent({
               updatedAt: serverTimestamp(),
             };
             
-            const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
-            if (avgWeight > 0) {
-              const nextBoxes = Math.round((nextStock / avgWeight) * 100) / 100;
-              updatePayload.boxes = Math.max(0, nextBoxes);
+            const prevBoxes = Number(data.boxes || 0);
+            let nextBoxes;
+            if (customBoxesDiff !== null) {
+              nextBoxes = prevBoxes + customBoxesDiff;
+            } else {
+              const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
+              nextBoxes = avgWeight > 0 ? (nextStock / avgWeight) : prevBoxes;
             }
+            if (nextBoxes < 0) {
+              nextBoxes = 0;
+            }
+            updatePayload.boxes = Math.round(nextBoxes * 100) / 100;
             
             transaction.update(itemDocRef, updatePayload);
             return {
@@ -713,15 +717,20 @@ function ProductionContent({
             }
             const refAvgWeight = Number(existingInList?.avgWeight) || 0;
             let finalBoxes = 0;
-            if (refAvgWeight > 0) {
-              finalBoxes = Math.max(0, Math.round((initialStock / refAvgWeight) * 100) / 100);
+            if (customBoxesDiff !== null) {
+              finalBoxes = customBoxesDiff;
+            } else if (refAvgWeight > 0) {
+              finalBoxes = Math.round((initialStock / refAvgWeight) * 100) / 100;
+            }
+            if (finalBoxes < 0) {
+              finalBoxes = 0;
             }
 
             transaction.set(itemDocRef, {
               name: trimmedName,
               specs: '',
               currentStock: initialStock,
-              boxes: finalBoxes,
+              boxes: Math.round(finalBoxes * 100) / 100,
               brand: brandName || '',
               category: isRaw ? '원육' : '완제품',
               sku: `${isRaw ? "R" : "P"}-${Math.random().toString(36).substring(7).toUpperCase()}`,
@@ -761,11 +770,14 @@ function ProductionContent({
             await updateInventoryStock(oldRecord.title, -oldRecord.production, false, oldRecord.brand);
           }
           if (oldRecord.rawQty > 0) {
+            const oldRawBoxes = Number(oldRecord.rawBoxes) || 0;
             await updateInventoryStock(
               oldRecord.rawMaterial,
               oldRecord.rawQty,
               true,
               oldRecord.brand,
+              "",
+              oldRawBoxes,
             );
           }
           // ALSO revert old option inventory change
@@ -789,7 +801,8 @@ function ProductionContent({
           prodStockInfo = await updateInventoryStock(row.title, prodNum, false, row.brand);
         }
         if (rawNum > 0) {
-          rawStockInfo = await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand);
+          const newRawBoxes = Number(row.rawBoxes) || 0;
+          rawStockInfo = await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand, "", -newRawBoxes);
         }
         if (optionName && optionQtyNum > 0) {
           optionStockInfo = await updateInventoryStock(optionName, -optionQtyNum, false, "", optionUnit);
@@ -873,7 +886,8 @@ function ProductionContent({
           prodStockInfo = await updateInventoryStock(resolvedTitle, prodNum, false, resolvedBrand);
         }
         if (rawNum > 0) {
-          rawStockInfo = await updateInventoryStock(resolvedRawMaterial, -rawNum, true, resolvedBrand);
+          const newRawBoxes = Number(row.rawBoxes) || 0;
+          rawStockInfo = await updateInventoryStock(resolvedRawMaterial, -rawNum, true, resolvedBrand, "", -newRawBoxes);
         }
         if (hasOption) {
           optionStockInfo = await updateInventoryStock(optionName, -optionQtyNum, false, "", optionUnit);
@@ -1063,8 +1077,10 @@ function ProductionContent({
             updatedAt: serverTimestamp(),
           };
           const avgWeight = Number(rawData.avgWeight) || 0;
+          const currentBoxes = Number(rawData.boxes || 0);
+          const recordBoxes = Number(record.rawBoxes) || (avgWeight > 0 ? (record.rawQty / avgWeight) : 0);
           if (avgWeight > 0) {
-            updatePayload.boxes = Math.max(0, Math.round((nextStock / avgWeight) * 100) / 100);
+            updatePayload.boxes = Math.max(0, Math.round((currentBoxes + recordBoxes) * 100) / 100);
           }
           transaction.update(rawRef, updatePayload);
         }
