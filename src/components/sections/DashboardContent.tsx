@@ -500,7 +500,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             
             if (prodRef && prodSnap && prodSnap.exists()) {
               const currentVal = Number(prodSnap.data().currentStock || 0);
-              const nextVal = currentVal - record.production;
+              let nextVal = currentVal - record.production;
+              if (nextVal < 0) {
+                nextVal = 0;
+              }
               const updatePayload: any = {
                 currentStock: nextVal,
                 updatedAt: serverTimestamp()
@@ -514,7 +517,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             
             if (rawRef && rawSnap && rawSnap.exists()) {
               const currentVal = Number(rawSnap.data().currentStock || 0);
-              const nextVal = currentVal + record.rawQty;
+              let nextVal = currentVal + record.rawQty;
+              if (nextVal < 0) {
+                nextVal = 0;
+              }
               const updatePayload: any = {
                 currentStock: nextVal,
                 updatedAt: serverTimestamp()
@@ -593,17 +599,25 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                 }
               }
 
-              const nextVal = Number(currentData.currentStock || 0) + finalStockDiff;
+              let nextVal = Number(currentData.currentStock || 0) + finalStockDiff;
+              if (nextVal < 0) {
+                nextVal = 0;
+              }
               const updatePayload: any = {
                 currentStock: nextVal,
                 updatedAt: serverTimestamp()
               };
               const avgWeight = Number(currentData.avgWeight) || 0;
+              let nextBoxes = 0;
               if (avgWeight > 0) {
-                updatePayload.boxes = Math.max(0, Math.round((nextVal / avgWeight) * 100) / 100);
+                nextBoxes = Math.max(0, Math.round((nextVal / avgWeight) * 100) / 100);
               } else {
-                updatePayload.boxes = Number(currentData.boxes || 0) + boxesDiff;
+                nextBoxes = Number(currentData.boxes || 0) + boxesDiff;
               }
+              if (nextBoxes < 0) {
+                nextBoxes = 0;
+              }
+              updatePayload.boxes = nextBoxes;
               transaction.update(itemRef, updatePayload);
             }
           }

@@ -685,14 +685,17 @@ function ProductionContent({
               }
             }
             
+            let nextStock = prevStock + convertedDiff;
+            if (nextStock < 0) {
+              nextStock = 0;
+            }
             const updatePayload: any = {
-              currentStock: prevStock + convertedDiff,
+              currentStock: nextStock,
               updatedAt: serverTimestamp(),
             };
             
             const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
             if (avgWeight > 0) {
-              const nextStock = prevStock + convertedDiff;
               const nextBoxes = Math.round((nextStock / avgWeight) * 100) / 100;
               updatePayload.boxes = Math.max(0, nextBoxes);
             }
@@ -700,20 +703,24 @@ function ProductionContent({
             transaction.update(itemDocRef, updatePayload);
             return {
               prevStock,
-              nextStock: prevStock + convertedDiff
+              nextStock
             };
           } else {
             prevStock = 0;
+            let initialStock = diff;
+            if (initialStock < 0) {
+              initialStock = 0;
+            }
             const refAvgWeight = Number(existingInList?.avgWeight) || 0;
             let finalBoxes = 0;
             if (refAvgWeight > 0) {
-              finalBoxes = Math.max(0, Math.round((diff / refAvgWeight) * 100) / 100);
+              finalBoxes = Math.max(0, Math.round((initialStock / refAvgWeight) * 100) / 100);
             }
 
             transaction.set(itemDocRef, {
               name: trimmedName,
               specs: '',
-              currentStock: diff,
+              currentStock: initialStock,
               boxes: finalBoxes,
               brand: brandName || '',
               category: isRaw ? '원육' : '완제품',
@@ -727,7 +734,7 @@ function ProductionContent({
             });
             return {
               prevStock,
-              nextStock: diff
+              nextStock: initialStock
             };
           }
         });
@@ -1029,7 +1036,10 @@ function ProductionContent({
         if (itemRef && itemSnap && itemSnap.exists()) {
           const itemData = itemSnap.data();
           const currentStock = Number(itemData.currentStock || 0);
-          const nextStock = currentStock - record.production;
+          let nextStock = currentStock - record.production;
+          if (nextStock < 0) {
+            nextStock = 0;
+          }
           const updatePayload: any = {
             currentStock: nextStock,
             updatedAt: serverTimestamp(),
@@ -1044,7 +1054,10 @@ function ProductionContent({
         if (rawRef && rawSnap && rawSnap.exists()) {
           const rawData = rawSnap.data();
           const currentStock = Number(rawData.currentStock || 0);
-          const nextStock = currentStock + record.rawQty;
+          let nextStock = currentStock + record.rawQty;
+          if (nextStock < 0) {
+            nextStock = 0;
+          }
           const updatePayload: any = {
             currentStock: nextStock,
             updatedAt: serverTimestamp(),
@@ -1107,7 +1120,10 @@ function ProductionContent({
           }
 
           const currentStock = Number(optionData.currentStock || 0);
-          const nextStock = currentStock + convertedQty;
+          let nextStock = currentStock + convertedQty;
+          if (nextStock < 0) {
+            nextStock = 0;
+          }
           const updatePayload: any = {
             currentStock: nextStock,
             updatedAt: serverTimestamp(),

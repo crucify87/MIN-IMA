@@ -252,9 +252,13 @@ function SettingsContent({
     e.preventDefault();
     if (!canEditItems) return;
     try {
+      let currentStockVal = Number(itemForm.currentStock) || 0;
+      if (currentStockVal < 0) {
+        currentStockVal = 0;
+      }
       const data = {
         ...itemForm,
-        currentStock: Number(itemForm.currentStock) || 0,
+        currentStock: currentStockVal,
         safetyStock: Number(itemForm.safetyStock) || 0,
         boxes: Number(itemForm.boxes) || 0,
         purchasePrice: Number(itemForm.purchasePrice) || 0,

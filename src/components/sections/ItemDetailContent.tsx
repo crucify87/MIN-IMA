@@ -189,16 +189,20 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
     if (!canEditItems) return;
     setLoading(true);
     try {
-      const diff = Number(stock) - item.currentStock;
+      let targetStock = Number(stock);
+      if (targetStock < 0) {
+        targetStock = 0;
+      }
+      const diff = targetStock - item.currentStock;
       const avgWeight = Number(item.avgWeight) || 0;
       
       const updateData: any = { 
-        currentStock: Number(stock), 
+        currentStock: targetStock, 
         updatedAt: serverTimestamp() 
       };
 
       if (avgWeight > 0) {
-        updateData.boxes = Math.round((Number(stock) / avgWeight) * 100) / 100;
+        updateData.boxes = Math.round((targetStock / avgWeight) * 100) / 100;
       }
 
       if (canEditPrices) {
@@ -209,7 +213,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
       await updateDoc(doc(db, 'inventory', String(item.id)), updateData);
       
       if (diff !== 0) {
-        const nextBoxes = avgWeight > 0 ? Math.round((Number(stock) / avgWeight) * 100) / 100 : item.boxes || 0;
+        const nextBoxes = avgWeight > 0 ? Math.round((targetStock / avgWeight) * 100) / 100 : item.boxes || 0;
         const prevBoxes = item.boxes || 0;
         const boxesDiff = nextBoxes - prevBoxes;
 
@@ -223,7 +227,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
           boxes: Math.abs(boxesDiff),
           unit: item.unit || 'BOX',
           prevStock: item.currentStock,
-          nextStock: Number(stock),
+          nextStock: targetStock,
           prevBoxes: prevBoxes,
           nextBoxes: nextBoxes,
           specs: item.specs || '',

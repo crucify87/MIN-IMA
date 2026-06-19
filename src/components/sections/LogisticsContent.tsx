@@ -660,11 +660,17 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       const refAvgWeight = Number((existingInList as any)?.avgWeight) || 0;
       const avgWeight = docAvgWeight || refAvgWeight;
 
-      const nextStock = prevStock + finalStockDiff;
+      let nextStock = prevStock + finalStockDiff;
+      if (nextStock < 0) {
+        nextStock = 0;
+      }
       let nextBoxes = prevBoxes + boxesDiff;
 
       if (avgWeight > 0) {
         nextBoxes = Math.round((nextStock / avgWeight) * 100) / 100;
+      }
+      if (nextBoxes < 0) {
+        nextBoxes = 0;
       }
 
       if (docSnap.exists()) {
@@ -972,9 +978,22 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
               }
             }
 
+            let nextStock = Number(currentData.currentStock || 0) + finalStockDiff;
+            if (nextStock < 0) {
+              nextStock = 0;
+            }
+            let nextBoxes = Number(currentData.boxes || 0) + boxesDiff;
+            const avgWeight = Number(currentData.avgWeight) || 0;
+            if (avgWeight > 0) {
+              nextBoxes = Math.round((nextStock / avgWeight) * 100) / 100;
+            }
+            if (nextBoxes < 0) {
+              nextBoxes = 0;
+            }
+
             transaction.update(itemRef, {
-              currentStock: Number(currentData.currentStock || 0) + finalStockDiff,
-              boxes: Number(currentData.boxes || 0) + boxesDiff,
+              currentStock: nextStock,
+              boxes: nextBoxes,
               updatedAt: serverTimestamp()
             });
           }
