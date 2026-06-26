@@ -257,10 +257,15 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       result = result.filter((l: any) => l.type === typeFilter);
     }
 
-    // Sort by date then time in reverse (latest first)
+    // 입력 순서(최신 생성 시간 역순)대로 리스트 상단 정렬
     return [...result].sort((a: any, b: any) => {
-      if (a.date !== b.date) return b.date.localeCompare(a.date);
-      return b.time.localeCompare(a.time);
+      const timeA = a.createdAt?.seconds || a.updatedAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || b.updatedAt?.seconds || 0;
+      if (timeA !== timeB) {
+        return timeB - timeA;
+      }
+      if (a.date !== b.date) return (b.date || '').localeCompare(a.date || '');
+      return (b.time || '').localeCompare(a.time || '');
     });
   }, [statusFilteredList, typeFilter]);
 
@@ -1072,15 +1077,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-8 rounded-[40px] border-2 border-[#0f172a]/10 shadow-2xl space-y-6">
           <form onSubmit={handleAdd} className="space-y-6">
-            {/* Batch Global settings: Date and Time */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-dashed border-slate-100 pb-5">
-              <div className="space-y-1">
+            {/* Batch Global settings: Date */}
+            <div className="border-b border-dashed border-slate-100 pb-5">
+              <div className="space-y-1 max-w-sm">
                 <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">날짜</label>
                 <input required type="date" value={formDate} onChange={e => setFormDate(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all text-xs" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-outline uppercase tracking-wider ml-1">시간</label>
-                <input required type="time" value={formTime} onChange={e => setFormTime(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-2 ring-primary/20 outline-none transition-all text-xs" />
               </div>
             </div>
 
