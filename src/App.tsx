@@ -136,6 +136,7 @@ export default function App() {
   }
 
   const { canEditItems, canViewPrices, canEditPrices, canManageUsers } = permissions;
+  const sidebarLogo = "/sidebarlogo.png?v=20260715";
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex overflow-x-hidden">
@@ -146,7 +147,7 @@ export default function App() {
           setView={(v) => handleNavigate(v)} 
           user={{...user, ...userData}} 
           onLogout={handleLogout} 
-          logoSrc={settings?.logoUrl}
+          logoSrc={sidebarLogo}
         />
       </div>
 
