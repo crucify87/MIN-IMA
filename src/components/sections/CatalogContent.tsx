@@ -231,6 +231,31 @@ function catalogSheet(item: CatalogItem) {
   `;
 }
 
+function catalogCover(items: CatalogItem[]) {
+  const today = new Date().toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+
+  return `
+    <section class="cover-page">
+      <div class="cover-mark">
+        <img src="/sidebarlogo.png?v=20260715" alt="123 Food" />
+      </div>
+      <div class="cover-copy">
+        <p class="cover-kicker">PRODUCT CATALOG</p>
+        <h1>(주)123푸드</h1>
+        <p class="cover-title">제품 카탈로그</p>
+        <div class="cover-meta">
+          <span>선택 상품 ${items.length}개</span>
+          <span>${today}</span>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function catalogDocument(items: CatalogItem[]) {
   return `
     <!doctype html>
@@ -246,6 +271,69 @@ function catalogDocument(items: CatalogItem[]) {
             font-family: Arial, "Malgun Gothic", sans-serif;
             color: #111827;
             background: #fff;
+          }
+          .cover-page {
+            min-height: 183mm;
+            display: grid;
+            grid-template-columns: 44% 56%;
+            align-items: center;
+            border: 1px solid #d1d5db;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 48%, #ecfdf5 100%);
+            page-break-after: always;
+            break-after: page;
+            overflow: hidden;
+          }
+          .cover-mark {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            padding: 36px;
+          }
+          .cover-mark img {
+            width: 82%;
+            max-height: 130mm;
+            object-fit: contain;
+          }
+          .cover-copy {
+            padding: 46px;
+          }
+          .cover-kicker {
+            margin: 0 0 18px;
+            font-size: 13px;
+            font-weight: 900;
+            color: #047857;
+            letter-spacing: 0.22em;
+          }
+          .cover-copy h1 {
+            margin: 0;
+            font-size: 54px;
+            line-height: 1;
+            font-weight: 900;
+            color: #111827;
+            letter-spacing: 0;
+          }
+          .cover-title {
+            margin: 16px 0 28px;
+            font-size: 28px;
+            font-weight: 900;
+            color: #374151;
+          }
+          .cover-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+          .cover-meta span {
+            border: 1px solid #d1fae5;
+            background: #ecfdf5;
+            color: #047857;
+            border-radius: 999px;
+            padding: 9px 14px;
+            font-size: 13px;
+            font-weight: 900;
           }
           .sheet {
             width: 100%;
@@ -334,7 +422,7 @@ function catalogDocument(items: CatalogItem[]) {
           }
         </style>
       </head>
-      <body>${items.map(catalogSheet).join('')}</body>
+      <body>${catalogCover(items)}${items.map(catalogSheet).join('')}</body>
     </html>
   `;
 }
