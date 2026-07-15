@@ -795,7 +795,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
               sortedUnitValues.map(([unit, val]: any) => {
                 const isKG = unit.toUpperCase() === 'KG';
                 return (
-                  <div key={unit} className="inline-grid grid-cols-[auto_36px] items-baseline gap-2.5 max-w-full">
+                  <div key={unit} className="grid grid-cols-[110px_34px] md:grid-cols-[118px_36px] items-baseline gap-2 w-full max-w-[152px] md:max-w-[162px]">
                     <span className={`text-right text-[20px] md:text-[24px] font-black tabular-nums tracking-normal leading-none whitespace-nowrap ${isKG ? 'text-primary' : 'text-on-surface'}`}>
                       {Math.round(val).toLocaleString()}
                     </span>
@@ -804,7 +804,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
                 );
               })
             ) : (
-              <div className="inline-grid grid-cols-[auto_36px] items-baseline gap-2.5 max-w-full">
+              <div className="grid grid-cols-[110px_34px] md:grid-cols-[118px_36px] items-baseline gap-2 w-full max-w-[152px] md:max-w-[162px]">
                 <span className="text-right text-[20px] md:text-[24px] font-black tabular-nums tracking-normal leading-none text-primary whitespace-nowrap">
                   0
                 </span>
@@ -813,7 +813,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
             )}
           </div>
         ) : (
-          <div className="inline-grid grid-cols-[auto_36px] items-baseline gap-2.5 max-w-full">
+          <div className="grid grid-cols-[110px_34px] md:grid-cols-[118px_36px] items-baseline gap-2 w-full max-w-[152px] md:max-w-[162px]">
             <span className={`text-right text-[22px] md:text-[26px] font-black tabular-nums tracking-normal leading-none whitespace-nowrap ${(stat.unit || 'KG').toUpperCase() === 'KG' ? 'text-primary' : 'text-on-surface'}`}>
               {Math.round((stat.value ?? 0) as number).toLocaleString()}
             </span>
