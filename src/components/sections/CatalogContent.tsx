@@ -15,7 +15,6 @@ import {
   CheckSquare,
   Download,
   Edit,
-  FileText,
   Image as ImageIcon,
   KeyRound,
   Plus,
@@ -857,14 +856,6 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openPdfWindow([item])}
-                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white active:scale-[0.98]"
-                  >
-                    <FileText className="w-4 h-4" />
-                    PDF
-                  </button>
                   {canEditItems && (
                     <>
                       <button
