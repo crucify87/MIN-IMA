@@ -737,65 +737,6 @@ function SettingsContent({
     }
   };
 
-  const handleResetAllInventory = async () => {
-    if (!isSuperAdmin) return;
-    if (!window.confirm("⚠️ 정말로 모든 등록된 품목의 현재 재고 수량(중량/박스)을 0으로 리셋하시겠습니까?\n이 작업은 되돌릴 수 없으며, 모든 원부자재 및 완제품의 현재고/박스수가 0으로 변경됩니다.")) return;
-    if (!window.confirm("⚠️ [최종 확인] 전체 품목의 재고 초기화를 진행하시겠습니까? 관련 입출고 로그는 보존되며 오직 마스터 품목의 현재고 데이터만 0으로 바뀝니다.")) return;
-
-    try {
-      // Chunk items in groups of 500
-      const chunks = [];
-      const tempItems = [...inventory];
-      while (tempItems.length > 0) {
-        chunks.push(tempItems.splice(0, 500));
-      }
-
-      for (const chunk of chunks) {
-        const batch = writeBatch(db);
-        chunk.forEach((item: any) => {
-          const itemRef = doc(db, 'inventory', item.id);
-          batch.update(itemRef, {
-            currentStock: 0,
-            boxes: 0,
-            updatedAt: serverTimestamp()
-          });
-        });
-        await batch.commit();
-      }
-
-      alert("모든 품목의 재고(수량 및 박스)가 0으로 정상 초기화되었습니다.");
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'inventory');
-    }
-  };
-
-  const handleResetAllLogistics = async () => {
-    if (!isSuperAdmin) return;
-    if (!window.confirm("⚠️ 정말로 모든 입출고 내역(물류리스트)을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며, 모든 과거 입출고 로그 데이터가 삭제됩니다.")) return;
-    if (!window.confirm("⚠️ [최종 확인] 전체 물류 리스트 초기화를 진행하시겠습니까? 등록된 품목 마스터의 현재고는 유지되며 오직 과거 입출고 내역 로그만 지워집니다.")) return;
-
-    try {
-      const chunks = [];
-      const tempLogs = [...logistics];
-      while (tempLogs.length > 0) {
-        chunks.push(tempLogs.splice(0, 500));
-      }
-
-      for (const chunk of chunks) {
-        const batch = writeBatch(db);
-        chunk.forEach((log: any) => {
-          const logRef = doc(db, 'logistics', log.id);
-          batch.delete(logRef);
-        });
-        await batch.commit();
-      }
-
-      alert("모든 물류 입출고 로그가 정상 초기화되었습니다.");
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'logistics');
-    }
-  };
-
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
   const paginatedItems = React.useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -1365,33 +1306,6 @@ function SettingsContent({
                   <p className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest mt-0.5">MASTER INVENTORY ITEMS</p>
                 </div>
 
-                {isSuperAdmin && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleResetAllLogistics}
-                      className="h-10 px-4 md:px-5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-95"
-                      id="btn-reset-all-logistics"
-                    >
-                      <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      물류 내역 일괄 초기화
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleResetAllInventory}
-                      className="h-10 px-4 md:px-5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-95"
-                      id="btn-reset-all-inventory"
-                    >
-                      <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      재고 일괄 리셋 (0으로 초기화)
-                    </button>
-                  </div>
-                )}
                 {canEditItems && (
                   <button
                     type="button"
