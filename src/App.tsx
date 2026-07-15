@@ -28,8 +28,31 @@ import CatalogContent from './components/sections/CatalogContent';
 
 // --- Main App Component ---
 
+const ROUTES: Record<string, ViewType> = {
+  '/': 'dashboard',
+  '/dashboard': 'dashboard',
+  '/inventory': 'inventory',
+  '/logistics': 'logistics',
+  '/production': 'production',
+  '/catalog': 'catalog',
+  '/settings': 'settings',
+};
+
+const VIEW_PATHS: Partial<Record<ViewType, string>> = {
+  dashboard: '/dashboard',
+  inventory: '/inventory',
+  logistics: '/logistics',
+  production: '/production',
+  catalog: '/catalog',
+  settings: '/settings',
+};
+
+function getViewFromPath(pathname: string): ViewType {
+  return ROUTES[pathname] || 'dashboard';
+}
+
 export default function App() {
-  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewType>(() => getViewFromPath(window.location.pathname));
   const [selectedItem, setSelectedItem] = useState<any>(null);
   
   const { 
@@ -69,6 +92,17 @@ export default function App() {
     }
   }, [settings?.logoUrl]);
 
+  React.useEffect(() => {
+    const handlePopState = () => {
+      setSelectedItem(null);
+      setCurrentView(getViewFromPath(window.location.pathname));
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleLogin = async () => {
     try { await loginWithGoogle(); } catch (error) { console.error("Login failed:", error); }
   };
@@ -80,6 +114,10 @@ export default function App() {
   const handleNavigate = (view: ViewType, item?: any) => {
     setSelectedItem(item || null);
     setCurrentView(view);
+    const nextPath = VIEW_PATHS[view];
+    if (nextPath && window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
