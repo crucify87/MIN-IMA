@@ -790,34 +790,34 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         </div>
 
         {hasMultipleUnits ? (
-          <div className="flex flex-col gap-2 w-full items-center justify-center">
+          <div className="flex flex-col gap-2.5 w-full items-center justify-center">
             {sortedUnitValues.length > 0 ? (
               sortedUnitValues.map(([unit, val]: any) => {
                 const isKG = unit.toUpperCase() === 'KG';
                 return (
-                  <div key={unit} className="grid grid-cols-[minmax(0,1fr)_34px] items-baseline gap-2 w-full max-w-[150px]">
-                    <span className={`min-w-0 text-right text-[22px] md:text-[26px] font-black tabular-nums tracking-tight leading-none ${isKG ? 'text-primary' : 'text-on-surface'}`}>
+                  <div key={unit} className="inline-grid grid-cols-[auto_36px] items-baseline gap-2.5 max-w-full">
+                    <span className={`text-right text-[20px] md:text-[24px] font-black tabular-nums tracking-normal leading-none whitespace-nowrap ${isKG ? 'text-primary' : 'text-on-surface'}`}>
                       {Math.round(val).toLocaleString()}
                     </span>
-                    <span className="text-[10px] md:text-xs font-black text-outline uppercase text-left leading-none">{unit}</span>
+                    <span className="text-[10px] md:text-[11px] font-black text-outline uppercase text-left leading-none whitespace-nowrap">{unit}</span>
                   </div>
                 );
               })
             ) : (
-              <div className="grid grid-cols-[minmax(0,1fr)_34px] items-baseline gap-2 w-full max-w-[150px]">
-                <span className="min-w-0 text-right text-[22px] md:text-[26px] font-black tabular-nums tracking-tight leading-none text-primary">
+              <div className="inline-grid grid-cols-[auto_36px] items-baseline gap-2.5 max-w-full">
+                <span className="text-right text-[20px] md:text-[24px] font-black tabular-nums tracking-normal leading-none text-primary whitespace-nowrap">
                   0
                 </span>
-                <span className="text-[10px] md:text-xs font-black text-outline uppercase text-left leading-none">KG</span>
+                <span className="text-[10px] md:text-[11px] font-black text-outline uppercase text-left leading-none whitespace-nowrap">KG</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-[minmax(0,1fr)_34px] items-baseline gap-2 w-full max-w-[150px]">
-            <span className={`min-w-0 text-right text-[24px] md:text-[30px] font-black tabular-nums tracking-tight leading-none ${(stat.unit || 'KG').toUpperCase() === 'KG' ? 'text-primary' : 'text-on-surface'}`}>
+          <div className="inline-grid grid-cols-[auto_36px] items-baseline gap-2.5 max-w-full">
+            <span className={`text-right text-[22px] md:text-[26px] font-black tabular-nums tracking-normal leading-none whitespace-nowrap ${(stat.unit || 'KG').toUpperCase() === 'KG' ? 'text-primary' : 'text-on-surface'}`}>
               {Math.round((stat.value ?? 0) as number).toLocaleString()}
             </span>
-            <span className="text-[10px] md:text-xs font-black text-outline uppercase text-left leading-none">
+            <span className="text-[10px] md:text-[11px] font-black text-outline uppercase text-left leading-none whitespace-nowrap">
               {stat.unit || 'KG'}
             </span>
           </div>
