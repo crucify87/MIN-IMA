@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   MapPin,
   Scale,
-  MessageSquarePlus
+  MessageSquarePlus,
+  Plus,
+  X
 } from 'lucide-react';
 import { 
   doc, 
@@ -121,6 +123,7 @@ function SettingsContent({
   const [showAllPartners, setShowAllPartners] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isItemsListExpanded, setIsItemsListExpanded] = useState(false);
+  const [itemFormOpen, setItemFormOpen] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const [showAllUsers, setShowAllUsers] = useState(false);
   const [userPage, setUserPage] = useState(1);
@@ -450,6 +453,7 @@ function SettingsContent({
         }
       }
       setItemForm({ sku: '', name: '', category: '돼지고기', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '', avgWeight: '' });
+      setItemFormOpen(false);
     } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'inventory'); }
   };
 
@@ -475,8 +479,7 @@ function SettingsContent({
       partner: item.partner || '',
       avgWeight: String(item.avgWeight || '')
     });
-    const el = document.getElementById('item-form');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    setItemFormOpen(true);
   };
 
   const handleEditItem = (item: any) => {
@@ -500,7 +503,7 @@ function SettingsContent({
       partner: item.partner || '',
       avgWeight: String(item.avgWeight || '')
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setItemFormOpen(true);
   };
 
   const handleDeleteItem = async (id: string, name: string) => {
@@ -923,9 +926,22 @@ function SettingsContent({
       <div className="bg-white rounded-[24px] md:rounded-[40px] border border-outline-variant shadow-xl shadow-surface-container-high/50 overflow-hidden">
         {tab === 'p' && (
           <div className="p-3 md:p-10 space-y-6 md:space-y-12">
-            {/* 1. Registration Form (TOP) */}
-            {canEditItems ? (
-              <div id="item-form" className="max-w-2xl mx-auto space-y-4 md:space-y-10">
+            {/* Product registration/edit modal */}
+            {canEditItems && itemFormOpen && (
+              <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4">
+              <div id="item-form" className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-white rounded-2xl md:rounded-[32px] shadow-2xl border border-outline-variant p-4 md:p-8 space-y-4 md:space-y-8">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setItemFormOpen(false);
+                    setEditingItemId(null);
+                    setPendingApprovalId(null);
+                  }}
+                  className="absolute right-3 top-3 z-10 p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                  aria-label="닫기"
+                >
+                  <X className="w-5 h-5" />
+                </button>
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-100">
                   <div className="space-y-0.5">
                     <h3 className="text-sm md:text-lg font-black text-[#0f172a] tracking-tight text-left">
@@ -1326,7 +1342,9 @@ function SettingsContent({
                   </div>
                 </form>
               </div>
-            ) : (
+              </div>
+            )}
+            {false && (
               <div className="text-center py-10 opacity-60">
                  <Lock className="w-12 h-12 mx-auto mb-4 text-outline" />
                  <p className="font-black text-[#0f172a]">상품 등록/수정 권한이 없습니다.</p>
@@ -1334,9 +1352,7 @@ function SettingsContent({
             )}
 
 
-            <hr className="border-outline-variant/30" />
-
-            {/* 2. Registered Product List (BOTTOM) */}
+            {/* Registered Product List */}
             <div id="items-list" className="space-y-6 md:space-y-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/30">
                 <div>
@@ -1375,6 +1391,21 @@ function SettingsContent({
                       재고 일괄 리셋 (0으로 초기화)
                     </button>
                   </div>
+                )}
+                {canEditItems && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingApprovalId(null);
+                      setEditingItemId(null);
+                      setItemForm({ sku: '', name: '', category: '?쇱?怨좉린', brand: '', specs: '', unit: 'BOX', boxes: '', currentStock: '', safetyStock: '', purchasePrice: '', salesPrice: '', manufDate: '', expiryDate: '', location: '', detailLocation: '', partner: '', avgWeight: '' });
+                      setItemFormOpen(true);
+                    }}
+                    className="h-10 px-4 md:px-5 bg-primary text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 shadow-lg shadow-primary/20 active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    상품등록
+                  </button>
                 )}
               </div>
 
