@@ -15,10 +15,12 @@ import {
   Download,
   Edit,
   Image as ImageIcon,
+  KeyRound,
   Plus,
   Save,
   Search,
   Trash2,
+  Upload,
   X
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
@@ -45,6 +47,11 @@ type CatalogItem = CatalogForm & {
   updatedAt?: any;
 };
 
+type R2Credentials = {
+  accessKeyId: string;
+  secretAccessKey: string;
+};
+
 const EMPTY_FORM: CatalogForm = {
   category: '',
   productName: '',
@@ -69,7 +76,115 @@ const CATALOG_FIELDS = [
   { key: 'shelfLife', label: '유통기한' },
 ] as const;
 
+const R2_BUCKET = 'min';
+const R2_ENDPOINT = 'https://8418799974abc85a9fb5a6640cbc817d.r2.cloudflarestorage.com';
 const PUBLIC_R2_BASE_URL = 'https://pub-66a5e554e66249ae92cdbbe7d349b546.r2.dev';
+const R2_STORAGE_KEY = 'ima_catalog_r2_credentials';
+
+function sanitizeObjectName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣._-]+/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'catalog-image';
+}
+
+function toHex(buffer: ArrayBuffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function toAmzDate(date: Date) {
+  return date.toISOString().replace(/[:-]|\.\d{3}/g, '');
+}
+
+function toDateStamp(date: Date) {
+  return date.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+async function sha256(value: string) {
+  const data = new TextEncoder().encode(value);
+  return toHex(await crypto.subtle.digest('SHA-256', data));
+}
+
+async function hmac(key: ArrayBuffer | Uint8Array, value: string) {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    key,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  return crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(value));
+}
+
+async function getSigningKey(secretAccessKey: string, dateStamp: string) {
+  const kDate = await hmac(new TextEncoder().encode(`AWS4${secretAccessKey}`), dateStamp);
+  const kRegion = await hmac(kDate, 'auto');
+  const kService = await hmac(kRegion, 's3');
+  return hmac(kService, 'aws4_request');
+}
+
+async function uploadToR2(file: File, objectKey: string, credentials: R2Credentials) {
+  const endpoint = new URL(R2_ENDPOINT);
+  const encodedKey = objectKey.split('/').map(encodeURIComponent).join('/');
+  const uploadUrl = `${R2_ENDPOINT}/${R2_BUCKET}/${encodedKey}`;
+  const now = new Date();
+  const amzDate = toAmzDate(now);
+  const dateStamp = toDateStamp(now);
+  const credentialScope = `${dateStamp}/auto/s3/aws4_request`;
+  const canonicalUri = `/${R2_BUCKET}/${encodedKey}`;
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+  const payloadHash = 'UNSIGNED-PAYLOAD';
+  const canonicalHeaders = [
+    `host:${endpoint.host}`,
+    `x-amz-content-sha256:${payloadHash}`,
+    `x-amz-date:${amzDate}`,
+    '',
+  ].join('\n');
+  const canonicalRequest = [
+    'PUT',
+    canonicalUri,
+    '',
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash,
+  ].join('\n');
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    amzDate,
+    credentialScope,
+    await sha256(canonicalRequest),
+  ].join('\n');
+  const signingKey = await getSigningKey(credentials.secretAccessKey, dateStamp);
+  const signature = toHex(await hmac(signingKey, stringToSign));
+  const authorization = [
+    'AWS4-HMAC-SHA256 ',
+    `Credential=${credentials.accessKeyId}/${credentialScope}, `,
+    `SignedHeaders=${signedHeaders}, `,
+    `Signature=${signature}`,
+  ].join('');
+
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: authorization,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-amz-content-sha256': payloadHash,
+      'x-amz-date': amzDate,
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`R2 upload failed (${response.status}) ${detail}`);
+  }
+
+  return `${PUBLIC_R2_BASE_URL}/${encodedKey}`;
+}
 
 function escapeHtml(value: string) {
   return value
@@ -230,6 +345,15 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingSlot, setUploadingSlot] = useState<1 | 2 | null>(null);
+  const [r2Credentials, setR2Credentials] = useState<R2Credentials>(() => {
+    try {
+      const saved = localStorage.getItem(R2_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : { accessKeyId: '', secretAccessKey: '' };
+    } catch {
+      return { accessKeyId: '', secretAccessKey: '' };
+    }
+  });
 
   useEffect(() => {
     const q = query(collection(db, 'catalogs'), orderBy('createdAt', 'desc'));
@@ -259,6 +383,39 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
 
   const updateField = (key: keyof CatalogForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const saveR2Credentials = () => {
+    if (!r2Credentials.accessKeyId.trim() || !r2Credentials.secretAccessKey.trim()) {
+      alert('R2 액세스 키와 비밀 액세스 키를 입력해주세요.');
+      return;
+    }
+
+    localStorage.setItem(R2_STORAGE_KEY, JSON.stringify(r2Credentials));
+    alert('R2 업로드 정보가 이 브라우저에 저장되었습니다.');
+  };
+
+  const handleUploadImage = async (slot: 1 | 2, file?: File) => {
+    if (!file) return;
+    if (!r2Credentials.accessKeyId.trim() || !r2Credentials.secretAccessKey.trim()) {
+      alert('먼저 R2 업로드 정보를 저장해주세요.');
+      return;
+    }
+
+    const extension = file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+    const nameBase = sanitizeObjectName(`${form.category}-${form.productName}-${slot}`);
+    const objectKey = `catalog/${Date.now()}-${nameBase}.${extension}`;
+
+    setUploadingSlot(slot);
+    try {
+      const publicUrl = await uploadToR2(file, objectKey, r2Credentials);
+      updateField(slot === 1 ? 'imageUrl1' : 'imageUrl2', publicUrl);
+    } catch (error) {
+      console.error(error);
+      alert('R2 업로드에 실패했습니다. R2 CORS 설정에서 PUT, Authorization, Content-Type, x-amz-date, x-amz-content-sha256 허용 여부를 확인해주세요.');
+    } finally {
+      setUploadingSlot(null);
+    }
   };
 
   const resetForm = () => {
@@ -341,6 +498,38 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
     </label>
   );
 
+  const renderImageInput = (slot: 1 | 2) => {
+    const key = slot === 1 ? 'imageUrl1' : 'imageUrl2';
+    return (
+      <div className="space-y-2">
+        <span className="text-xs font-black text-slate-500 uppercase">사진 {slot}</span>
+        <div className="flex gap-2">
+          <input
+            value={form[key]}
+            onChange={(e) => updateField(key, e.target.value)}
+            disabled={!canEditItems}
+            placeholder={`${PUBLIC_R2_BASE_URL}/catalog/item-${slot}.png`}
+            className="min-w-0 flex-1 h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50"
+          />
+          <label className={`h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-black text-xs inline-flex items-center gap-2 cursor-pointer hover:bg-slate-100 ${!canEditItems || uploadingSlot ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Upload className="w-4 h-4" />
+            {uploadingSlot === slot ? '업로드 중' : '업로드'}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={!canEditItems || uploadingSlot !== null}
+              onChange={(e) => {
+                handleUploadImage(slot, e.target.files?.[0]);
+                e.currentTarget.value = '';
+              }}
+            />
+          </label>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full space-y-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -366,6 +555,50 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
           />
         </div>
       </div>
+
+      <section className="bg-white border border-slate-200 rounded-2xl p-5 lg:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-900">R2 이미지 업로드</h3>
+              <p className="text-xs font-bold text-slate-400">버킷 {R2_BUCKET} / 업로드 후 공개 URL이 사진 URL에 자동 입력됩니다.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={saveR2Credentials}
+            disabled={!canEditItems}
+            className="h-10 px-4 rounded-xl bg-slate-900 text-white text-xs font-black disabled:opacity-40"
+          >
+            업로드 정보 저장
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <label className="space-y-2">
+            <span className="text-xs font-black text-slate-500 uppercase">R2 액세스 키</span>
+            <input
+              value={r2Credentials.accessKeyId}
+              onChange={(e) => setR2Credentials((prev) => ({ ...prev, accessKeyId: e.target.value }))}
+              disabled={!canEditItems}
+              className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-black text-slate-500 uppercase">R2 비밀 액세스 키</span>
+            <input
+              type="password"
+              value={r2Credentials.secretAccessKey}
+              onChange={(e) => setR2Credentials((prev) => ({ ...prev, secretAccessKey: e.target.value }))}
+              disabled={!canEditItems}
+              className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50"
+            />
+          </label>
+        </div>
+      </section>
 
       <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl p-5 lg:p-6 shadow-sm space-y-5">
         <div className="flex items-center justify-between gap-4">
@@ -398,8 +631,8 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {renderInput('imageUrl1', '사진 1 URL', `${PUBLIC_R2_BASE_URL}/catalog/item-front.png`)}
-          {renderInput('imageUrl2', '사진 2 URL', `${PUBLIC_R2_BASE_URL}/catalog/item-back.png`)}
+          {renderImageInput(1)}
+          {renderImageInput(2)}
         </div>
 
         <div className="flex justify-end">
