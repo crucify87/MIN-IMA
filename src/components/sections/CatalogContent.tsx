@@ -12,13 +12,16 @@ import {
 } from 'firebase/firestore';
 import {
   BookOpen,
+  CheckSquare,
   Download,
   Edit,
+  FileText,
   Image as ImageIcon,
   KeyRound,
   Plus,
   Save,
   Search,
+  Share2,
   Trash2,
   Upload,
   X
@@ -85,7 +88,7 @@ function sanitizeObjectName(value: string) {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9가-힣._-]+/gi, '-')
+    .replace(/[^a-z0-9._-]+/gi, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '') || 'catalog-image';
 }
@@ -105,8 +108,7 @@ function toDateStamp(date: Date) {
 }
 
 async function sha256(value: string) {
-  const data = new TextEncoder().encode(value);
-  return toHex(await crypto.subtle.digest('SHA-256', data));
+  return toHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
 }
 
 async function hmac(key: ArrayBuffer | Uint8Array, value: string) {
@@ -196,19 +198,11 @@ function escapeHtml(value: string) {
 }
 
 function imageBox(url: string, label: string) {
-  if (!url) {
-    return `<div class="image-placeholder">${label}</div>`;
-  }
+  if (!url) return `<div class="image-placeholder">${escapeHtml(label)}</div>`;
   return `<img src="${escapeHtml(url)}" alt="${escapeHtml(label)}" />`;
 }
 
-function exportCatalogPdf(item: CatalogItem) {
-  const win = window.open('', '_blank', 'noopener,noreferrer');
-  if (!win) {
-    alert('팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.');
-    return;
-  }
-
+function catalogSheet(item: CatalogItem) {
   const rows = CATALOG_FIELDS.map(({ key, label }) => `
     <tr>
       <th><span>◆</span>${escapeHtml(label)}</th>
@@ -216,12 +210,30 @@ function exportCatalogPdf(item: CatalogItem) {
     </tr>
   `).join('');
 
-  win.document.write(`
+  return `
+    <section class="sheet">
+      <div class="title">${escapeHtml(item.category || '카탈로그')} <span>(포장육)</span></div>
+      <div class="product">${escapeHtml(item.productName || '-')}</div>
+      <div class="content">
+        <div class="photos">
+          <div class="photo">${imageBox(item.imageUrl1, '이미지 1')}</div>
+          <div class="photo">${imageBox(item.imageUrl2, '이미지 2')}</div>
+        </div>
+        <table>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function catalogDocument(items: CatalogItem[]) {
+  return `
     <!doctype html>
     <html lang="ko">
       <head>
         <meta charset="utf-8" />
-        <title>${escapeHtml(item.productName || 'catalog')}</title>
+        <title>IMA 카탈로그</title>
         <style>
           @page { size: A4 landscape; margin: 10mm; }
           * { box-sizing: border-box; }
@@ -234,6 +246,12 @@ function exportCatalogPdf(item: CatalogItem) {
           .sheet {
             width: 100%;
             border: 1px solid #9ca3af;
+            page-break-after: always;
+            break-after: page;
+          }
+          .sheet:last-child {
+            page-break-after: auto;
+            break-after: auto;
           }
           .title {
             padding: 8px 10px 10px;
@@ -312,31 +330,23 @@ function exportCatalogPdf(item: CatalogItem) {
           }
         </style>
       </head>
-      <body>
-        <section class="sheet">
-          <div class="title">${escapeHtml(item.category || '카탈로그')} <span>(포장육)</span></div>
-          <div class="product">${escapeHtml(item.productName || '-')}</div>
-          <div class="content">
-            <div class="photos">
-              <div class="photo">${imageBox(item.imageUrl1, '이미지 1')}</div>
-              <div class="photo">${imageBox(item.imageUrl2, '이미지 2')}</div>
-            </div>
-            <table>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-        </section>
-        <script>
-          window.onload = function () {
-            setTimeout(function () {
-              window.print();
-            }, 250);
-          };
-        </script>
-      </body>
+      <body>${items.map(catalogSheet).join('')}</body>
     </html>
-  `);
+  `;
+}
+
+function openPdfWindow(items: CatalogItem[]) {
+  const win = window.open('', '_blank', 'noopener,noreferrer');
+  if (!win) {
+    alert('팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.');
+    return;
+  }
+
+  win.document.write(catalogDocument(items));
   win.document.close();
+  win.onload = () => {
+    setTimeout(() => win.print(), 250);
+  };
 }
 
 function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
@@ -346,6 +356,9 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<1 | 2 | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isR2Open, setIsR2Open] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [r2Credentials, setR2Credentials] = useState<R2Credentials>(() => {
     try {
       const saved = localStorage.getItem(R2_STORAGE_KEY);
@@ -381,8 +394,49 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
     ].some((value) => value?.toLowerCase().includes(keyword)));
   }, [catalogs, search]);
 
+  const selectedItems = useMemo(
+    () => catalogs.filter((item) => selectedIds.has(item.id)),
+    [catalogs, selectedIds]
+  );
+
+  const allVisibleSelected = filteredCatalogs.length > 0 && filteredCatalogs.every((item) => selectedIds.has(item.id));
+
   const updateField = (key: keyof CatalogForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const resetForm = () => {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setUploadingSlot(null);
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setIsFormOpen(true);
+  };
+
+  const openEditModal = (item: CatalogItem) => {
+    setEditingId(item.id);
+    setForm({
+      category: item.category || '',
+      productName: item.productName || '',
+      foodType: item.foodType || '',
+      origin: item.origin || '',
+      part: item.part || '',
+      weightSpec: item.weightSpec || '',
+      certification: item.certification || '',
+      storageMethod: item.storageMethod || '',
+      shelfLife: item.shelfLife || '',
+      imageUrl1: item.imageUrl1 || '',
+      imageUrl2: item.imageUrl2 || '',
+    });
+    setIsFormOpen(true);
+  };
+
+  const closeFormModal = () => {
+    setIsFormOpen(false);
+    resetForm();
   };
 
   const saveR2Credentials = () => {
@@ -392,6 +446,7 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
     }
 
     localStorage.setItem(R2_STORAGE_KEY, JSON.stringify(r2Credentials));
+    setIsR2Open(false);
     alert('R2 업로드 정보가 이 브라우저에 저장되었습니다.');
   };
 
@@ -399,6 +454,7 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
     if (!file) return;
     if (!r2Credentials.accessKeyId.trim() || !r2Credentials.secretAccessKey.trim()) {
       alert('먼저 R2 업로드 정보를 저장해주세요.');
+      setIsR2Open(true);
       return;
     }
 
@@ -416,11 +472,6 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
     } finally {
       setUploadingSlot(null);
     }
-  };
-
-  const resetForm = () => {
-    setForm(EMPTY_FORM);
-    setEditingId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -447,30 +498,12 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
           createdAt: serverTimestamp(),
         });
       }
-      resetForm();
+      closeFormModal();
     } catch (error) {
       handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, 'catalogs');
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleEdit = (item: CatalogItem) => {
-    setEditingId(item.id);
-    setForm({
-      category: item.category || '',
-      productName: item.productName || '',
-      foodType: item.foodType || '',
-      origin: item.origin || '',
-      part: item.part || '',
-      weightSpec: item.weightSpec || '',
-      certification: item.certification || '',
-      storageMethod: item.storageMethod || '',
-      shelfLife: item.shelfLife || '',
-      imageUrl1: item.imageUrl1 || '',
-      imageUrl2: item.imageUrl2 || '',
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
@@ -479,10 +512,66 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
 
     try {
       await deleteDoc(doc(db, 'catalogs', id));
-      if (editingId === id) resetForm();
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `catalogs/${id}`);
     }
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        filteredCatalogs.forEach((item) => next.delete(item.id));
+      } else {
+        filteredCatalogs.forEach((item) => next.add(item.id));
+      }
+      return next;
+    });
+  };
+
+  const requireSelection = () => {
+    if (selectedItems.length === 0) {
+      alert('PDF로 만들 상품을 먼저 체크해주세요.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleDownloadSelected = () => {
+    if (!requireSelection()) return;
+    openPdfWindow(selectedItems);
+  };
+
+  const handleShareSelected = async () => {
+    if (!requireSelection()) return;
+
+    const html = catalogDocument(selectedItems);
+    const file = new File([html], 'ima-catalog.html', { type: 'text/html' });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({
+        title: 'IMA PDF 카탈로그',
+        text: '체크한 상품으로 만든 카탈로그입니다. 열어서 PDF로 저장할 수 있습니다.',
+        files: [file],
+      });
+      return;
+    }
+
+    openPdfWindow(selectedItems);
   };
 
   const renderInput = (key: keyof CatalogForm, label: string, placeholder = '') => (
@@ -531,17 +620,15 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
   };
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">카탈로그</h2>
-              <p className="text-sm font-bold text-slate-400 mt-1">제품 정보 등록 및 PDF Export</p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">카탈로그</h2>
+            <p className="text-sm font-bold text-slate-400 mt-1">상품 등록, R2 이미지 업로드, 선택 PDF 카탈로그 생성</p>
           </div>
         </div>
 
@@ -556,169 +643,252 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
         </div>
       </div>
 
-      <section className="bg-white border border-slate-200 rounded-2xl p-5 lg:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setIsR2Open(true)}
+          disabled={!canEditItems}
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 text-sm font-black text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+        >
+          <KeyRound className="w-4 h-4" />
+          R2 액세스 키 설정
+        </button>
+
+        <button
+          type="button"
+          onClick={openCreateModal}
+          disabled={!canEditItems}
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-black text-white shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-40"
+        >
+          <Plus className="w-4 h-4" />
+          카탈로그 상품 등록
+        </button>
+      </div>
+
+      <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center">
-              <KeyRound className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-slate-900">R2 이미지 업로드</h3>
-              <p className="text-xs font-bold text-slate-400">버킷 {R2_BUCKET} / 업로드 후 공개 URL이 사진 URL에 자동 입력됩니다.</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={saveR2Credentials}
-            disabled={!canEditItems}
-            className="h-10 px-4 rounded-xl bg-slate-900 text-white text-xs font-black disabled:opacity-40"
-          >
-            업로드 정보 저장
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <label className="space-y-2">
-            <span className="text-xs font-black text-slate-500 uppercase">R2 액세스 키</span>
-            <input
-              value={r2Credentials.accessKeyId}
-              onChange={(e) => setR2Credentials((prev) => ({ ...prev, accessKeyId: e.target.value }))}
-              disabled={!canEditItems}
-              className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50"
-            />
-          </label>
-          <label className="space-y-2">
-            <span className="text-xs font-black text-slate-500 uppercase">R2 비밀 액세스 키</span>
-            <input
-              type="password"
-              value={r2Credentials.secretAccessKey}
-              onChange={(e) => setR2Credentials((prev) => ({ ...prev, secretAccessKey: e.target.value }))}
-              disabled={!canEditItems}
-              className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50"
-            />
-          </label>
-        </div>
-      </section>
-
-      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl p-5 lg:p-6 shadow-sm space-y-5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Plus className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-black text-slate-900">{editingId ? '카탈로그 수정' : '카탈로그 등록'}</h3>
-          </div>
-          {editingId && (
             <button
               type="button"
-              onClick={resetForm}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-500 hover:bg-slate-50"
+              onClick={toggleAllVisible}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
             >
-              <X className="w-4 h-4" />
-              취소
+              <CheckSquare className="w-4 h-4" />
+              {allVisibleSelected ? '현재 목록 선택 해제' : '현재 목록 전체 선택'}
             </button>
-          )}
+            <span className="text-xs font-black text-slate-400">선택 {selectedItems.length}개 / 전체 {catalogs.length}개</span>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleDownloadSelected}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white disabled:opacity-40"
+              disabled={selectedItems.length === 0}
+            >
+              <Download className="w-4 h-4" />
+              PDF/다운로드
+            </button>
+            <button
+              type="button"
+              onClick={handleShareSelected}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              disabled={selectedItems.length === 0}
+            >
+              <Share2 className="w-4 h-4" />
+              PDF/공유하기
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {renderInput('category', '대분류', '소 부속물')}
-          {renderInput('productName', '제품명', '곱대창')}
-          {renderInput('foodType', '식품유형', '포장육')}
-          {renderInput('origin', '원산지', '국내산')}
-          {renderInput('part', '부위', '소곱창')}
-          {renderInput('weightSpec', '중량/규격', '1kg')}
-          {renderInput('certification', '안전인증', 'HACCP 인증')}
-          {renderInput('storageMethod', '보관방법', '-18도 이하 냉동보관')}
-          {renderInput('shelfLife', '유통기한', '제조일로부터 12개월')}
-        </div>
+        <div className="divide-y divide-slate-100">
+          {filteredCatalogs.map((item) => {
+            const checked = selectedIds.has(item.id);
+            return (
+              <article key={item.id} className={`grid grid-cols-1 gap-4 p-4 transition lg:grid-cols-[40px_180px_minmax(0,1fr)_auto] lg:items-center ${checked ? 'bg-primary/5' : 'bg-white'}`}>
+                <label className="flex items-center gap-3 lg:justify-center">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleSelected(item.id)}
+                    className="h-5 w-5 rounded border-slate-300 text-primary"
+                  />
+                  <span className="text-xs font-black text-slate-400 lg:hidden">선택</span>
+                </label>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {renderImageInput(1)}
-          {renderImageInput(2)}
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={!canEditItems || saving}
-            className="inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-primary text-white font-black text-sm shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? '저장 중' : '저장'}
-          </button>
-        </div>
-      </form>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {filteredCatalogs.map((item) => {
-          const images = [item.imageUrl1, item.imageUrl2].filter(Boolean);
-          return (
-            <article key={item.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-              <div className="grid grid-cols-2 bg-slate-50 border-b border-slate-100">
-                {[0, 1].map((index) => (
-                  <div key={index} className="aspect-[4/3] bg-white border-r last:border-r-0 border-slate-100 flex items-center justify-center overflow-hidden">
-                    {images[index] ? (
-                      <img src={images[index]} alt={`${item.productName} ${index + 1}`} className="w-full h-full object-contain" />
-                    ) : (
-                      <ImageIcon className="w-8 h-8 text-slate-200" />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-5 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black text-emerald-600">{item.category || '-'}</p>
-                    <h3 className="text-xl font-black text-slate-900 mt-1">{item.productName || '-'}</h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => exportCatalogPdf(item)}
-                    className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white active:scale-[0.98]"
-                  >
-                    <Download className="w-4 h-4" />
-                    PDF
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {CATALOG_FIELDS.map(({ key, label }) => (
-                    <div key={key} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
-                      <span className="text-[11px] font-black text-slate-400">{label}</span>
-                      <span className="text-xs font-bold text-slate-800 text-right truncate">{item[key] || '-'}</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {[item.imageUrl1, item.imageUrl2].map((url, index) => (
+                    <div key={index} className="aspect-[4/3] rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center overflow-hidden">
+                      {url ? (
+                        <img src={url} alt={`${item.productName} ${index + 1}`} className="w-full h-full object-contain" />
+                      ) : (
+                        <ImageIcon className="w-6 h-6 text-slate-200" />
+                      )}
                     </div>
                   ))}
                 </div>
 
-                {canEditItems && (
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => handleEdit(item)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
-                    >
-                      <Edit className="w-4 h-4" />
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item.id)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-red-100 px-3 py-2 text-xs font-black text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      삭제
-                    </button>
+                <div className="min-w-0 space-y-3">
+                  <div>
+                    <p className="text-xs font-black text-emerald-600 truncate">{item.category || '-'}</p>
+                    <h3 className="text-lg font-black text-slate-900 truncate">{item.productName || '-'}</h3>
                   </div>
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </div>
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+                    {CATALOG_FIELDS.slice(0, 4).map(({ key, label }) => (
+                      <div key={key} className="min-w-0 rounded-xl bg-slate-50 px-3 py-2">
+                        <p className="text-[10px] font-black text-slate-400">{label}</p>
+                        <p className="text-xs font-bold text-slate-800 truncate">{item[key] || '-'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-      {filteredCatalogs.length === 0 && (
-        <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center">
-          <BookOpen className="w-10 h-10 mx-auto text-slate-200" />
-          <p className="mt-4 text-sm font-black text-slate-400">등록된 카탈로그가 없습니다.</p>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openPdfWindow([item])}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white active:scale-[0.98]"
+                  >
+                    <FileText className="w-4 h-4" />
+                    PDF
+                  </button>
+                  {canEditItems && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(item)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
+                      >
+                        <Edit className="w-4 h-4" />
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-red-100 px-3 py-2 text-xs font-black text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        삭제
+                      </button>
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        {filteredCatalogs.length === 0 && (
+          <div className="p-12 text-center">
+            <BookOpen className="w-10 h-10 mx-auto text-slate-200" />
+            <p className="mt-4 text-sm font-black text-slate-400">등록된 카탈로그 상품이 없습니다.</p>
+          </div>
+        )}
+      </section>
+
+      {isR2Open && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">R2 이미지 업로드 설정</h3>
+                  <p className="text-xs font-bold text-slate-400">버킷 {R2_BUCKET} / 이 브라우저에만 저장됩니다.</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setIsR2Open(false)} className="p-2 rounded-xl hover:bg-slate-50">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <label className="space-y-2 block">
+                <span className="text-xs font-black text-slate-500 uppercase">R2 액세스 키</span>
+                <input
+                  value={r2Credentials.accessKeyId}
+                  onChange={(e) => setR2Credentials((prev) => ({ ...prev, accessKeyId: e.target.value }))}
+                  disabled={!canEditItems}
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50"
+                />
+              </label>
+              <label className="space-y-2 block">
+                <span className="text-xs font-black text-slate-500 uppercase">R2 비밀 액세스 키</span>
+                <input
+                  type="password"
+                  value={r2Credentials.secretAccessKey}
+                  onChange={(e) => setR2Credentials((prev) => ({ ...prev, secretAccessKey: e.target.value }))}
+                  disabled={!canEditItems}
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50"
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-slate-100 p-5">
+              <button type="button" onClick={() => setIsR2Open(false)} className="h-11 px-4 rounded-xl border border-slate-200 text-sm font-black text-slate-600">
+                닫기
+              </button>
+              <button type="button" onClick={saveR2Credentials} disabled={!canEditItems} className="h-11 px-5 rounded-xl bg-slate-900 text-sm font-black text-white disabled:opacity-40">
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isFormOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4">
+          <form onSubmit={handleSubmit} className="w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">{editingId ? '카탈로그 상품 수정' : '카탈로그 상품 등록'}</h3>
+                  <p className="text-xs font-bold text-slate-400">정보 입력 후 저장하면 Firestore에 등록됩니다.</p>
+                </div>
+              </div>
+              <button type="button" onClick={closeFormModal} className="p-2 rounded-xl hover:bg-slate-50">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {renderInput('category', '대분류', '소 부속물')}
+                {renderInput('productName', '제품명', '곱대창')}
+                {renderInput('foodType', '식품유형', '포장육')}
+                {renderInput('origin', '원산지', '국내산')}
+                {renderInput('part', '부위', '소곱창')}
+                {renderInput('weightSpec', '중량/규격', '1kg')}
+                {renderInput('certification', '안전인증', 'HACCP 인증')}
+                {renderInput('storageMethod', '보관방법', '-18도 이하 냉동보관')}
+                {renderInput('shelfLife', '유통기한', '제조일로부터 12개월')}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {renderImageInput(1)}
+                {renderImageInput(2)}
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 flex justify-end gap-2 border-t border-slate-100 bg-white p-5">
+              <button type="button" onClick={closeFormModal} className="h-12 px-5 rounded-xl border border-slate-200 text-sm font-black text-slate-600">
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={!canEditItems || saving}
+                className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-primary text-white font-black text-sm shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+              >
+                <Save className="w-4 h-4" />
+                {saving ? '저장 중' : '저장'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
