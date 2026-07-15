@@ -428,17 +428,38 @@ function catalogDocument(items: CatalogItem[]) {
 }
 
 function openPdfWindow(items: CatalogItem[]) {
-  const win = window.open('', '_blank', 'noopener,noreferrer');
-  if (!win) {
-    alert('팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.');
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(iframe);
+
+  const frameWindow = iframe.contentWindow;
+  const frameDocument = iframe.contentDocument || frameWindow?.document;
+  if (!frameWindow || !frameDocument) {
+    iframe.remove();
+    alert('PDF 출력 화면을 만들 수 없습니다. 브라우저 설정을 확인해주세요.');
     return;
   }
 
-  win.document.write(catalogDocument(items));
-  win.document.close();
-  win.onload = () => {
-    setTimeout(() => win.print(), 250);
+  const cleanup = () => {
+    setTimeout(() => iframe.remove(), 1000);
   };
+
+  frameWindow.onafterprint = cleanup;
+  frameDocument.open();
+  frameDocument.write(catalogDocument(items));
+  frameDocument.close();
+
+  setTimeout(() => {
+    frameWindow.focus();
+    frameWindow.print();
+    cleanup();
+  }, 350);
 }
 
 function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
