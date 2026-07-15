@@ -774,10 +774,10 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
     return (
       <div 
         onClick={handleCardClick}
-        className={`bg-white p-4 md:p-6 rounded-[24px] md:rounded-[40px] border-2 transition-all flex flex-col items-center justify-center gap-1.5 md:gap-3 min-h-[120px] md:min-h-[200px] cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${stat.active ? 'border-primary shadow-xl shadow-primary/10' : 'border-outline-variant/30 shadow-sm'} ${stat.isCategory ? 'hover:border-primary/50' : 'hover:border-primary/30'}`}
+        className={`bg-white px-4 py-5 md:px-5 md:py-6 rounded-[28px] md:rounded-[34px] border-2 transition-all flex flex-col items-center justify-center gap-3 min-h-[150px] md:min-h-[190px] cursor-pointer hover:-translate-y-0.5 active:scale-[0.98] ${stat.active ? 'border-primary shadow-xl shadow-primary/10' : 'border-outline-variant/30 shadow-sm'} ${stat.isCategory ? 'hover:border-primary/50' : 'hover:border-primary/30'}`}
       >
-        <div className="text-center space-y-0.5 md:space-y-1.5 w-full">
-          <p className={`text-[10px] md:text-sm font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'} line-clamp-1`}>{stat.label}</p>
+        <div className="text-center space-y-1.5 w-full min-w-0">
+          <p className={`text-[11px] md:text-sm font-black uppercase tracking-tight ${stat.active ? 'text-primary' : 'text-outline'} truncate`}>{stat.label}</p>
           {stat.subtitle && (
             <p className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mx-auto w-fit ${
               stat.subtitle === '완제품' 
@@ -790,34 +790,34 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
         </div>
 
         {hasMultipleUnits ? (
-          <div className="flex flex-col gap-1.5 w-full px-4 items-center justify-center">
+          <div className="flex flex-col gap-2 w-full items-center justify-center">
             {sortedUnitValues.length > 0 ? (
               sortedUnitValues.map(([unit, val]: any) => {
                 const isKG = unit.toUpperCase() === 'KG';
                 return (
-                  <div key={unit} className="flex items-baseline justify-end gap-1.5 w-full max-w-[140px]">
-                    <span className={`text-base md:text-2xl font-black tabular-nums tracking-tighter leading-none ${isKG ? 'text-primary' : 'text-on-surface'}`}>
+                  <div key={unit} className="grid grid-cols-[minmax(0,1fr)_34px] items-baseline gap-2 w-full max-w-[150px]">
+                    <span className={`min-w-0 text-right text-[22px] md:text-[26px] font-black tabular-nums tracking-tight leading-none ${isKG ? 'text-primary' : 'text-on-surface'}`}>
                       {Math.round(val).toLocaleString()}
                     </span>
-                    <span className="text-[10px] md:text-xs font-black text-outline uppercase w-8 text-left shrink-0">{unit}</span>
+                    <span className="text-[10px] md:text-xs font-black text-outline uppercase text-left leading-none">{unit}</span>
                   </div>
                 );
               })
             ) : (
-              <div className="flex items-baseline justify-end gap-1.5 w-full max-w-[140px]">
-                <span className="text-base md:text-2xl font-black tabular-nums tracking-tighter leading-none text-primary">
+              <div className="grid grid-cols-[minmax(0,1fr)_34px] items-baseline gap-2 w-full max-w-[150px]">
+                <span className="min-w-0 text-right text-[22px] md:text-[26px] font-black tabular-nums tracking-tight leading-none text-primary">
                   0
                 </span>
-                <span className="text-[10px] md:text-xs font-black text-outline uppercase w-8 text-left shrink-0">KG</span>
+                <span className="text-[10px] md:text-xs font-black text-outline uppercase text-left leading-none">KG</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="flex items-baseline justify-center gap-1.5 w-full overflow-visible">
-            <span className={`text-xl md:text-4xl lg:text-5xl font-black tabular-nums tracking-tighter leading-none ${(stat.unit || 'KG').toUpperCase() === 'KG' ? 'text-primary' : 'text-on-surface'}`}>
+          <div className="grid grid-cols-[minmax(0,1fr)_34px] items-baseline gap-2 w-full max-w-[150px]">
+            <span className={`min-w-0 text-right text-[24px] md:text-[30px] font-black tabular-nums tracking-tight leading-none ${(stat.unit || 'KG').toUpperCase() === 'KG' ? 'text-primary' : 'text-on-surface'}`}>
               {Math.round((stat.value ?? 0) as number).toLocaleString()}
             </span>
-            <span className="text-[10px] md:text-sm font-black text-outline uppercase shrink-0 w-auto text-left">
+            <span className="text-[10px] md:text-xs font-black text-outline uppercase text-left leading-none">
               {stat.unit || 'KG'}
             </span>
           </div>
@@ -849,14 +849,14 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
       {/* Statistics Grid */}
       <section className="space-y-4 md:space-y-8">
         {/* Row 1: Raw Meat + Main Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {row1.map((stat, idx) => (
             <StatCard key={`row1-${idx}`} stat={stat} idx={idx} />
           ))}
         </div>
 
         {/* Row 2: Remaining Categories */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {row2.map((stat, idx) => (
             <StatCard key={`row2-${idx}`} stat={stat} idx={idx} />
           ))}
