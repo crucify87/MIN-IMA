@@ -31,8 +31,8 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
   ] as const;
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-80 bg-white border-r-2 border-outline-variant/30 flex flex-col p-8 z-50">
-      <div className="mb-12">
+    <aside className="fixed left-0 top-0 bottom-0 w-80 bg-white border-r-2 border-outline-variant/30 flex flex-col px-8 py-4 z-50">
+      <div className="mb-6">
         <AppLogo className="w-full h-auto" src={logoSrc || "/sidebarlogo.png"} />
       </div>
 
