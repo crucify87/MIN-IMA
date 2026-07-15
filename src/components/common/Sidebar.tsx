@@ -28,8 +28,8 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
     { id: 'inventory', icon: Package, label: '재고현황' },
     { id: 'logistics', icon: Truck, label: '물류현황' },
     { id: 'production', icon: Factory, label: '생산현황' },
-    { id: 'settings', icon: Settings, label: '설정' },
     { id: 'catalog', icon: BookOpen, label: '카탈로그' },
+    { id: 'settings', icon: Settings, label: '설정' },
   ] as const;
 
   return (

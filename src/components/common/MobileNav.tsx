@@ -54,18 +54,18 @@ const MobileNav = ({ view, setView }: MobileNavProps) => {
       color: 'bg-rose-50 text-rose-600 border-rose-100'
     },
     {
-      id: 'settings',
-      icon: Settings,
-      label: '설정',
-      desc: '마스터 코드와 권한 관리',
-      color: 'bg-slate-100 text-slate-600 border-slate-200'
-    },
-    {
       id: 'catalog',
       icon: BookOpen,
       label: '카탈로그',
       desc: '제품 정보와 PDF 공유',
       color: 'bg-emerald-50 text-emerald-600 border-emerald-100'
+    },
+    {
+      id: 'settings',
+      icon: Settings,
+      label: '설정',
+      desc: '마스터 코드와 권한 관리',
+      color: 'bg-slate-100 text-slate-600 border-slate-200'
     },
   ] as const;
 
