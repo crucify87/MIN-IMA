@@ -107,6 +107,10 @@ function toDateStamp(date: Date) {
   return date.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
+function encodeQueryValue(value: string) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
 async function sha256(value: string) {
   return toHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
 }
@@ -132,24 +136,32 @@ async function getSigningKey(secretAccessKey: string, dateStamp: string) {
 async function uploadToR2(file: File, objectKey: string, credentials: R2Credentials) {
   const endpoint = new URL(R2_ENDPOINT);
   const encodedKey = objectKey.split('/').map(encodeURIComponent).join('/');
-  const uploadUrl = `${R2_ENDPOINT}/${R2_BUCKET}/${encodedKey}`;
   const now = new Date();
   const amzDate = toAmzDate(now);
   const dateStamp = toDateStamp(now);
   const credentialScope = `${dateStamp}/auto/s3/aws4_request`;
   const canonicalUri = `/${R2_BUCKET}/${encodedKey}`;
-  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+  const signedHeaders = 'host';
   const payloadHash = 'UNSIGNED-PAYLOAD';
+  const queryParams: Record<string, string> = {
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+    'X-Amz-Credential': `${credentials.accessKeyId}/${credentialScope}`,
+    'X-Amz-Date': amzDate,
+    'X-Amz-Expires': '900',
+    'X-Amz-SignedHeaders': signedHeaders,
+  };
+  const canonicalQueryString = Object.entries(queryParams)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${encodeQueryValue(key)}=${encodeQueryValue(value)}`)
+    .join('&');
   const canonicalHeaders = [
     `host:${endpoint.host}`,
-    `x-amz-content-sha256:${payloadHash}`,
-    `x-amz-date:${amzDate}`,
     '',
   ].join('\n');
   const canonicalRequest = [
     'PUT',
     canonicalUri,
-    '',
+    canonicalQueryString,
     canonicalHeaders,
     signedHeaders,
     payloadHash,
@@ -162,20 +174,12 @@ async function uploadToR2(file: File, objectKey: string, credentials: R2Credenti
   ].join('\n');
   const signingKey = await getSigningKey(credentials.secretAccessKey, dateStamp);
   const signature = toHex(await hmac(signingKey, stringToSign));
-  const authorization = [
-    'AWS4-HMAC-SHA256 ',
-    `Credential=${credentials.accessKeyId}/${credentialScope}, `,
-    `SignedHeaders=${signedHeaders}, `,
-    `Signature=${signature}`,
-  ].join('');
+  const uploadUrl = `${R2_ENDPOINT}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
 
   const response = await fetch(uploadUrl, {
     method: 'PUT',
     headers: {
-      Authorization: authorization,
       'Content-Type': file.type || 'application/octet-stream',
-      'x-amz-content-sha256': payloadHash,
-      'x-amz-date': amzDate,
     },
     body: file,
   });
@@ -468,7 +472,7 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
       updateField(slot === 1 ? 'imageUrl1' : 'imageUrl2', publicUrl);
     } catch (error) {
       console.error(error);
-      alert('R2 업로드에 실패했습니다. R2 CORS 설정에서 PUT, Authorization, Content-Type, x-amz-date, x-amz-content-sha256 허용 여부를 확인해주세요.');
+      alert('R2 업로드에 실패했습니다. R2 버킷 CORS에서 이 사이트 Origin과 PUT 업로드를 허용했는지 확인해주세요.');
     } finally {
       setUploadingSlot(null);
     }
