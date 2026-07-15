@@ -26,7 +26,7 @@ export interface FirestoreErrorInfo {
   }
 }
 
-export type ViewType = 'dashboard' | 'inventory' | 'logistics' | 'production' | 'settings' | 'detail';
+export type ViewType = 'dashboard' | 'inventory' | 'logistics' | 'production' | 'settings' | 'catalog' | 'detail';
 
 export interface StatItem {
   label: string;

@@ -24,6 +24,7 @@ import ItemDetailContent from './components/sections/ItemDetailContent';
 import LogisticsContent from './components/sections/LogisticsContent';
 import ProductionContent from './components/sections/ProductionContent';
 import SettingsContent from './components/sections/SettingsContent';
+import CatalogContent from './components/sections/CatalogContent';
 
 // --- Main App Component ---
 
@@ -232,6 +233,9 @@ export default function App() {
                     onNavigate={handleNavigate} 
                     settings={settings}
                   />
+                )}
+                {currentView === 'catalog' && (
+                  <CatalogContent canEditItems={canEditItems} />
                 )}
               </motion.div>
             </AnimatePresence>

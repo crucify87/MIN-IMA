@@ -129,6 +129,23 @@ service cloud.firestore {
              data.createdAt is timestamp;
     }
 
+    function isValidCatalog(data) {
+      return data.keys().hasAll(['category', 'productName']) &&
+             data.category is string && data.category.size() <= 200 &&
+             data.productName is string && data.productName.size() <= 200 &&
+             (!data.keys().hasAny(['foodType']) || (data.foodType is string && data.foodType.size() <= 300)) &&
+             (!data.keys().hasAny(['origin']) || (data.origin is string && data.origin.size() <= 200)) &&
+             (!data.keys().hasAny(['part']) || (data.part is string && data.part.size() <= 200)) &&
+             (!data.keys().hasAny(['weightSpec']) || (data.weightSpec is string && data.weightSpec.size() <= 200)) &&
+             (!data.keys().hasAny(['certification']) || (data.certification is string && data.certification.size() <= 300)) &&
+             (!data.keys().hasAny(['storageMethod']) || (data.storageMethod is string && data.storageMethod.size() <= 300)) &&
+             (!data.keys().hasAny(['shelfLife']) || (data.shelfLife is string && data.shelfLife.size() <= 300)) &&
+             (!data.keys().hasAny(['imageUrl1']) || (data.imageUrl1 is string && data.imageUrl1.size() <= 2000)) &&
+             (!data.keys().hasAny(['imageUrl2']) || (data.imageUrl2 is string && data.imageUrl2.size() <= 2000)) &&
+             (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp) &&
+             (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
+    }
+
     // --- Collection Routes ---
 
     match /users/{userId} {
@@ -169,6 +186,12 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true; // Public for login screen logo
       allow write: if isSuperAdmin();
+    }
+
+    match /catalogs/{catalogId} {
+      allow read: if isApproved();
+      allow create, update: if isAdminUser() && isValidCatalog(incoming());
+      allow delete: if isAdminUser();
     }
 
     match /feedbacks/{feedbackId} {

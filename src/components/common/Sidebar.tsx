@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Package, 
-  Truck, 
-  Settings, 
-  Factory, 
+import {
+  LayoutDashboard,
+  Package,
+  Truck,
+  Settings,
+  Factory,
   LogOut,
+  BookOpen,
   MessageSquarePlus
 } from 'lucide-react';
 import AppLogo from './AppLogo';
@@ -28,6 +29,7 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
     { id: 'logistics', icon: Truck, label: '물류현황' },
     { id: 'production', icon: Factory, label: '생산현황' },
     { id: 'settings', icon: Settings, label: '설정' },
+    { id: 'catalog', icon: BookOpen, label: '카탈로그' },
   ] as const;
 
   return (
@@ -56,8 +58,7 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
             )}
           </button>
         ))}
-        
-        {/* 개선사항 건의 버튼 */}
+
         <button
           onClick={() => setFeedbackOpen(true)}
           className="w-full group relative flex items-center gap-4 px-6 py-4 rounded-[24px] transition-all duration-300 hover:bg-emerald-50/60 border border-dashed border-transparent hover:border-emerald-100/80 text-outline hover:text-emerald-600 mt-2"
