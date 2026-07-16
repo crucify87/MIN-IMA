@@ -1388,12 +1388,18 @@ function SettingsContent({
                               <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                                 <td className="px-6 py-5">
                                   <div className="flex items-center gap-3">
-                                    <div>
-                                      <div className="font-black text-[#0f172a]">{item.name}</div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-baseline gap-2 min-w-0 max-w-[260px]">
+                                        <span className="font-black text-[#0f172a] truncate min-w-0" title={item.name}>{item.name}</span>
+                                        {item.specs && (
+                                          <span className="shrink-0 text-xs font-black text-emerald-600 leading-none">
+                                            {item.specs}
+                                          </span>
+                                        )}
+                                      </div>
                                       {item.brand && <div className="text-[10px] font-black text-primary mt-0.5">{item.brand}</div>}
                                       <div className="flex items-center gap-2 mt-0.5">
                                         <span className="text-[10px] font-bold text-outline uppercase">{item.sku || '-'}</span>
-                                        {item.specs && <span className="text-[10px] font-black text-emerald-500/70">| {item.specs}</span>}
                                       </div>
                                     </div>
                                   </div>
@@ -1454,7 +1460,14 @@ function SettingsContent({
                                     <span className="text-[10px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg">{item.sku || 'NO-SKU'}</span>
                                     <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[9px] font-black text-outline uppercase">{item.category}</span>
                                   </div>
-                                  <h4 className="text-lg font-black text-[#0f172a] leading-tight truncate text-left">{item.name}</h4>
+                                  <h4 className="flex items-baseline gap-2 min-w-0 max-w-full text-left">
+                                    <span className="text-lg font-black text-[#0f172a] leading-tight truncate min-w-0" title={item.name}>{item.name}</span>
+                                    {item.specs && (
+                                      <span className="shrink-0 text-xs font-black text-emerald-600 leading-none">
+                                        {item.specs}
+                                      </span>
+                                    )}
+                                  </h4>
                                   <div className="flex items-center gap-2 flex-wrap text-left">
                                     {item.brand && <p className="text-[10px] font-bold text-outline-variant">{item.brand}</p>}
                                     {item.partner && (
@@ -1462,7 +1475,6 @@ function SettingsContent({
                                         <Users className="w-2.5 h-2.5" /> {item.partner}
                                       </p>
                                     )}
-                                    {item.specs && <p className="text-[10px] font-black text-emerald-500/70">{item.specs}</p>}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
