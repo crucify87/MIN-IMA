@@ -11,6 +11,7 @@ import {
   Edit,
   Trash2,
   FileDown,
+  FileUp,
 } from "lucide-react";
 import { motion } from "motion/react";
 import {
@@ -109,6 +110,7 @@ function ProductionContent({
   );
 
   const formRef = useRef<HTMLDivElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -223,6 +225,48 @@ function ProductionContent({
       if (isNaN(parsed)) return str.startsWith("-") ? "-" : "";
       return parsed.toLocaleString();
     }
+  };
+
+  const normalizeUploadKey = (key: string) =>
+    String(key || "").replace(/\s+/g, "").replace(/[()]/g, "").toLowerCase();
+
+  const getUploadValue = (row: Record<string, any>, aliases: string[]) => {
+    const entries = Object.entries(row);
+    const normalizedAliases = aliases.map(normalizeUploadKey);
+    const found = entries.find(([key]) => normalizedAliases.includes(normalizeUploadKey(key)));
+    return found ? found[1] : "";
+  };
+
+  const parseUploadNumber = (value: any) => {
+    if (value === null || value === undefined || value === "") return 0;
+    const parsed = Number(String(value).replace(/,/g, "").replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const parseUploadDate = (value: any) => {
+    if (!value) return "";
+    if (typeof value === "number") {
+      const parsed = XLSX.SSF.parse_date_code(value);
+      if (!parsed) return "";
+      return `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
+    }
+    const text = String(value).trim();
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
+      const [y, m, d] = text.split("-");
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    if (/^\d{4}[./]\d{1,2}[./]\d{1,2}$/.test(text)) {
+      const [y, m, d] = text.split(/[./]/);
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    const parsed = new Date(text);
+    return isNaN(parsed.getTime()) ? "" : parsed.toLocaleDateString("sv-SE");
+  };
+
+  const calculateRawBoxes = (rawMaterial: string, rawQty: number) => {
+    const inv = inventory.find((i: any) => i.name === rawMaterial);
+    const avgWeight = inv?.avgWeight ? Number(inv.avgWeight) : 0;
+    return avgWeight > 0 && rawQty > 0 ? Math.round((rawQty / avgWeight) * 100) / 100 : 0;
   };
 
   const brands = useMemo(() => {
@@ -590,6 +634,232 @@ function ProductionContent({
     date.setDate(date.getDate() - 1);
     const expiryDate = date.toISOString().split("T")[0];
     updateRow(rowId, "expiryDate", expiryDate);
+  };
+
+  const applyUploadedProductionRows = async (uploadRows: any[]) => {
+    const updateInventoryStock = async (
+      name: string,
+      diff: number,
+      isRaw: boolean = false,
+      brandName: string = "",
+      sourceUnit: string = "",
+      customBoxesDiff: number | null = null,
+    ) => {
+      if (!name) return { prevStock: 0, nextStock: 0 };
+      const trimmedName = name.trim();
+      const existingInList = inventory.find(
+        (i: any) =>
+          i.name.trim() === trimmedName &&
+          (isRaw ? i.category === "원육" : i.category !== "원육") &&
+          i.isApproved !== false,
+      );
+
+      const itemDocRef = existingInList
+        ? doc(db, "inventory", existingInList.id)
+        : doc(db, "inventory", `inv_${isRaw ? "원육" : "완제품"}_${encodeURIComponent(trimmedName).replace(/\./g, "%2E")}`);
+
+      return runTransaction(db, async (transaction) => {
+        const docSnap = await transaction.get(itemDocRef);
+        let prevStock = 0;
+        if (docSnap.exists()) {
+          const data = docSnap.data() as any;
+          prevStock = Number(data.currentStock || 0);
+          const itemMasterUnit = (data.unit || "KG").toUpperCase();
+          const currentTxUnit = (sourceUnit || itemMasterUnit).toUpperCase();
+          let convertedDiff = diff;
+
+          if (itemMasterUnit !== currentTxUnit) {
+            const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
+            const itemSpecs = (data.specs || "").trim();
+            const packSize = (() => {
+              const match = itemSpecs.match(/(?:x|\*)\s*(\d+)\s*(?:ea|개)/i) || itemSpecs.match(/\b(\d+)\s*(?:ea|개)/i);
+              const num = match ? parseInt(match[1], 10) : 1;
+              return !isNaN(num) && num > 0 ? num : 1;
+            })();
+            const isWeight = (u: string) => ["KG", "G"].includes(u);
+
+            if (isWeight(itemMasterUnit) && isWeight(currentTxUnit)) {
+              if (itemMasterUnit === "KG" && currentTxUnit === "G") convertedDiff = diff / 1000;
+              if (itemMasterUnit === "G" && currentTxUnit === "KG") convertedDiff = diff * 1000;
+            } else if (!isWeight(itemMasterUnit) && !isWeight(currentTxUnit)) {
+              if (itemMasterUnit === "EA" && currentTxUnit === "BOX") convertedDiff = diff * packSize;
+              if (itemMasterUnit === "BOX" && currentTxUnit === "EA") convertedDiff = diff / packSize;
+            } else {
+              const boxWeightKG = avgWeight > 0 ? avgWeight : 1;
+              const eaWeightKG = boxWeightKG / packSize;
+              let valueInKG = 0;
+              if (currentTxUnit === "KG") valueInKG = diff;
+              else if (currentTxUnit === "G") valueInKG = diff / 1000;
+              else if (currentTxUnit === "BOX") valueInKG = diff * boxWeightKG;
+              else if (currentTxUnit === "EA") valueInKG = diff * eaWeightKG;
+
+              if (itemMasterUnit === "KG") convertedDiff = valueInKG;
+              else if (itemMasterUnit === "G") convertedDiff = valueInKG * 1000;
+              else if (itemMasterUnit === "BOX") convertedDiff = valueInKG / boxWeightKG;
+              else if (itemMasterUnit === "EA") convertedDiff = valueInKG / eaWeightKG;
+            }
+          }
+
+          const nextStock = Math.max(0, prevStock + convertedDiff);
+          const prevBoxes = Number(data.boxes || 0);
+          const avgWeight = Number(data.avgWeight) || Number(existingInList?.avgWeight) || 0;
+          const nextBoxes = customBoxesDiff !== null
+            ? Math.max(0, prevBoxes + customBoxesDiff)
+            : avgWeight > 0
+              ? Math.max(0, nextStock / avgWeight)
+              : prevBoxes;
+
+          transaction.update(itemDocRef, {
+            currentStock: nextStock,
+            boxes: Math.round(nextBoxes * 100) / 100,
+            updatedAt: serverTimestamp(),
+          });
+          return { prevStock, nextStock };
+        }
+
+        const initialStock = Math.max(0, diff);
+        const refAvgWeight = Number(existingInList?.avgWeight) || 0;
+        const finalBoxes = customBoxesDiff !== null
+          ? Math.max(0, customBoxesDiff)
+          : refAvgWeight > 0
+            ? Math.round((initialStock / refAvgWeight) * 100) / 100
+            : 0;
+        transaction.set(itemDocRef, {
+          name: trimmedName,
+          specs: "",
+          currentStock: initialStock,
+          boxes: finalBoxes,
+          brand: brandName || "",
+          category: isRaw ? "원육" : "완제품",
+          sku: `${isRaw ? "R" : "P"}-${Math.random().toString(36).substring(7).toUpperCase()}`,
+          unit: sourceUnit || "KG",
+          minStock: 0,
+          location: "미지정",
+          isApproved: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        return { prevStock, nextStock: initialStock };
+      });
+    };
+
+    for (const row of uploadRows) {
+      const prodNum = Number(row.production) || 0;
+      const rawNum = Number(row.rawQty) || 0;
+      if (!row.title || (prodNum <= 0 && rawNum <= 0)) continue;
+
+      const rawBoxes = Number(row.rawBoxes) || calculateRawBoxes(row.rawMaterial, rawNum);
+      const yieldRate = rawNum > 0 ? (prodNum / rawNum) * 100 : 0;
+      const lossRate = rawNum > 0 ? ((rawNum - prodNum) / rawNum) * 100 : 0;
+      const itemMaster = inventory.find((it: any) => it.name === row.title);
+
+      let prodStockInfo = { prevStock: 0, nextStock: 0 };
+      let rawStockInfo = { prevStock: 0, nextStock: 0 };
+      if (prodNum > 0) {
+        prodStockInfo = await updateInventoryStock(row.title, prodNum, false, row.brand || "");
+      }
+      if (rawNum > 0) {
+        rawStockInfo = await updateInventoryStock(row.rawMaterial, -rawNum, true, row.brand || "", "", -rawBoxes);
+      }
+
+      await addDoc(collection(db, "production_batches"), {
+        title: row.title,
+        rawMaterial: row.rawMaterial || "",
+        brand: row.brand || "",
+        rawQty: rawNum,
+        rawBoxes,
+        production: prodNum,
+        manufDate: row.manufDate || today,
+        expiryDate: row.expiryDate || "",
+        linkType: "none",
+        line: row.line || line,
+        partner: itemMaster?.partner || "",
+        yield: yieldRate,
+        loss: lossRate,
+        remarks: row.remarks || "엑셀 업로드",
+        prodPrevStock: prodStockInfo.prevStock,
+        prodNextStock: prodStockInfo.nextStock,
+        rawPrevStock: rawStockInfo.prevStock,
+        rawNextStock: rawStockInfo.nextStock,
+        optionName: "",
+        optionQty: 0,
+        optionUnit: "",
+        optionPrevStock: 0,
+        optionNextStock: 0,
+        createdAt: serverTimestamp(),
+      });
+    }
+  };
+
+  const handleUploadExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || loading) return;
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonRows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: "" });
+
+      const uploadRows = jsonRows.map((row, index) => {
+        const title = String(getUploadValue(row, ["품목명", "제품명", "생산품목", "완제품", "title"]) || "").trim();
+        const rawMaterial = String(getUploadValue(row, ["원육명", "원육 품명", "원육", "원재료", "rawMaterial"]) || "").trim();
+        const rawQty = parseUploadNumber(getUploadValue(row, ["투입량 (KG)", "투입량", "원육투입량", "rawQty"]));
+        const productionQty = parseUploadNumber(getUploadValue(row, ["생산량 (KG)", "생산량", "완제품생산량", "production"]));
+        return {
+          id: Date.now() + index,
+          title,
+          rawMaterial,
+          brand: String(getUploadValue(row, ["브랜드", "brand"]) || "").trim(),
+          rawQty,
+          rawBoxes: parseUploadNumber(getUploadValue(row, ["박스", "원육박스", "투입박스", "rawBoxes"])),
+          production: productionQty,
+          manufDate: parseUploadDate(getUploadValue(row, ["생산일자", "제조일자", "날짜", "일자", "manufDate"])) || today,
+          expiryDate: parseUploadDate(getUploadValue(row, ["소비기한", "유통기한", "expiryDate"])),
+          line: String(getUploadValue(row, ["라인", "line"]) || line).trim() || line,
+          remarks: String(getUploadValue(row, ["비고", "메모", "remarks"]) || "엑셀 업로드").trim(),
+        };
+      }).filter((row) => row.title && (row.production > 0 || row.rawQty > 0));
+
+      if (uploadRows.length === 0) {
+        alert("업로드할 생산 데이터가 없습니다. 품목명/생산량 또는 투입량 컬럼을 확인해주세요.");
+        return;
+      }
+
+      const previewRows = uploadRows.slice(0, 5).map((row) =>
+        `${row.manufDate} | ${row.title} | 생산 ${row.production.toLocaleString()} / 투입 ${row.rawQty.toLocaleString()}`
+      ).join("\n");
+      const confirmed = window.confirm(
+        `${uploadRows.length}건의 생산일지를 업로드해서 생산현황과 재고에 바로 반영할까요?\n\n${previewRows}${uploadRows.length > 5 ? "\n..." : ""}`
+      );
+      if (!confirmed) {
+        setRows(uploadRows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          rawMaterial: row.rawMaterial,
+          brand: row.brand,
+          rawQty: String(row.rawQty || ""),
+          rawBoxes: String(row.rawBoxes || calculateRawBoxes(row.rawMaterial, row.rawQty) || ""),
+          production: String(row.production || ""),
+          manufDate: row.manufDate,
+          expiryDate: row.expiryDate,
+          linkType: "none",
+        })));
+        setLogDate(uploadRows[0].manufDate || today);
+        setShowForm(true);
+        return;
+      }
+
+      setLoading(true);
+      await applyUploadedProductionRows(uploadRows);
+      alert(`${uploadRows.length}건의 생산일지 업로드 및 재고 반영이 완료되었습니다.`);
+    } catch (error) {
+      console.error("Production Excel upload failed:", error);
+      alert("생산일지 엑셀 업로드 중 오류가 발생했습니다. 컬럼명과 파일 형식을 확인해주세요.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAdd = async (e: any) => {
@@ -1182,6 +1452,28 @@ function ProductionContent({
 
         <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full xl:w-auto">
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {canEditItems && (
+              <>
+                <input
+                  ref={uploadInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleUploadExcel}
+                />
+                <button
+                  onClick={() => uploadInputRef.current?.click()}
+                  disabled={loading}
+                  className="flex-none flex items-center justify-center h-11 w-11 sm:w-auto sm:px-4 bg-emerald-50 border border-emerald-100 rounded-xl text-sm font-bold text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="엑셀 업로드"
+                >
+                  <FileUp className="w-4 h-4" />
+                  <span className="hidden sm:inline font-black ml-2">
+                    엑셀 업로드
+                  </span>
+                </button>
+              </>
+            )}
             <button
               onClick={handleDownloadExcel}
               className="flex-none flex items-center justify-center h-11 w-11 sm:w-auto sm:px-4 bg-white border border-outline-variant rounded-xl text-sm font-bold text-on-surface hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
