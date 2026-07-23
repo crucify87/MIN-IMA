@@ -560,6 +560,35 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   const updateBatchItem = (idx: number, updates: Partial<BatchItem>) => {
     setBatchItems(prev => prev.map((item, i) => i === idx ? { ...item, ...updates } : item));
   };
+
+  const findInventoryItemForLog = (name?: string, specs?: string, category?: string, brand?: string) => {
+    const trimmedName = (name || '').trim();
+    const trimmedSpecs = (specs || '').trim();
+    if (!trimmedName) return null;
+
+    const approvedItems = inventory.filter((i: any) => i.isApproved !== false && i.name?.trim() === trimmedName);
+    return approvedItems.find((i: any) =>
+      (!trimmedSpecs || (i.specs || '').trim() === trimmedSpecs) &&
+      (!category || i.category === category) &&
+      (!brand || i.brand === brand)
+    ) || approvedItems.find((i: any) =>
+      (!trimmedSpecs || (i.specs || '').trim() === trimmedSpecs) &&
+      (!category || i.category === category)
+    ) || approvedItems.find((i: any) =>
+      !trimmedSpecs || (i.specs || '').trim() === trimmedSpecs
+    ) || approvedItems[0] || null;
+  };
+
+  const getMasterUnitForLogItem = (item: Partial<BatchItem> | any, fallback = 'BOX') => {
+    const invItem = findInventoryItemForLog(item.item, item.specs, item.category, item.brand);
+    return (invItem?.unit || fallback || 'BOX').toUpperCase();
+  };
+
+  const getQuantityUnitOptions = (item: Partial<BatchItem>) => {
+    const invItem = findInventoryItemForLog(item.item, item.specs, item.category, item.brand);
+    if (invItem?.unit) return [(invItem.unit || 'BOX').toUpperCase()];
+    return ['BOX', 'EA', 'KG', 'G'];
+  };
   
   const updateInventoryStock = async (
     name: string, 
@@ -755,6 +784,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         const itemName = item.item.trim();
         const weightNum = Number(item.weight) || 0;
         const boxesNum = Number(item.boxes) || 0;
+        const masterUnit = getMasterUnitForLogItem(item, item.unit);
 
         let resolvedCategory = item.category;
         if (!resolvedCategory || resolvedCategory === '완제품') {
@@ -769,7 +799,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           itemName, 
           item.type === '입고' ? weightNum : -weightNum,
           item.type === '입고' ? boxesNum : -boxesNum,
-          item.unit,
+          masterUnit,
           item.weightUnit,
           item.specs,
           resolvedCategory,
@@ -786,7 +816,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           category: resolvedCategory,
           specs: item.specs,
           partner: item.partner,
-          unit: item.unit,
+          unit: masterUnit,
           boxes: boxesNum,
           weight: weightNum,
           weightUnit: item.weightUnit,
@@ -807,6 +837,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           const itemName = item.item.trim();
           const weightNum = Number(item.weight) || 0;
           const boxesNum = Number(item.boxes) || 0;
+          const masterUnit = getMasterUnitForLogItem(item, item.unit);
 
           let resolvedCategory = item.category;
           if (!resolvedCategory || resolvedCategory === '완제품') {
@@ -821,7 +852,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             itemName, 
             item.type === '입고' ? weightNum : -weightNum,
             item.type === '입고' ? boxesNum : -boxesNum,
-            item.unit,
+            masterUnit,
             item.weightUnit,
             item.specs,
             resolvedCategory,
@@ -838,7 +869,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             category: resolvedCategory,
             specs: item.specs,
             partner: item.partner,
-            unit: item.unit,
+            unit: masterUnit,
             boxes: boxesNum,
             weight: weightNum,
             weightUnit: item.weightUnit,
@@ -877,6 +908,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
   };
 
   const handleEdit = (l: any) => {
+    const masterUnit = getMasterUnitForLogItem(l, l.unit || 'BOX');
     setEditingId(l.id);
     setFormDate(l.date);
     setFormTime(l.time);
@@ -888,7 +920,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         category: l.category || '',
         specs: l.specs || '',
         partner: l.partner || '',
-        unit: l.unit || 'BOX',
+        unit: masterUnit,
         boxes: l.boxes?.toString() || '',
         weight: l.weight?.toString() || '',
         weightUnit: l.weightUnit || 'KG',
@@ -1398,7 +1430,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           </button>
                           {activeDropdown.index === idx && activeDropdown.type === 'unit' && (
                             <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-slate-100 py-0.5">
-                              {['BOX', 'EA', 'KG', 'G'].map(u => (
+                              {getQuantityUnitOptions(item).map(u => (
                                 <button
                                   key={u}
                                   type="button"
@@ -1729,7 +1761,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         }
                         return (l.weightUnit || 'KG').toUpperCase();
                       })();
-                      const displayQtyUnit = (l.unit || 'BOX').toUpperCase();
+                      const displayQtyUnit = getMasterUnitForLogItem(l, l.unit || 'BOX');
 
                       return (
                         <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
@@ -1829,7 +1861,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     }
                     return (l.weightUnit || 'KG').toUpperCase();
                   })();
-                  const displayQtyUnit = (l.unit || 'BOX').toUpperCase();
+                  const displayQtyUnit = getMasterUnitForLogItem(l, l.unit || 'BOX');
 
                   return (
                     <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
