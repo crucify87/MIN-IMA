@@ -389,7 +389,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
       category: '',
       specs: '',
       partner: '',
-      unit: 'BOX',
+      unit: 'KG',
       boxes: '',
       weight: '',
       weightUnit: 'KG',
@@ -538,7 +538,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         category: '',
         specs: '',
         partner: '',
-        unit: 'BOX',
+        unit: 'KG',
         boxes: '',
         weight: '',
         weightUnit: 'KG',
@@ -559,6 +559,11 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
 
   const updateBatchItem = (idx: number, updates: Partial<BatchItem>) => {
     setBatchItems(prev => prev.map((item, i) => i === idx ? { ...item, ...updates } : item));
+  };
+
+  const syncUnitUpdate = (unit: string): Pick<BatchItem, 'unit' | 'weightUnit'> => {
+    const nextUnit = (unit || 'KG').toUpperCase();
+    return { unit: nextUnit, weightUnit: nextUnit };
   };
 
   const findInventoryItemForLog = (name?: string, specs?: string, category?: string, brand?: string) => {
@@ -800,7 +805,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           item.type === '입고' ? weightNum : -weightNum,
           item.type === '입고' ? boxesNum : -boxesNum,
           masterUnit,
-          item.weightUnit,
+          masterUnit,
           item.specs,
           resolvedCategory,
           item.brand,
@@ -819,7 +824,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           unit: masterUnit,
           boxes: boxesNum,
           weight: weightNum,
-          weightUnit: item.weightUnit,
+          weightUnit: masterUnit,
           freightType: item.freightType,
           prevStock: stockChanges.prevStock,
           nextStock: stockChanges.nextStock,
@@ -853,7 +858,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             item.type === '입고' ? weightNum : -weightNum,
             item.type === '입고' ? boxesNum : -boxesNum,
             masterUnit,
-            item.weightUnit,
+            masterUnit,
             item.specs,
             resolvedCategory,
             item.brand,
@@ -872,7 +877,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             unit: masterUnit,
             boxes: boxesNum,
             weight: weightNum,
-            weightUnit: item.weightUnit,
+            weightUnit: masterUnit,
             freightType: item.freightType,
             prevStock: stockChanges.prevStock,
             nextStock: stockChanges.nextStock,
@@ -897,7 +902,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           category: '',
           specs: '',
           partner: '',
-          unit: 'BOX',
+          unit: 'KG',
           boxes: '',
           weight: '',
           weightUnit: 'KG',
@@ -923,7 +928,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         unit: masterUnit,
         boxes: l.boxes?.toString() || '',
         weight: l.weight?.toString() || '',
-        weightUnit: l.weightUnit || 'KG',
+        weightUnit: masterUnit,
         freightType: l.freightType || '선불'
       }
     ]);
@@ -1080,7 +1085,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                         category: '',
                         specs: '',
                         partner: '',
-                        unit: 'BOX',
+                        unit: 'KG',
                         boxes: '',
                         weight: '',
                         weightUnit: 'KG',
@@ -1180,11 +1185,12 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                             updateBatchItem(idx, { item: val });
                             const invItem = inventory.find((it: any) => it.name.trim() === val.trim());
                             if (invItem) {
+                              const nextUnit = (invItem.unit || 'BOX').toUpperCase();
                               updateBatchItem(idx, {
                                 brand: invItem.brand || item.brand,
                                 category: getCorrespondingCategory(invItem) || item.category,
                                 partner: invItem.partner || item.partner,
-                                unit: (invItem.unit || 'BOX').toUpperCase(),
+                                ...syncUnitUpdate(nextUnit),
                                 specs: invItem.specs || item.specs
                               });
                             }
@@ -1213,12 +1219,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                                   type="button"
                                   onMouseDown={(e) => {
                                     e.preventDefault();
+                                    const nextUnit = (i.unit || 'BOX').toUpperCase();
                                     updateBatchItem(idx, {
                                       item: i.name,
                                       brand: i.brand || item.brand,
                                       category: getCorrespondingCategory(i) || item.category,
                                       partner: i.partner || item.partner,
-                                      unit: (i.unit || 'BOX').toUpperCase(),
+                                      ...syncUnitUpdate(nextUnit),
                                       specs: i.specs || item.specs
                                     });
                                     setActiveDropdown({ index: -1, type: null });
@@ -1380,13 +1387,13 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                           </button>
                           {activeDropdown.index === idx && activeDropdown.type === 'weightUnit' && (
                             <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] overflow-hidden divide-y divide-slate-100 py-0.5">
-                              {['KG', 'G', 'BOX', 'EA'].map(u => (
+                              {getQuantityUnitOptions(item).map(u => (
                                 <button
                                   key={u}
                                   type="button"
                                   onMouseDown={(e) => {
                                     e.preventDefault();
-                                    updateBatchItem(idx, { weightUnit: u });
+                                    updateBatchItem(idx, syncUnitUpdate(u));
                                     setActiveDropdown({ index: -1, type: null });
                                   }}
                                   className="w-full h-8 flex items-center px-2.5 text-[11px] font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
@@ -1436,7 +1443,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                                   type="button"
                                   onMouseDown={(e) => {
                                     e.preventDefault();
-                                    updateBatchItem(idx, { unit: u });
+                                    updateBatchItem(idx, syncUnitUpdate(u));
                                     setActiveDropdown({ index: -1, type: null });
                                   }}
                                   className="w-full h-8 flex items-center px-2.5 text-[11px] font-bold text-slate-800 hover:bg-[#f1f4f9] hover:text-primary transition-colors text-left"
@@ -1754,14 +1761,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     {paginatedItems.map((l: any, i: number) => {
                       const invItem = inventory?.find((inv: any) => inv.name === l.item && (!l.specs || inv.specs === l.specs));
                       const itemUnit = (invItem?.unit || 'KG').toUpperCase();
-                      const displayWeightUnit = (() => {
-                        if (invItem && invItem.unit) {
-                          const u = invItem.unit.toUpperCase();
-                          if (u === 'KG' || u === 'G') return u;
-                        }
-                        return (l.weightUnit || 'KG').toUpperCase();
-                      })();
-                      const displayQtyUnit = getMasterUnitForLogItem(l, l.unit || 'BOX');
+                      const displayQtyUnit = getMasterUnitForLogItem(l, l.unit || 'KG');
+                      const displayWeightUnit = displayQtyUnit;
 
                       return (
                         <tr key={l.id || i} className="hover:bg-surface-container/5 transition-colors">
@@ -1854,14 +1855,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                 {paginatedItems.map((l: any, i: number) => {
                   const invItem = inventory?.find((inv: any) => inv.name === l.item && (!l.specs || inv.specs === l.specs));
                   const itemUnit = (invItem?.unit || 'KG').toUpperCase();
-                  const displayWeightUnit = (() => {
-                    if (invItem && invItem.unit) {
-                      const u = invItem.unit.toUpperCase();
-                      if (u === 'KG' || u === 'G') return u;
-                    }
-                    return (l.weightUnit || 'KG').toUpperCase();
-                  })();
-                  const displayQtyUnit = getMasterUnitForLogItem(l, l.unit || 'BOX');
+                  const displayQtyUnit = getMasterUnitForLogItem(l, l.unit || 'KG');
+                  const displayWeightUnit = displayQtyUnit;
 
                   return (
                     <div key={l.id || i} className="bg-white p-4 rounded-[24px] border border-outline-variant/60 shadow-sm space-y-3 relative overflow-hidden active:scale-[0.98] active:bg-slate-50 transition-all">
