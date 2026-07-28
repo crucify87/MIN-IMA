@@ -15,6 +15,8 @@ import {
   CheckSquare,
   Download,
   Edit,
+  ExternalLink,
+  Eye,
   Image as ImageIcon,
   KeyRound,
   Plus,
@@ -200,9 +202,47 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#039;');
 }
 
+function encodeObjectPath(path: string) {
+  return path
+    .split('/')
+    .filter(Boolean)
+    .map((part) => {
+      try {
+        return encodeURIComponent(decodeURIComponent(part));
+      } catch {
+        return encodeURIComponent(part);
+      }
+    })
+    .join('/');
+}
+
+function normalizeCatalogImageUrl(url = '') {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  try {
+    const parsed = new URL(trimmed);
+    const endpointHost = new URL(R2_ENDPOINT).host;
+    const publicHost = new URL(PUBLIC_R2_BASE_URL).host;
+
+    if (parsed.host === endpointHost || parsed.host === publicHost) {
+      let objectPath = parsed.pathname.replace(/^\/+/, '');
+      if (objectPath.startsWith(`${R2_BUCKET}/`)) {
+        objectPath = objectPath.slice(R2_BUCKET.length + 1);
+      }
+      return `${PUBLIC_R2_BASE_URL}/${encodeObjectPath(objectPath)}`;
+    }
+
+    return trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
 function imageBox(url: string, label: string) {
-  if (!url) return `<div class="image-placeholder">${escapeHtml(label)}</div>`;
-  return `<img src="${escapeHtml(url)}" alt="${escapeHtml(label)}" />`;
+  const imageUrl = normalizeCatalogImageUrl(url);
+  if (!imageUrl) return `<div class="image-placeholder">${escapeHtml(label)}</div>`;
+  return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(label)}" />`;
 }
 
 function catalogSheet(item: CatalogItem) {
@@ -470,6 +510,7 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
   const [uploadingSlot, setUploadingSlot] = useState<1 | 2 | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isR2Open, setIsR2Open] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{ url: string; label: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [r2Credentials, setR2Credentials] = useState<R2Credentials>(() => {
     try {
@@ -483,10 +524,15 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
   useEffect(() => {
     const q = query(collection(db, 'catalogs'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setCatalogs(snapshot.docs.map((catalogDoc) => ({
-        id: catalogDoc.id,
-        ...catalogDoc.data(),
-      })) as CatalogItem[]);
+      setCatalogs(snapshot.docs.map((catalogDoc) => {
+        const data = catalogDoc.data() as CatalogItem;
+        return {
+          id: catalogDoc.id,
+          ...data,
+          imageUrl1: normalizeCatalogImageUrl(data.imageUrl1 || ''),
+          imageUrl2: normalizeCatalogImageUrl(data.imageUrl2 || ''),
+        };
+      }) as CatalogItem[]);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'catalogs'));
 
     return () => unsubscribe();
@@ -540,8 +586,8 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
       certification: item.certification || '',
       storageMethod: item.storageMethod || '',
       shelfLife: item.shelfLife || '',
-      imageUrl1: item.imageUrl1 || '',
-      imageUrl2: item.imageUrl2 || '',
+      imageUrl1: normalizeCatalogImageUrl(item.imageUrl1 || ''),
+      imageUrl2: normalizeCatalogImageUrl(item.imageUrl2 || ''),
     });
     setIsFormOpen(true);
   };
@@ -599,6 +645,8 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
     try {
       const payload = {
         ...form,
+        imageUrl1: normalizeCatalogImageUrl(form.imageUrl1),
+        imageUrl2: normalizeCatalogImageUrl(form.imageUrl2),
         updatedAt: serverTimestamp(),
       };
 
@@ -699,8 +747,47 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
     </label>
   );
 
+  const renderImagePreviewBox = (url: string, label: string, compact = false) => {
+    const imageUrl = normalizeCatalogImageUrl(url);
+    return (
+      <button
+        type="button"
+        onClick={() => imageUrl && setPreviewImage({ url: imageUrl, label })}
+        disabled={!imageUrl}
+        className={`group relative w-full overflow-hidden rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center ${compact ? 'aspect-[4/3]' : 'aspect-[16/10]'} disabled:cursor-default`}
+        title={imageUrl ? '이미지 미리보기' : '이미지 없음'}
+      >
+        {imageUrl ? (
+          <>
+            <img
+              src={imageUrl}
+              alt={label}
+              className="h-full w-full object-contain"
+              onError={(e) => {
+                e.currentTarget.classList.add('hidden');
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+            <div className="hidden px-3 text-center text-[11px] font-black text-rose-500">
+              이미지를 불러오지 못했습니다
+            </div>
+            <div className="absolute inset-0 hidden items-center justify-center bg-slate-950/45 text-white group-hover:flex">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-black backdrop-blur">
+                <Eye className="w-3.5 h-3.5" />
+                미리보기
+              </span>
+            </div>
+          </>
+        ) : (
+          <ImageIcon className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} text-slate-200`} />
+        )}
+      </button>
+    );
+  };
+
   const renderImageInput = (slot: 1 | 2) => {
     const key = slot === 1 ? 'imageUrl1' : 'imageUrl2';
+    const imageUrl = normalizeCatalogImageUrl(form[key]);
     return (
       <div className="space-y-2">
         <span className="text-xs font-black text-slate-500 uppercase">사진 {slot}</span>
@@ -709,9 +796,18 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
             value={form[key]}
             onChange={(e) => updateField(key, e.target.value)}
             disabled={!canEditItems}
-            placeholder={`${PUBLIC_R2_BASE_URL}/catalog/item-${slot}.png`}
+            placeholder={PUBLIC_R2_BASE_URL + '/catalog/item-' + slot + '.png'}
             className="min-w-0 flex-1 h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-50"
           />
+          <button
+            type="button"
+            onClick={() => imageUrl && setPreviewImage({ url: imageUrl, label: '사진 ' + slot })}
+            disabled={!imageUrl}
+            className="h-12 w-12 rounded-xl border border-slate-200 bg-white text-slate-500 inline-flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            title="이미지 미리보기"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
           <label className={`h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-black text-xs inline-flex items-center gap-2 cursor-pointer hover:bg-slate-100 ${!canEditItems || uploadingSlot ? 'opacity-50 pointer-events-none' : ''}`}>
             <Upload className="w-4 h-4" />
             {uploadingSlot === slot ? '업로드 중' : '업로드'}
@@ -726,6 +822,15 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
               }}
             />
           </label>
+        </div>
+        <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 items-center">
+          {renderImagePreviewBox(imageUrl, '사진 ' + slot, true)}
+          <div className="min-w-0">
+            <p className="text-xs font-black text-slate-500">업로드 미리보기</p>
+            <p className="mt-1 truncate text-[11px] font-bold text-slate-400">
+              {imageUrl || '이미지를 업로드하거나 URL을 입력하면 여기에서 확인됩니다.'}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -830,12 +935,8 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
 
                 <div className="grid grid-cols-2 gap-2">
                   {[item.imageUrl1, item.imageUrl2].map((url, index) => (
-                    <div key={index} className="aspect-[4/3] rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center overflow-hidden">
-                      {url ? (
-                        <img src={url} alt={`${item.productName} ${index + 1}`} className="w-full h-full object-contain" />
-                      ) : (
-                        <ImageIcon className="w-6 h-6 text-slate-200" />
-                      )}
+                    <div key={index}>
+                      {renderImagePreviewBox(url, `${item.productName || '카탈로그'} ${index + 1}`, true)}
                     </div>
                   ))}
                 </div>
@@ -993,6 +1094,49 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {previewImage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4">
+          <div className="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 p-4">
+              <div>
+                <h3 className="text-base font-black text-slate-900">이미지 미리보기</h3>
+                <p className="mt-0.5 max-w-[70vw] truncate text-xs font-bold text-slate-400">{previewImage.label}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewImage.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-black text-slate-600 hover:bg-slate-50"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  새 탭
+                </a>
+                <button type="button" onClick={() => setPreviewImage(null)} className="p-2 rounded-xl hover:bg-slate-50">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex max-h-[78vh] items-center justify-center bg-slate-100 p-4">
+              <img
+                src={previewImage.url}
+                alt={previewImage.label}
+                className="max-h-[72vh] max-w-full rounded-xl object-contain bg-white shadow-sm"
+                onError={(e) => {
+                  e.currentTarget.classList.add('hidden');
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <div className="hidden rounded-xl bg-white p-8 text-center shadow-sm">
+                <ImageIcon className="mx-auto h-10 w-10 text-rose-300" />
+                <p className="mt-3 text-sm font-black text-rose-500">이미지를 불러오지 못했습니다.</p>
+                <p className="mt-1 max-w-lg break-all text-xs font-bold text-slate-400">{previewImage.url}</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
