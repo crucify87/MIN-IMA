@@ -196,6 +196,13 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
 
   const ITEMS_PER_PAGE = 10;
 
+  const getQuantityDisplayUnit = (item: any) => {
+    const quantityUnit = (item.quantityUnit || '').toUpperCase();
+    if (quantityUnit) return quantityUnit;
+    const unit = (item.unit || 'BOX').toUpperCase();
+    return ['KG', 'G'].includes(unit) ? 'BOX' : unit;
+  };
+
   const handleDownloadExcel = () => {
     try {
       const fileName = `재고관리_리포트_${today}_${activeShift}.xlsx`;
@@ -690,6 +697,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                     paginatedItems.map((item: any, i: number) => {
                       const isExpanded = expandedItemId === item.id;
                       const itemMoves = isExpanded ? getItemHistory(item.name) : [];
+                      const quantityDisplayUnit = getQuantityDisplayUnit(item);
                       return (
                         <React.Fragment key={item.id || i}>
                           <tr className={`hover:bg-surface-container/5 transition-colors cursor-pointer ${isExpanded ? 'bg-slate-50/70 border-l-4 border-l-primary' : ''}`} onClick={() => setExpandedItemId(isExpanded ? null : item.id)}>
@@ -722,7 +730,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                 <span>
                                   {(item.boxes || 0).toLocaleString()}
                                   <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md ml-1.5 align-middle uppercase">
-                                    {['KG', 'G'].includes((item.unit || '').toUpperCase()) ? 'BOX' : (item.unit || 'BOX').toUpperCase()}
+                                    {quantityDisplayUnit}
                                   </span>
                                 </span>
                               ) : '-'}
@@ -800,6 +808,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                           ? Math.abs(move.nextStock - move.prevStock)
                                           : Math.abs(move.weight);
                                         const itemUnit = (item.unit || 'KG').toUpperCase();
+                                        const moveUnit = quantityDisplayUnit;
                                         const typeColor = isIncrease 
                                           ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
                                           : 'text-rose-600 bg-rose-50 border-rose-100';
@@ -819,9 +828,9 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                               <div className="text-[10px] text-slate-400 font-bold leading-none">변동량</div>
                                               <div className={`text-xs font-black ${isIncrease ? 'text-emerald-600' : 'text-rose-600'}`}>
                                                 {isIncrease ? '+' : '-'}{Math.round(displayDiff).toLocaleString()} {itemUnit}
-                                                {move.boxes !== 0 && move.boxes !== undefined && (move.unit || 'BOX').toUpperCase() !== itemUnit && (
+                                                {move.boxes !== 0 && move.boxes !== undefined && moveUnit !== itemUnit && (
                                                   <span className="text-[9px] text-slate-400 ml-1">
-                                                    ({isIncrease ? '+' : '-'}{Math.abs(move.boxes)} {(move.unit || 'BOX').toUpperCase()})
+                                                    ({isIncrease ? '+' : '-'}{Math.abs(move.boxes)} {moveUnit})
                                                   </span>
                                                 )}
                                               </div>
@@ -878,6 +887,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                 paginatedItems.map((item: any, i: number) => {
                   const isExpanded = expandedItemId === item.id;
                   const itemMoves = isExpanded ? getItemHistory(item.name) : [];
+                  const quantityDisplayUnit = getQuantityDisplayUnit(item);
                   return (
                     <div key={i} className={`bg-white p-4 rounded-[24px] border ${isExpanded ? 'border-primary shadow-md' : 'border-outline-variant/60 shadow-sm'} space-y-3 relative overflow-hidden group transition-all`}>
                       {(() => {
@@ -927,7 +937,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                           </span>
                           <span className="text-[9px] font-bold text-outline">{item.unit}</span>
                           {item.category === '원육' && (
-                            <span className="text-[11px] font-black text-slate-400 ml-1">/ {(item.boxes || 0).toLocaleString()} {['KG', 'G'].includes((item.unit || '').toUpperCase()) ? 'BOX' : (item.unit || 'BOX').toUpperCase()}</span>
+                            <span className="text-[11px] font-black text-slate-400 ml-1">/ {(item.boxes || 0).toLocaleString()} {quantityDisplayUnit}</span>
                           )}
                         </div>
                         {(() => {
@@ -977,6 +987,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                    ? Math.abs(move.nextStock - move.prevStock)
                                    : Math.abs(move.weight);
                                  const itemUnit = (item.unit || 'KG').toUpperCase();
+                                 const moveUnit = quantityDisplayUnit;
                                  const typeColor = isIncrease 
                                    ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
                                    : 'text-rose-600 bg-rose-50 border-rose-100';
@@ -993,9 +1004,9 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                                        <span className="text-slate-500 text-[10px]">실제 가감량</span>
                                        <span className={isIncrease ? 'text-emerald-600' : 'text-rose-600'}>
                                          {isIncrease ? '+' : '-'}{Math.round(displayDiff).toLocaleString()} {itemUnit}
-                                         {move.boxes !== 0 && move.boxes !== undefined && (move.unit || 'BOX').toUpperCase() !== itemUnit && (
+                                         {move.boxes !== 0 && move.boxes !== undefined && moveUnit !== itemUnit && (
                                            <span className="text-[9px] text-slate-400 ml-1">
-                                             ({isIncrease ? '+' : '-'}{Math.abs(move.boxes)} {(move.unit || 'BOX').toUpperCase()})
+                                             ({isIncrease ? '+' : '-'}{Math.abs(move.boxes)} {moveUnit})
                                            </span>
                                          )}
                                        </span>

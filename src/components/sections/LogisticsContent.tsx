@@ -710,6 +710,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
         transaction.update(itemDocRef, {
           currentStock: nextStock,
           boxes: nextBoxes,
+          quantityUnit: activeUnit,
           brand: itemBrand || data.brand || '',
           category: targetCategory || data.category || '미분류',
           updatedAt: serverTimestamp()
@@ -720,6 +721,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           specs: targetSpecs,
           currentStock: nextStock,
           boxes: nextBoxes,
+          quantityUnit: activeUnit,
           brand: itemBrand || '',
           category: targetCategory || '미분류',
           partner: itemPartner || '',
@@ -1752,7 +1754,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                     {paginatedItems.map((l: any, i: number) => {
                       const invItem = inventory?.find((inv: any) => inv.name === l.item && (!l.specs || inv.specs === l.specs));
                       const itemUnit = (invItem?.unit || 'KG').toUpperCase();
-                      const displayQtyUnit = (l.unit || getMasterUnitForLogItem(l, 'BOX')).toUpperCase();
+                      const displayQtyUnit = (invItem?.quantityUnit || invItem?.unit || l.unit || getMasterUnitForLogItem(l, 'BOX')).toUpperCase();
                       const displayWeightUnit = (l.weightUnit || 'KG').toUpperCase();
 
                       return (
@@ -1846,7 +1848,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
                 {paginatedItems.map((l: any, i: number) => {
                   const invItem = inventory?.find((inv: any) => inv.name === l.item && (!l.specs || inv.specs === l.specs));
                   const itemUnit = (invItem?.unit || 'KG').toUpperCase();
-                  const displayQtyUnit = (l.unit || getMasterUnitForLogItem(l, 'BOX')).toUpperCase();
+                  const displayQtyUnit = (invItem?.quantityUnit || invItem?.unit || l.unit || getMasterUnitForLogItem(l, 'BOX')).toUpperCase();
                   const displayWeightUnit = (l.weightUnit || 'KG').toUpperCase();
 
                   return (
