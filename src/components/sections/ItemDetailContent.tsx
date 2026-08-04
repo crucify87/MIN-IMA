@@ -23,8 +23,10 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
   const buildForm = (source: any) => {
     const unit = (source.unit || 'KG').toUpperCase();
     const fallbackQuantityUnit = ['KG', 'G'].includes(unit) ? 'BOX' : unit;
+    const today = new Date().toLocaleDateString('sv-SE');
 
     return {
+      movementDate: source.movementDate || today,
       sku: source.sku || '',
       name: source.name || '',
       category: source.category || '',
@@ -238,6 +240,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
         boxes: targetBoxes,
         safetyStock: Math.max(0, parseNumber(itemForm.safetyStock)),
         avgWeight: Math.max(0, parseNumber(itemForm.avgWeight)),
+        movementDate: itemForm.movementDate,
         manufDate: itemForm.manufDate,
         expiryDate: itemForm.expiryDate,
         consumptionDate: itemForm.consumptionDate,
@@ -256,7 +259,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
 
       if (stockDiff !== 0 || boxesDiff !== 0) {
         await addDoc(collection(db, 'logistics'), {
-          date: new Date().toLocaleDateString('sv-SE'),
+          date: itemForm.movementDate || new Date().toLocaleDateString('sv-SE'),
           time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
           type: stockDiff >= 0 ? '입고' : '출고',
           item: updateData.name || item.name,
@@ -302,8 +305,8 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
       <div className="bg-white p-6 md:p-8 rounded-[32px] border-2 border-outline-variant shadow-sm w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1">
-            <label className={labelClass}>제조일자</label>
-            <input type="date" disabled={!canEditItems || loading} value={itemForm.manufDate} onChange={e => updateForm({ manufDate: e.target.value })} className={fieldClass} />
+            <label className={labelClass}>입출고일자</label>
+            <input type="date" disabled={!canEditItems || loading} value={itemForm.movementDate} onChange={e => updateForm({ movementDate: e.target.value })} className={fieldClass} />
           </div>
           <div className="space-y-1">
             <label className={labelClass}>SKU</label>
@@ -376,8 +379,8 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
             </>
           )}
           <div className="space-y-1">
-            <label className={labelClass}>유통기한</label>
-            <input type="date" disabled={!canEditItems || loading} value={itemForm.expiryDate} onChange={e => updateForm({ expiryDate: e.target.value })} className={fieldClass} />
+            <label className={labelClass}>제조일자</label>
+            <input type="date" disabled={!canEditItems || loading} value={itemForm.manufDate} onChange={e => updateForm({ manufDate: e.target.value })} className={fieldClass} />
           </div>
           <div className="space-y-1">
             <label className={labelClass}>소비기한</label>
