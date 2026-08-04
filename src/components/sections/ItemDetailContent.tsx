@@ -300,10 +300,14 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
       <div className="bg-white p-6 md:p-8 rounded-[32px] border-2 border-outline-variant shadow-sm w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1">
+            <label className={labelClass}>제조일자</label>
+            <input type="date" disabled={!canEditItems || loading} value={itemForm.manufDate} onChange={e => updateForm({ manufDate: e.target.value })} className={fieldClass} />
+          </div>
+          <div className="space-y-1">
             <label className={labelClass}>SKU</label>
             <input disabled={!canEditItems || loading} value={itemForm.sku} onChange={e => updateForm({ sku: e.target.value })} className={fieldClass} />
           </div>
-          <div className="space-y-1 md:col-span-2">
+          <div className="space-y-1">
             <label className={labelClass}>품목명</label>
             <input disabled={!canEditItems || loading} value={itemForm.name} onChange={e => updateForm({ name: e.target.value })} className={fieldClass} />
           </div>
@@ -319,7 +323,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
             <label className={labelClass}>거래처</label>
             <input disabled={!canEditItems || loading} value={itemForm.partner} onChange={e => updateForm({ partner: e.target.value })} className={fieldClass} />
           </div>
-          <div className="space-y-1 md:col-span-2">
+          <div className="space-y-1">
             <label className={labelClass}>규격</label>
             <input disabled={!canEditItems || loading} value={itemForm.specs} onChange={e => updateForm({ specs: e.target.value })} className={fieldClass} />
           </div>
@@ -370,10 +374,6 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
             </>
           )}
           <div className="space-y-1">
-            <label className={labelClass}>제조일자</label>
-            <input type="date" disabled={!canEditItems || loading} value={itemForm.manufDate} onChange={e => updateForm({ manufDate: e.target.value })} className={fieldClass} />
-          </div>
-          <div className="space-y-1">
             <label className={labelClass}>유통기한</label>
             <input type="date" disabled={!canEditItems || loading} value={itemForm.expiryDate} onChange={e => updateForm({ expiryDate: e.target.value })} className={fieldClass} />
           </div>
@@ -381,7 +381,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
             <label className={labelClass}>보관 위치</label>
             <input disabled={!canEditItems || loading} value={itemForm.location} onChange={e => updateForm({ location: e.target.value })} className={fieldClass} />
           </div>
-          <div className="space-y-1 md:col-span-3">
+          <div className="space-y-1">
             <label className={labelClass}>상세 위치</label>
             <input disabled={!canEditItems || loading} value={itemForm.detailLocation} onChange={e => updateForm({ detailLocation: e.target.value })} className={fieldClass} />
           </div>
