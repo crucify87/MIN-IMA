@@ -40,6 +40,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
       avgWeight: String(source.avgWeight ?? ''),
       manufDate: source.manufDate || '',
       expiryDate: source.expiryDate || '',
+      consumptionDate: source.consumptionDate || '',
       location: source.location || '',
       detailLocation: source.detailLocation || '',
       partner: source.partner || ''
@@ -239,6 +240,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
         avgWeight: Math.max(0, parseNumber(itemForm.avgWeight)),
         manufDate: itemForm.manufDate,
         expiryDate: itemForm.expiryDate,
+        consumptionDate: itemForm.consumptionDate,
         location: itemForm.location.trim(),
         detailLocation: itemForm.detailLocation.trim(),
         partner: itemForm.partner.trim(),
@@ -378,12 +380,8 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
             <input type="date" disabled={!canEditItems || loading} value={itemForm.expiryDate} onChange={e => updateForm({ expiryDate: e.target.value })} className={fieldClass} />
           </div>
           <div className="space-y-1">
-            <label className={labelClass}>보관 위치</label>
-            <input disabled={!canEditItems || loading} value={itemForm.location} onChange={e => updateForm({ location: e.target.value })} className={fieldClass} />
-          </div>
-          <div className="space-y-1">
-            <label className={labelClass}>상세 위치</label>
-            <input disabled={!canEditItems || loading} value={itemForm.detailLocation} onChange={e => updateForm({ detailLocation: e.target.value })} className={fieldClass} />
+            <label className={labelClass}>소비기한</label>
+            <input type="date" disabled={!canEditItems || loading} value={itemForm.consumptionDate} onChange={e => updateForm({ consumptionDate: e.target.value })} className={fieldClass} />
           </div>
         </div>
 
