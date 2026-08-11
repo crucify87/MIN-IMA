@@ -13,6 +13,7 @@ import {
 import {
   BookOpen,
   CheckSquare,
+  Copy,
   Download,
   Edit,
   ExternalLink,
@@ -574,21 +575,30 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
     setIsFormOpen(true);
   };
 
+  const catalogItemToForm = (item: CatalogItem): CatalogForm => ({
+    category: item.category || '',
+    productName: item.productName || '',
+    foodType: item.foodType || '',
+    origin: item.origin || '',
+    part: item.part || '',
+    weightSpec: item.weightSpec || '',
+    certification: item.certification || '',
+    storageMethod: item.storageMethod || '',
+    shelfLife: item.shelfLife || '',
+    imageUrl1: normalizeCatalogImageUrl(item.imageUrl1 || ''),
+    imageUrl2: normalizeCatalogImageUrl(item.imageUrl2 || ''),
+  });
+
+  const openCopyModal = (item: CatalogItem) => {
+    setEditingId(null);
+    setForm(catalogItemToForm(item));
+    setUploadingSlot(null);
+    setIsFormOpen(true);
+  };
+
   const openEditModal = (item: CatalogItem) => {
     setEditingId(item.id);
-    setForm({
-      category: item.category || '',
-      productName: item.productName || '',
-      foodType: item.foodType || '',
-      origin: item.origin || '',
-      part: item.part || '',
-      weightSpec: item.weightSpec || '',
-      certification: item.certification || '',
-      storageMethod: item.storageMethod || '',
-      shelfLife: item.shelfLife || '',
-      imageUrl1: normalizeCatalogImageUrl(item.imageUrl1 || ''),
-      imageUrl2: normalizeCatalogImageUrl(item.imageUrl2 || ''),
-    });
+    setForm(catalogItemToForm(item));
     setIsFormOpen(true);
   };
 
@@ -959,6 +969,14 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
                 <div className="flex justify-end gap-2">
                   {canEditItems && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => openCopyModal(item)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
+                      >
+                        <Copy className="w-4 h-4" />
+                        복사
+                      </button>
                       <button
                         type="button"
                         onClick={() => openEditModal(item)}
