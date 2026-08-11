@@ -507,6 +507,7 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
   const [form, setForm] = useState<CatalogForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<1 | 2 | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -541,17 +542,24 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
 
   const filteredCatalogs = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return catalogs;
+    return catalogs.filter((item) => {
+      const matchesCategory = !categoryFilter || item.category === categoryFilter;
+      const matchesKeyword = !keyword || [
+        item.category,
+        item.productName,
+        item.foodType,
+        item.origin,
+        item.part,
+        item.weightSpec,
+      ].some((value) => value?.toLowerCase().includes(keyword));
 
-    return catalogs.filter((item) => [
-      item.category,
-      item.productName,
-      item.foodType,
-      item.origin,
-      item.part,
-      item.weightSpec,
-    ].some((value) => value?.toLowerCase().includes(keyword)));
-  }, [catalogs, search]);
+      return matchesCategory && matchesKeyword;
+    });
+  }, [catalogs, search, categoryFilter]);
+
+  const categoryOptions = useMemo(() => {
+    return Array.from(new Set(catalogs.map((item) => item.category).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
+  }, [catalogs]);
 
   const selectedItems = useMemo(
     () => catalogs.filter((item) => selectedIds.has(item.id)),
@@ -859,14 +867,27 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
           </div>
         </div>
 
-        <div className="relative w-full lg:w-80">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="제품명, 원산지, 부위 검색"
-            className="w-full h-12 rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-          />
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 sm:w-52"
+          >
+            <option value="">전체 카테고리</option>
+            {categoryOptions.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+
+          <div className="relative w-full lg:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="제품명, 원산지, 부위 검색"
+              className="w-full h-12 rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+            />
+          </div>
         </div>
       </div>
 
@@ -903,7 +924,7 @@ function CatalogContent({ canEditItems }: { canEditItems: boolean }) {
               <CheckSquare className="w-4 h-4" />
               {allVisibleSelected ? '현재 목록 선택 해제' : '현재 목록 전체 선택'}
             </button>
-            <span className="text-xs font-black text-slate-400">선택 {selectedItems.length}개 / 전체 {catalogs.length}개</span>
+            <span className="text-xs font-black text-slate-400">선택 {selectedItems.length}개 / 현재 {filteredCatalogs.length}개 / 전체 {catalogs.length}개</span>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
