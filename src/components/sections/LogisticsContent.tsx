@@ -597,7 +597,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
     specsStr?: string,
     itemCategory?: string,
     itemBrand?: string,
-    itemPartner?: string
+    itemPartner?: string,
+    movementDate?: string
   ) => {
     const targetSpecs = (specsStr !== undefined ? specsStr : '').trim();
     const trimmedName = name.trim();
@@ -711,6 +712,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           currentStock: nextStock,
           boxes: nextBoxes,
           quantityUnit: activeUnit,
+          ...(movementDate ? { movementDate } : {}),
           brand: itemBrand || data.brand || '',
           category: targetCategory || data.category || '미분류',
           updatedAt: serverTimestamp()
@@ -722,6 +724,7 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           currentStock: nextStock,
           boxes: nextBoxes,
           quantityUnit: activeUnit,
+          ...(movementDate ? { movementDate } : {}),
           brand: itemBrand || '',
           category: targetCategory || '미분류',
           partner: itemPartner || '',
@@ -804,7 +807,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
           item.specs,
           resolvedCategory,
           item.brand,
-          item.partner
+          item.partner,
+          formDate
         );
 
         await updateDoc(doc(db, 'logistics', editingId), { 
@@ -857,7 +861,8 @@ function LogisticsContent({ logistics, inventory, partners, onNavigate, canEditI
             item.specs,
             resolvedCategory,
             item.brand,
-            item.partner
+            item.partner,
+            formDate
           );
 
           await addDoc(collection(db, 'logistics'), { 

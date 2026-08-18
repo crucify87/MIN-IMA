@@ -203,6 +203,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     return ['KG', 'G'].includes(unit) ? 'BOX' : unit;
   };
 
+  const getInventoryDisplayDate = (item: any) => {
+    if (item.movementDate) return item.movementDate;
+    return item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-';
+  };
+
   const handleDownloadExcel = () => {
     try {
       const fileName = `재고관리_리포트_${today}_${activeShift}.xlsx`;
@@ -210,7 +215,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       const data = filtered.map(item => {
         const unit = (item.unit || 'KG').toUpperCase();
         return {
-          '날짜': item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-',
+          '날짜': getInventoryDisplayDate(item),
           '품목명': item.name,
           'SKU': item.sku || '-',
           '카테고리': item.category || '-',
@@ -702,7 +707,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                         <React.Fragment key={item.id || i}>
                           <tr className={`hover:bg-surface-container/5 transition-colors cursor-pointer ${isExpanded ? 'bg-slate-50/70 border-l-4 border-l-primary' : ''}`} onClick={() => setExpandedItemId(isExpanded ? null : item.id)}>
                             <td className="px-4 py-4 text-[11px] font-bold text-outline tabular-nums whitespace-nowrap">
-                              {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '-'}
+                              {getInventoryDisplayDate(item)}
                             </td>
                             <td className="px-4 py-4 text-left">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -904,7 +909,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
                         <div className="space-y-1 min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedItemId(isExpanded ? null : item.id)}>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[8px] font-black text-primary font-mono bg-primary/5 px-2 py-0.5 rounded-lg border border-primary/10">
-                              {item.updatedAt?.seconds ? new Date(item.updatedAt.seconds * 1000).toISOString().split('T')[0] : '날짜미정'}
+                              {getInventoryDisplayDate(item) === '-' ? '날짜미정' : getInventoryDisplayDate(item)}
                             </span>
                             <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-[8px] font-black text-outline uppercase">{item.category}</span>
                           </div>
