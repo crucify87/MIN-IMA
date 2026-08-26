@@ -215,7 +215,8 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
     }
   };
 
-  const handleUpdate = async () => {
+  const handleUpdate = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     if (!canEditItems) return;
     setLoading(true);
     try {
@@ -282,6 +283,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
       }
 
       alert('저장되었습니다.');
+      onNavigate('inventory');
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'inventory');
     } finally {
@@ -302,7 +304,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
         <h2 className="text-xl md:text-2xl font-black text-primary tracking-tighter">{itemForm.name || item.name} 상세</h2>
       </div>
 
-      <div className="bg-white p-6 md:p-8 rounded-[32px] border-2 border-outline-variant shadow-sm w-full">
+      <form onSubmit={handleUpdate} className="bg-white p-6 md:p-8 rounded-[32px] border-2 border-outline-variant shadow-sm w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1">
             <label className={labelClass}>입출고일자</label>
@@ -391,7 +393,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
         {canEditItems && (
           <div className="mt-6 flex justify-end">
             <button
-              onClick={handleUpdate}
+              type="submit"
               disabled={loading}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0f172a] px-8 text-sm font-black text-white shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
             >
@@ -400,7 +402,7 @@ function ItemDetailContent({ item, logistics, production, inventory, onNavigate,
             </button>
           </div>
         )}
-      </div>
+      </form>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2">
