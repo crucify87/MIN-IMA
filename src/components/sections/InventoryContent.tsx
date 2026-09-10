@@ -911,10 +911,10 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
 
 
 
-        <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
+        <div className="space-y-4">
           <div className="w-full">
             {/* Desktop View Table */}
-            <div className="hidden md:grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
+            <div className="hidden md:grid grid-cols-1 xl:grid-cols-2 gap-4">
               {renderInventoryGroup('재고부족', '즉시 입고 확인이 필요한 품목', paginatedGroups.shortage, 'shortage')}
               {renderInventoryGroup('정상재고', '주의 및 정상 재고 품목', paginatedGroups.normal, 'normal')}
             </div>
@@ -1290,7 +1290,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
           />
 
           {/* Status Color Badge Legend */}
-          <div className="bg-slate-50/80 border-t border-outline-variant/30 px-6 py-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-2.5">
+          <div className="px-2 py-1 flex flex-wrap items-center justify-center gap-x-8 gap-y-2.5">
             <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100/60 text-emerald-700 border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
