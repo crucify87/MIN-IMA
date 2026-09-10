@@ -380,6 +380,52 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filtered, currentPage]);
 
+  const getInventoryStatus = (item: any) => {
+    const current = Number(item.currentStock || 0);
+    const safety = Number(item.safetyStock || 0);
+    const isShortage = current <= 0 || current < safety;
+    const isReplenish = !isShortage && safety > 0 && current <= safety * 1.2;
+
+    if (isShortage) {
+      return {
+        label: '부족',
+        isShortage: true,
+        toneClass: 'bg-rose-50 text-rose-700 border-rose-200/70',
+        dotClass: 'bg-rose-500',
+        sideClass: 'bg-rose-500'
+      };
+    }
+
+    if (isReplenish) {
+      return {
+        label: '주의',
+        isShortage: false,
+        toneClass: 'bg-amber-50 text-amber-700 border-amber-200/70',
+        dotClass: 'bg-amber-500',
+        sideClass: 'bg-amber-500'
+      };
+    }
+
+    return {
+      label: '정상',
+      isShortage: false,
+      toneClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+      dotClass: 'bg-emerald-500',
+      sideClass: 'bg-emerald-500'
+    };
+  };
+
+  const paginatedGroups = useMemo(() => {
+    return paginatedItems.reduce((acc: { shortage: any[]; normal: any[] }, item: any) => {
+      if (getInventoryStatus(item).isShortage) {
+        acc.shortage.push(item);
+      } else {
+        acc.normal.push(item);
+      }
+      return acc;
+    }, { shortage: [], normal: [] });
+  }, [paginatedItems]);
+
   const Pagination = ({ current, total, totalItems, itemsPerPage, onChange }: { current: number; total: number; totalItems: number; itemsPerPage: number; onChange: (p: number) => void }) => {
     if (total <= 1) return null;
     
@@ -475,6 +521,191 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
       handleFirestoreError(error, OperationType.DELETE, `inventory/${id}`);
     }
   };
+
+  const renderStatusBadge = (item: any, compact = false) => {
+    const status = getInventoryStatus(item);
+    return (
+      <span className={`inline-flex items-center gap-1.5 rounded-full border font-bold ${status.toneClass} ${compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`} />
+        {status.label}
+      </span>
+    );
+  };
+
+  const renderMovementHistory = (item: any, quantityDisplayUnit: string) => {
+    const itemMoves = getItemHistory(item.name);
+
+    if (itemMoves.length === 0) {
+      return (
+        <div className="rounded-2xl border border-slate-200/70 bg-slate-50/70 px-4 py-8 text-center text-xs font-bold text-slate-400">
+          최근 반영된 재고 입출고 또는 생산 가감 이력이 없습니다.
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 2xl:grid-cols-2 gap-2.5">
+        {itemMoves.slice(0, 5).map((move: any, moveIdx: number) => {
+          const isIncrease = move.actionType === '입고' || move.actionType === '생산완료';
+          const displayDiff = (move.nextStock !== undefined && move.prevStock !== undefined)
+            ? Math.abs(move.nextStock - move.prevStock)
+            : Math.abs(move.weight);
+          const itemUnit = (item.unit || 'KG').toUpperCase();
+          const moveUnit = quantityDisplayUnit;
+          const typeColor = isIncrease
+            ? 'text-emerald-600 bg-emerald-50 border-emerald-100'
+            : 'text-rose-600 bg-rose-50 border-rose-100';
+
+          return (
+            <div key={move.id || moveIdx} className="rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${typeColor}`}>
+                  {move.actionType}
+                </span>
+                <span className="text-[9px] text-slate-400 font-mono">{move.date}</span>
+              </div>
+              <div className={`text-xs font-black ${isIncrease ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {isIncrease ? '+' : '-'}{Math.round(displayDiff).toLocaleString()} {itemUnit}
+                {move.boxes !== 0 && move.boxes !== undefined && moveUnit !== itemUnit && (
+                  <span className="text-[9px] text-slate-400 ml-1">
+                    ({isIncrease ? '+' : '-'}{Math.abs(move.boxes)} {moveUnit})
+                  </span>
+                )}
+              </div>
+              {move.prevStock !== undefined && move.nextStock !== undefined && (
+                <div className="flex justify-between gap-2 border-t border-slate-100 pt-2 text-[10px] font-bold text-slate-400">
+                  <span>재고 변동</span>
+                  <span className="text-right">
+                    {Math.round(move.prevStock).toLocaleString()} → <span className="text-on-surface font-extrabold">{Math.round(move.nextStock).toLocaleString()} {itemUnit}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderInventoryCard = (item: any, i: number) => {
+    const isExpanded = expandedItemId === item.id;
+    const quantityDisplayUnit = getQuantityDisplayUnit(item);
+    const status = getInventoryStatus(item);
+    const currentUnit = (item.unit || 'KG').toUpperCase();
+    const quantityValue = Number(item.boxes || 0);
+
+    return (
+      <article
+        key={item.id || i}
+        onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+        className={`relative overflow-hidden rounded-3xl border bg-white p-4 shadow-sm transition-all cursor-pointer ${isExpanded ? 'border-primary shadow-md shadow-primary/10' : 'border-outline-variant/70 hover:border-primary/40 hover:shadow-md'}`}
+      >
+        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${status.sideClass}`} />
+        <div className="flex items-start justify-between gap-3 pl-1">
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="rounded-lg border border-primary/10 bg-primary/5 px-2 py-0.5 font-mono text-[10px] font-black text-primary">
+                {getInventoryDisplayDate(item) === '-' ? '날짜미정' : getInventoryDisplayDate(item)}
+              </span>
+              <span className="rounded-lg bg-surface-container px-2 py-0.5 text-[9px] font-black uppercase text-outline">
+                {item.category || '-'}
+              </span>
+              {renderStatusBadge(item, true)}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <h4 className="break-words text-lg font-black leading-tight text-on-surface">{item.name}</h4>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isExpanded ? 'rotate-180 text-primary' : ''}`} />
+            </div>
+            {item.brand && <div className="text-[11px] font-bold text-primary">{item.brand}</div>}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+            {canEditItems ? (
+              <>
+                <button onClick={() => onNavigate('detail', item)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-primary transition-all hover:bg-primary/10 active:scale-90" title="상세/수정">
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button onClick={() => handleDeleteItem(item.id, item.name)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition-all hover:bg-rose-100 active:scale-90" title="삭제">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <button onClick={() => onNavigate('detail', item)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-primary transition-all hover:bg-primary/10 active:scale-90">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-3 2xl:grid-cols-4">
+          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+            <div className="text-[10px] font-black text-outline">규격</div>
+            <div className="mt-1 min-h-5 break-words text-sm font-black text-on-surface">{item.specs || '-'}</div>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+            <div className="text-[10px] font-black text-outline">현재 재고</div>
+            <div className="mt-1 flex items-baseline gap-1.5">
+              <span className={`text-xl font-black tabular-nums ${status.isShortage ? 'text-rose-600' : 'text-on-surface'}`}>
+                {Math.round(item.currentStock || 0).toLocaleString()}
+              </span>
+              <span className="rounded-md bg-primary/5 px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary">{currentUnit}</span>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+            <div className="text-[10px] font-black text-outline">박스 수/수량</div>
+            <div className="mt-1 flex items-baseline gap-1.5">
+              {quantityValue > 0 ? (
+                <>
+                  <span className="text-xl font-black tabular-nums text-slate-700">{quantityValue.toLocaleString()}</span>
+                  <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500">{quantityDisplayUnit}</span>
+                </>
+              ) : (
+                <span className="text-sm font-black text-slate-400">-</span>
+              )}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+            <div className="text-[10px] font-black text-outline">상태</div>
+            <div className="mt-1">{renderStatusBadge(item, true)}</div>
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="mt-4 border-t border-dashed border-slate-200 pt-4" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h5 className="text-xs font-black text-on-surface">최근 가감 및 변동 이력</h5>
+              <span className="text-[10px] font-bold text-slate-400">최근 5건</span>
+            </div>
+            {renderMovementHistory(item, quantityDisplayUnit)}
+          </div>
+        )}
+      </article>
+    );
+  };
+
+  const renderInventoryGroup = (title: string, description: string, items: any[], tone: 'shortage' | 'normal') => (
+    <section className="min-h-[420px] overflow-hidden rounded-[32px] border border-outline-variant bg-white shadow-sm">
+      <div className={`flex items-center justify-between gap-3 border-b border-outline-variant/50 px-5 py-4 ${tone === 'shortage' ? 'bg-rose-50/70' : 'bg-emerald-50/70'}`}>
+        <div>
+          <h4 className={`text-lg font-black ${tone === 'shortage' ? 'text-rose-700' : 'text-emerald-700'}`}>{title}</h4>
+          <p className="mt-0.5 text-[11px] font-bold text-slate-500">{description}</p>
+        </div>
+        <span className={`rounded-2xl px-3 py-1 text-sm font-black ${tone === 'shortage' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+          {items.length.toLocaleString()}건
+        </span>
+      </div>
+      <div className="space-y-3 p-3 md:p-4">
+        {items.length > 0 ? (
+          items.map((item: any, i: number) => renderInventoryCard(item, i))
+        ) : (
+          <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-outline-variant bg-slate-50/60 text-center text-slate-400">
+            <Package className="h-10 w-10 opacity-50" />
+            <p className="text-sm font-black">해당 품목이 없습니다</p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 
   const summaryStats = useMemo(() => {
     const skuCount = inventory.length;
@@ -683,7 +914,11 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
         <div className="bg-white rounded-[40px] border border-outline-variant overflow-hidden shadow-xl shadow-surface-container-high/50 p-2 md:p-0">
           <div className="w-full">
             {/* Desktop View Table */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden md:grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
+              {renderInventoryGroup('재고부족', '즉시 입고 확인이 필요한 품목', paginatedGroups.shortage, 'shortage')}
+              {renderInventoryGroup('정상재고', '주의 및 정상 재고 품목', paginatedGroups.normal, 'normal')}
+            </div>
+            <div className="hidden">
               <table className="w-full text-center border-collapse">
                 <thead className="bg-[#f1f4f9] text-[10px] font-black text-outline uppercase tracking-widest border-b border-outline-variant">
                   <tr>
