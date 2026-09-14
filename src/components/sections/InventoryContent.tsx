@@ -593,80 +593,83 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
     const status = getInventoryStatus(item);
     const currentUnit = (item.unit || 'KG').toUpperCase();
     const quantityValue = Number(item.boxes || 0);
+    const hasQuantity = quantityValue > 0;
 
     return (
       <article
         key={item.id || i}
         onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
-        className={`relative overflow-hidden rounded-3xl border bg-white p-4 shadow-sm transition-all cursor-pointer ${isExpanded ? 'border-primary shadow-md shadow-primary/10' : 'border-outline-variant/70 hover:border-primary/40 hover:shadow-md'}`}
+        className={`relative overflow-hidden rounded-2xl border bg-white px-5 py-4 shadow-sm transition-all cursor-pointer ${isExpanded ? 'border-primary shadow-md shadow-primary/10' : 'border-outline-variant/70 hover:border-primary/40 hover:shadow-md'}`}
       >
         <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${status.sideClass}`} />
-        <div className="flex items-start justify-between gap-3 pl-1">
-          <div className="min-w-0 space-y-1.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded-lg border border-primary/10 bg-primary/5 px-2 py-0.5 font-mono text-[10px] font-black text-primary">
+        <div className="grid gap-4 pl-1 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="min-w-0 space-y-2.5">
+            <div className="flex items-center gap-2 text-[10px] font-black text-outline">
+              <span className="font-mono text-primary">
                 {getInventoryDisplayDate(item) === '-' ? '날짜미정' : getInventoryDisplayDate(item)}
               </span>
-              <span className="rounded-lg bg-surface-container px-2 py-0.5 text-[9px] font-black uppercase text-outline">
-                {item.category || '-'}
-              </span>
-              {renderStatusBadge(item, true)}
+              <span className="h-3 w-px bg-outline-variant" />
+              <span>{item.category || '-'}</span>
+              {item.specs && (
+                <>
+                  <span className="h-3 w-px bg-outline-variant" />
+                  <span className="text-slate-700">{item.specs}</span>
+                </>
+              )}
             </div>
-            <div className="flex items-center gap-1.5">
-              <h4 className="break-words text-lg font-black leading-tight text-on-surface">{item.name}</h4>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h4 className="min-w-0 break-words text-xl font-black leading-tight text-on-surface">{item.name}</h4>
               <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isExpanded ? 'rotate-180 text-primary' : ''}`} />
             </div>
             {item.brand && <div className="text-[11px] font-bold text-primary">{item.brand}</div>}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-            {canEditItems ? (
-              <>
-                <button onClick={() => onNavigate('detail', item)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-primary transition-all hover:bg-primary/10 active:scale-90" title="상세/수정">
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button onClick={() => handleDeleteItem(item.id, item.name)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition-all hover:bg-rose-100 active:scale-90" title="삭제">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </>
-            ) : (
-              <button onClick={() => onNavigate('detail', item)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-primary transition-all hover:bg-primary/10 active:scale-90">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-3 2xl:grid-cols-4">
-          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
-            <div className="text-[10px] font-black text-outline">규격</div>
-            <div className="mt-1 min-h-5 break-words text-sm font-black text-on-surface">{item.specs || '-'}</div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
-            <div className="text-[10px] font-black text-outline">현재 재고</div>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className={`text-xl font-black tabular-nums ${status.isShortage ? 'text-rose-600' : 'text-on-surface'}`}>
-                {Math.round(item.currentStock || 0).toLocaleString()}
-              </span>
-              <span className="rounded-md bg-primary/5 px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary">{currentUnit}</span>
+          <div className="flex items-center justify-between gap-4 lg:justify-end">
+            <div className="grid min-w-[260px] grid-cols-3 gap-4 text-right">
+              <div>
+                <div className="text-[10px] font-black text-outline">현재 재고</div>
+                <div className="mt-1 flex items-baseline justify-end gap-1.5">
+                  <span className={`text-2xl font-black tabular-nums ${status.isShortage ? 'text-rose-600' : 'text-on-surface'}`}>
+                    {Math.round(item.currentStock || 0).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-primary">{currentUnit}</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] font-black text-outline">수량</div>
+                <div className="mt-1 flex items-baseline justify-end gap-1.5">
+                  {hasQuantity ? (
+                    <>
+                      <span className="text-2xl font-black tabular-nums text-on-surface">{quantityValue.toLocaleString()}</span>
+                      <span className="text-[10px] font-black uppercase text-outline">{quantityDisplayUnit}</span>
+                    </>
+                  ) : (
+                    <span className="text-lg font-black text-slate-300">-</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] font-black text-outline">상태</div>
+                <div className="mt-1 flex justify-end">{renderStatusBadge(item, true)}</div>
+              </div>
             </div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
-            <div className="text-[10px] font-black text-outline">박스 수/수량</div>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              {quantityValue > 0 ? (
+
+            <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              {canEditItems ? (
                 <>
-                  <span className="text-xl font-black tabular-nums text-slate-700">{quantityValue.toLocaleString()}</span>
-                  <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500">{quantityDisplayUnit}</span>
+                  <button onClick={() => onNavigate('detail', item)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-primary transition-all hover:bg-primary/10 active:scale-90" title="상세/수정">
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => handleDeleteItem(item.id, item.name)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition-all hover:bg-rose-100 active:scale-90" title="삭제">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </>
               ) : (
-                <span className="text-sm font-black text-slate-400">-</span>
+                <button onClick={() => onNavigate('detail', item)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-primary transition-all hover:bg-primary/10 active:scale-90">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               )}
             </div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
-            <div className="text-[10px] font-black text-outline">상태</div>
-            <div className="mt-1">{renderStatusBadge(item, true)}</div>
           </div>
         </div>
 
@@ -684,7 +687,7 @@ function InventoryContent({ inventory, onNavigate, canEditItems, logistics = [],
   };
 
   const renderInventoryGroup = (title: string, description: string, items: any[], tone: 'shortage' | 'normal') => (
-    <section className="min-h-[420px] overflow-hidden rounded-[32px] border border-outline-variant bg-white shadow-sm">
+    <section className="min-h-[420px] overflow-hidden rounded-[24px] border border-outline-variant bg-white shadow-sm">
       <div className={`flex items-center justify-between gap-3 border-b border-outline-variant/50 px-5 py-4 ${tone === 'shortage' ? 'bg-rose-50/70' : 'bg-emerald-50/70'}`}>
         <div>
           <h4 className={`text-lg font-black ${tone === 'shortage' ? 'text-rose-700' : 'text-emerald-700'}`}>{title}</h4>
