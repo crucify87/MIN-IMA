@@ -38,6 +38,10 @@ CI에서 Firebase CLI 인증을 구성할 경우 Application Default Credentials
 | Variable | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 계정 ID |
 | Variable | `CLOUDFLARE_PAGES_PROJECT` | 실제 Pages 프로젝트명 |
 
+현재 저장소에는 계정 ID `8418799974abc85a9fb5a6640cbc817d`와 프로젝트명 `min-ima`가 기본값으로 설정되어 있습니다.
+두 Variable은 다른 계정이나 프로젝트로 변경할 때 사용하며, 같은 이름의 Secret으로 등록한 값도 지원합니다.
+API 토큰은 반드시 Secret에 등록해야 합니다.
+
 5. 설정을 GitHub에 반영한 뒤 Actions의 Build and deploy MIN IMA를 실행하거나 main에 push합니다.
 6. 실제 배포 도메인을 Firebase Authorized domains에 등록하고 로그인 및 데이터 조회를 확인합니다.
 
