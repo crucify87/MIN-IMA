@@ -49,6 +49,14 @@ jobs:
               exit 1
             fi
           done
+          if [ "${#CLOUDFLARE_API_TOKEN}" -lt 20 ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN is too short (${#CLOUDFLARE_API_TOKEN} characters). Save the generated token value, not its name or ID."
+            exit 1
+          fi
+          if [[ "$CLOUDFLARE_API_TOKEN" =~ [[:space:]] ]]; then
+            echo "::error::CLOUDFLARE_API_TOKEN contains whitespace or a newline. Copy only the token value."
+            exit 1
+          fi
       - uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
