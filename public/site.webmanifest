@@ -3,15 +3,15 @@
   "short_name": "MIN IMA",
   "icons": [
     {
-      "src": "/IMA192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "/blank-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/IMA512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/blank-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],

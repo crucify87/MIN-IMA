@@ -74,20 +74,21 @@ export default function App() {
 
   // Dynamic Favicon & Title Update
   React.useEffect(() => {
-    if (settings?.logoUrl) {
+    {
+      const logoUrl = settings?.logoUrl || "/blank-logo.svg";
       const link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
       if (link) {
-        link.href = settings.logoUrl;
+        link.href = logoUrl;
       } else {
         const newLink = document.createElement('link');
         newLink.rel = 'icon';
-        newLink.href = settings.logoUrl;
+        newLink.href = logoUrl;
         document.head.appendChild(newLink);
       }
       
       const appleLink: HTMLLinkElement | null = document.querySelector("link[rel='apple-touch-icon']");
       if (appleLink) {
-        appleLink.href = settings.logoUrl;
+        appleLink.href = logoUrl;
       }
     }
   }, [settings?.logoUrl]);
@@ -130,7 +131,7 @@ export default function App() {
   }
 
   if (!user) {
-    const appLogo = settings?.logoUrl || "/IMA512.png";
+    const appLogo = settings?.logoUrl || "/blank-logo.svg";
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
         <motion.div 
@@ -175,7 +176,7 @@ export default function App() {
   }
 
   const { canEditItems, canViewPrices, canEditPrices, canManageUsers } = permissions;
-  const sidebarLogo = "/sidebarlogo.png?v=20260715";
+  const sidebarLogo = "/blank-logo.svg";
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex overflow-x-hidden">

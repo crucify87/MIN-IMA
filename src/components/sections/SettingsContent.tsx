@@ -1858,7 +1858,7 @@ function SettingsContent({
                 <div className="flex flex-col items-center gap-4 p-4 md:p-8 bg-slate-50/50 rounded-2xl md:rounded-[32px] border border-outline-variant/40">
                   <div className="text-[9px] md:text-[10px] font-black text-outline uppercase tracking-widest">로고 미리보기 (PREVIEW)</div>
                   <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-2xl p-4 flex items-center justify-center shadow-md border border-slate-100">
-                    <img src={logoUrl || "/IMA512.png"} className="max-w-full max-h-full object-contain" alt="Logo Preview" />
+                    <img src={logoUrl || "/blank-logo.svg"} className="max-w-full max-h-full object-contain" alt="Logo Preview" />
                   </div>
                   <div className="text-center space-y-0.5">
                     <p className="text-[10px] md:text-[11px] font-bold text-slate-500">200x200 이상 PNG/JPG 권장</p>
