@@ -5,6 +5,7 @@ import {
   Truck,
   Settings,
   Factory,
+  Users,
   LogOut,
   BookOpen,
   MessageSquarePlus
@@ -28,6 +29,7 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
     { id: 'inventory', icon: Package, label: '재고현황' },
     { id: 'logistics', icon: Truck, label: '물류현황' },
     { id: 'production', icon: Factory, label: '생산현황' },
+    { id: 'workforce', icon: Users, label: '인원관리' },
     { id: 'catalog', icon: BookOpen, label: '카탈로그' },
     { id: 'settings', icon: Settings, label: '설정' },
   ] as const;
@@ -38,7 +40,7 @@ const Sidebar = ({ view, setView, user, onLogout, logoSrc }: SidebarProps) => {
         <AppLogo className="w-full h-auto" src={logoSrc || "/blank-logo.svg"} />
       </div>
 
-      <nav className="flex-1 space-y-3">
+      <nav className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden pr-2">
         {menuItems.map((item) => (
           <button
             key={item.id}

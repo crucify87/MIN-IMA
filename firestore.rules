@@ -194,6 +194,33 @@ service cloud.firestore {
       allow delete: if isAdminUser();
     }
 
+    match /workforce_records/{recordId} {
+      allow read, delete: if isAdminUser();
+      allow create, update: if isAdminUser() &&
+        incoming().keys().hasAll(['date', 'name', 'department', 'task', 'shift',
+          'plannedHours', 'actualHours', 'target', 'completed', 'unit',
+          'attendance', 'checkIn', 'checkOut', 'overtime', 'notes', 'updatedAt', 'createdAt']) &&
+        incoming().keys().hasOnly(['date', 'name', 'department', 'task', 'shift',
+          'plannedHours', 'actualHours', 'target', 'completed', 'unit',
+          'attendance', 'checkIn', 'checkOut', 'overtime', 'notes', 'updatedAt', 'createdAt']) &&
+        incoming().date is string && incoming().date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 80 &&
+        incoming().department in ['재고', '물류', '생산'] &&
+        incoming().task is string && incoming().task.size() <= 200 &&
+        incoming().shift is string && incoming().shift.size() <= 80 &&
+        incoming().plannedHours is number && incoming().plannedHours >= 0 && incoming().plannedHours <= 24 &&
+        incoming().actualHours is number && incoming().actualHours >= 0 && incoming().actualHours <= 24 &&
+        incoming().overtime is number && incoming().overtime >= 0 && incoming().overtime <= incoming().actualHours &&
+        incoming().target is number && incoming().target >= 0 &&
+        incoming().completed is number && incoming().completed >= 0 &&
+        incoming().unit is string && incoming().unit.size() > 0 && incoming().unit.size() <= 20 &&
+        incoming().attendance in ['출근', '지각', '조퇴', '결근', '연차', '반차', '휴무'] &&
+        incoming().checkIn is string && incoming().checkIn.matches('^([0-9]{2}:[0-9]{2})?$') &&
+        incoming().checkOut is string && incoming().checkOut.matches('^([0-9]{2}:[0-9]{2})?$') &&
+        incoming().notes is string && incoming().notes.size() <= 1000 &&
+        incoming().updatedAt == request.time && incoming().createdAt is timestamp;
+    }
+
     match /feedbacks/{feedbackId} {
       allow create: if isSignedIn() && isValidFeedback(incoming());
       allow read: if isSuperAdmin() || (isApproved() && getUserData().get('canViewFeedback', false) == true);

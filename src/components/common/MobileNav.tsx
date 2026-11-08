@@ -6,6 +6,7 @@ import {
   Truck,
   Settings,
   Factory,
+  Users,
   BookOpen,
   Plus,
   X,
@@ -52,6 +53,13 @@ const MobileNav = ({ view, setView }: MobileNavProps) => {
       label: '생산현황',
       desc: '생산 지시와 실적 기록',
       color: 'bg-rose-50 text-rose-600 border-rose-100'
+    },
+    {
+      id: 'workforce',
+      icon: Users,
+      label: '인원관리',
+      desc: '인원배치 · 효율 · 근태',
+      color: 'bg-violet-50 text-violet-600 border-violet-100'
     },
     {
       id: 'catalog',

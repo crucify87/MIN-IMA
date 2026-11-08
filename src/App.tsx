@@ -25,6 +25,7 @@ import LogisticsContent from './components/sections/LogisticsContent';
 import ProductionContent from './components/sections/ProductionContent';
 import SettingsContent from './components/sections/SettingsContent';
 import CatalogContent from './components/sections/CatalogContent';
+import WorkforceContent from './components/sections/WorkforceContent';
 
 // --- Main App Component ---
 
@@ -34,6 +35,7 @@ const ROUTES: Record<string, ViewType> = {
   '/inventory': 'inventory',
   '/logistics': 'logistics',
   '/production': 'production',
+  '/workforce': 'workforce',
   '/catalog': 'catalog',
   '/settings': 'settings',
 };
@@ -43,6 +45,7 @@ const VIEW_PATHS: Partial<Record<ViewType, string>> = {
   inventory: '/inventory',
   logistics: '/logistics',
   production: '/production',
+  workforce: '/workforce',
   catalog: '/catalog',
   settings: '/settings',
 };
@@ -272,6 +275,9 @@ export default function App() {
                     onNavigate={handleNavigate} 
                     settings={settings}
                   />
+                )}
+                {currentView === 'workforce' && (
+                  <WorkforceContent canManage={canEditItems} />
                 )}
                 {currentView === 'catalog' && (
                   <CatalogContent canEditItems={canEditItems} />
