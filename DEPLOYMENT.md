@@ -25,33 +25,15 @@ npx firebase-tools deploy --only firestore:rules --project gen-lang-client-05925
 
 CI에서 Firebase CLI 인증을 구성할 경우 Application Default Credentials를 사용합니다.
 
-## Cloudflare 최초 설정
+## Cloudflare GitHub 자동 배포
 
-1. Cloudflare에서 Direct Upload 방식의 Pages 프로젝트를 만들고 production branch를 `main`으로 설정합니다.
-2. 이름은 `min-ima`를 사용합니다. 다른 이름이면 `wrangler.toml`의 name도 변경합니다.
-3. 해당 계정의 Cloudflare Pages 편집 권한을 가진 API 토큰을 발급합니다.
-4. GitHub 저장소 Settings → Secrets and variables → Actions에 아래 값을 등록합니다.
+Cloudflare Pages의 min-ima 프로젝트는 crucify87/MIN-IMA 저장소에 직접 연결되어 있습니다.
+main 브랜치에 push하면 Cloudflare가 빌드하고 배포합니다.
 
-| 종류 | 이름 | 값 |
-| --- | --- | --- |
-| Secret | `CLOUDFLARE_API_TOKEN` | Pages 편집 토큰 |
-| Variable | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 계정 ID |
-| Variable | `CLOUDFLARE_PAGES_PROJECT` | 실제 Pages 프로젝트명 |
+- 빌드 명령은 npm run build입니다.
+- 빌드 출력 디렉터리는 dist입니다.
+- 루트 디렉터리는 저장소 루트입니다.
+- 운영 주소는 https://min-ima.pages.dev 입니다.
 
-현재 저장소에는 계정 ID `8418799974abc85a9fb5a6640cbc817d`와 프로젝트명 `min-ima`가 기본값으로 설정되어 있습니다.
-두 Variable은 다른 계정이나 프로젝트로 변경할 때 사용하며, 같은 이름의 Secret으로 등록한 값도 지원합니다.
-API 토큰은 반드시 Secret에 등록해야 합니다.
-
-5. 설정을 GitHub에 반영한 뒤 Actions의 Build and deploy MIN IMA를 실행하거나 main에 push합니다.
-6. 실제 배포 도메인을 Firebase Authorized domains에 등록하고 로그인 및 데이터 조회를 확인합니다.
-
-이후 main push마다 타입 검사 → 빌드 → Pages 배포가 실행됩니다.
-Pull request에서는 검사와 빌드만 실행합니다.
-중복 배포를 피하려면 Cloudflare의 별도 Git 자동 빌드를 함께 활성화하지 않습니다.
-이 설정 파일만으로 계정 인증이나 Pages 프로젝트 생성이 완료되지는 않습니다.
-
-## 공식 문서
-
-- [Cloudflare Direct Upload](https://developers.cloudflare.com/pages/get-started/direct-upload/)
-- [Wrangler Action](https://github.com/cloudflare/wrangler-action)
-- [Firebase CLI](https://firebase.google.com/docs/cli)
+GitHub Actions는 타입 검사와 빌드 검증만 수행합니다.
+배포 상태와 로그는 Cloudflare의 Workers 및 Pages → min-ima → 배포에서 확인합니다.

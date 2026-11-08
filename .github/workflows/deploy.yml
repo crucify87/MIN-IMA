@@ -1,4 +1,4 @@
-name: Build and deploy MIN IMA
+name: Check MIN IMA
 on:
   push:
     branches: [main]
@@ -27,38 +27,3 @@ jobs:
           name: web-dist
           path: dist
           if-no-files-found: error
-  deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: dist
-      - name: Check deployment configuration
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID || '8418799974abc85a9fb5a6640cbc817d' }}
-          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || secrets.CLOUDFLARE_PAGES_PROJECT || 'min-ima' }}
-        run: |
-          for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_PAGES_PROJECT; do
-            if [ -z "${!key}" ]; then
-              echo "::error::Missing GitHub Actions setting: $key (see DEPLOYMENT.md)"
-              exit 1
-            fi
-          done
-          if [ "${#CLOUDFLARE_API_TOKEN}" -lt 20 ]; then
-            echo "::error::CLOUDFLARE_API_TOKEN is too short (${#CLOUDFLARE_API_TOKEN} characters). Save the generated token value, not its name or ID."
-            exit 1
-          fi
-          if [[ "$CLOUDFLARE_API_TOKEN" =~ [[:space:]] ]]; then
-            echo "::error::CLOUDFLARE_API_TOKEN contains whitespace or a newline. Copy only the token value."
-            exit 1
-          fi
-      - uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID || '8418799974abc85a9fb5a6640cbc817d' }}
-          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || secrets.CLOUDFLARE_PAGES_PROJECT || 'min-ima' }} --branch=main
