@@ -825,26 +825,6 @@ function SettingsContent({
           <h1 className="text-3xl md:text-5xl font-black text-[#0f172a] tracking-tighter">설정</h1>
         </div>
 
-        {/* SKU Reference Guide */}
-        <div className="flex items-center gap-4 lg:gap-6 ml-auto bg-white/50 px-4 py-2.5 md:py-3 rounded-xl md:rounded-2xl border border-outline-variant/50 backdrop-blur-sm overflow-x-auto no-scrollbar max-w-full">
-          <div className="text-[8px] md:text-[10px] font-black text-outline uppercase tracking-widest mr-2 whitespace-nowrap">SKU 가이드:</div>
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[8px] md:text-[10px] font-black">O</span>
-            <span className="text-[10px] md:text-[11px] font-bold text-slate-500">부속</span>
-          </div>
-          <div className="flex items-center gap-2 border-l border-outline-variant/30 pl-3 md:pl-4 whitespace-nowrap">
-            <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded text-[8px] md:text-[10px] font-black">P</span>
-            <span className="text-[10px] md:text-[11px] font-bold text-rose-500">돼지</span>
-          </div>
-          <div className="flex items-center gap-2 border-l border-outline-variant/30 pl-3 md:pl-4 whitespace-nowrap">
-            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-[8px] md:text-[10px] font-black">C</span>
-            <span className="text-[10px] md:text-[11px] font-bold text-amber-700">소</span>
-          </div>
-          <div className="flex items-center gap-2 border-l border-outline-variant/30 pl-3 md:pl-4 whitespace-nowrap">
-            <span className="px-2 py-0.5 bg-sky-50 text-sky-600 rounded text-[8px] md:text-[10px] font-black">R</span>
-            <span className="text-[10px] md:text-[11px] font-bold text-sky-500">원육</span>
-          </div>
-        </div>
       </header>
 
       <div className="flex flex-nowrap bg-[#f1f4f9] p-1.5 rounded-2xl border border-outline-variant/30 w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth gap-1">
