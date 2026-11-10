@@ -727,7 +727,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
 
     const firstRow = [
       { 
-        label: '원육 총 재고', 
+        label: '총 재고',
         values: rawMeatEntry ? rawMeatEntry[1] : {}, 
         isCategory: true 
       },
@@ -748,7 +748,7 @@ function DashboardContent({ inventory, production, logistics, partners, onNaviga
   const StatCard = ({ stat, idx }: { stat: any, idx: number, key?: string }) => {
     const handleCardClick = () => {
       if (stat.isCategory || stat.label.includes('재고')) {
-        const category = stat.label === '원육' || stat.label === '원육 총 재고' ? '원육' : (stat.isCategory ? stat.label : null);
+        const category = stat.label === '원육' || stat.label === '총 재고' ? '원육' : (stat.isCategory ? stat.label : null);
         onNavigate('inventory', category);
       } else if (stat.label.includes('입고') || stat.label.includes('출고')) {
         onNavigate('logistics');
