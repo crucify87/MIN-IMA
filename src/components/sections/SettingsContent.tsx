@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { 
   ArrowLeft,
   Package,
@@ -17,6 +18,7 @@ import {
   Settings,
   Image as ImageIcon,
   Upload,
+  Download,
   AlertTriangle,
   MapPin,
   Scale,
@@ -561,6 +563,31 @@ function SettingsContent({
     setEditingPartnerId(p.id);
     setPartnerForm({ name: p.name, type: p.type || '공급사', phone: p.phone || '', address: p.address || '' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleExportPartners = () => {
+    if (!partners?.length) return;
+    try {
+      const rows = [...partners]
+        .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'ko'))
+        .map((partner: any, index: number) => ({
+          '번호': index + 1,
+          '거래처명': String(partner.name || ''),
+          '유형': String(partner.type || ''),
+          '연락처': String(partner.phone || ''),
+          '주소': String(partner.address || ''),
+        }));
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      sheet['!cols'] = [{ wch: 8 }, { wch: 38 }, { wch: 12 }, { wch: 20 }, { wch: 80 }];
+      sheet['!autofilter'] = { ref: sheet['!ref']! };
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, sheet, '전체 거래처');
+      const date = new Date().toLocaleDateString('sv-SE');
+      XLSX.writeFile(workbook, `MIN_IMA_전체거래처_${date}.xlsx`);
+    } catch (error) {
+      console.error('Partner Excel export failed:', error);
+      alert('거래처 엑셀 다운로드 중 오류가 발생했습니다. 다시 시도해 주세요.');
+    }
   };
 
   const handleDeletePartner = async (id: string, name: string) => {
@@ -1566,6 +1593,14 @@ function SettingsContent({
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div><h3 className="text-xl md:text-2xl font-black text-[#0f172a]">거래처</h3></div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleExportPartners}
+                      disabled={!partners?.length}
+                      className="flex items-center justify-center gap-2 px-5 h-12 bg-primary text-white rounded-2xl text-xs sm:text-sm font-black whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Download className="w-4 h-4" />전체 거래처 엑셀
+                    </button>
                     <div className="relative group flex-1 sm:w-80">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                       <input type="text" placeholder="거래처명 검색..." value={partnerSearch} onChange={(e) => setPartnerSearch(e.target.value)} className="w-full h-12 pl-11 pr-4 bg-white border border-outline-variant rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-primary focus:bg-slate-50 transition-all shadow-sm" />
